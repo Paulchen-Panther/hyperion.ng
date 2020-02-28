@@ -74,7 +74,7 @@ void Hyperion::start()
 
 	if (!_raw2ledAdjustment->verifyAdjustments())
 	{
-		Warning(_log, "At least one led has no color calibration, please add all leds from your led layout to an 'LED index' field!");
+		Warning(_log, "@ least one led has no color calibration, please add all leds from your led layout to an 'LED index' field!");
 	}
 
 	// handle hwLedCount
