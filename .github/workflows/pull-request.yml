@@ -25,7 +25,6 @@ jobs:
           token: ${{ secrets.HYPERION_TOKEN }}
           issue-number: ${{ github.event.pull_request.number }}
           body: |
-            ---
             Hello ${{ github.event.pull_request.user.login }} :wave:
 
             I'm your friendly neighborhood bot and would like to say thank you for
