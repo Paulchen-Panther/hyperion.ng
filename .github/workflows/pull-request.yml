@@ -15,11 +15,11 @@ jobs:
     name: Create PR comment
     steps:
       - name: Checkout
-        if: success() && github.repository == 'hyperion-project/hyperion.ng' && github.event_name == 'pull_request' && github.ref == 'refs/heads/master' && (github.event.action == 'opened' || github.event.action == 'synchronize')
+        if: success() && github.event_name == 'pull_request' && github.ref == 'refs/heads/master' && (github.event.action == 'opened' || github.event.action == 'synchronize')
         uses: actions/checkout@v1
 
       - name: Opened
-        if: success() && github.repository == 'hyperion-project/hyperion.ng' && github.event_name == 'pull_request' && github.ref == 'refs/heads/master' && github.event.action == 'opened'
+        if: success() && github.event_name == 'pull_request' && github.ref == 'refs/heads/master' && github.event.action == 'opened'
         uses: peter-evans/create-or-update-comment@v1.0.0
         with:
           token: ${{ secrets.HYPERION_TOKEN }}
@@ -41,7 +41,7 @@ jobs:
             Hyperion-Bot
 
       - name: Synchronized
-        if: success() && github.repository == 'hyperion-project/hyperion.ng' && github.event_name == 'pull_request' && github.ref == 'refs/heads/master' && github.event.action == 'synchronize'
+        if: success() && github.event_name == 'pull_request' && github.ref == 'refs/heads/master' && github.event.action == 'synchronize'
         uses: peter-evans/create-or-update-comment@v1.0.0
         with:
           token: ${{ secrets.HYPERION_TOKEN }}
