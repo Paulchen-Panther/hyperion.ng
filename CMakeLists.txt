@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.0.0)
 
-message( STATUS "CMake Version: ${CMAKE_VERSION}" BOT TEST 1000)
+message( STATUS "CMake Version: ${CMAKE_VERSION}" BOT TEST 2000)
 
 PROJECT(hyperion)
 
