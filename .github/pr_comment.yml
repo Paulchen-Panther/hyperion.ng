@@ -6,7 +6,7 @@ PullRequest:
     submitting a pull request to Hyperion!
 
     To help you and other users test your changes faster,
-    see [GitHub Actions](https://github.com/$REPO_FULL_NAME/actions/runs/@$RUN_ID) for finished workflow artifacts.
+    see [GitHub Actions](https://github.com/$REPO_FULL_NAME/actions/runs/$RUN_ID) for finished workflow artifacts.
 
     If you make changes to your PR, i create a new link to your workflow
     artifacts for each commit.
@@ -15,5 +15,5 @@ PullRequest:
     Hyperion-Project
   synchronize: |
     I have a new link to your workflow artifacts for you:
-    [GitHub Actions](https://github.com/$REPO_FULL_NAME/actions/runs/@$RUN_ID)
+    [GitHub Actions](https://github.com/$REPO_FULL_NAME/actions/runs/$RUN_ID)
       
