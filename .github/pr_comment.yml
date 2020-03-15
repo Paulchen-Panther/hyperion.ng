@@ -13,6 +13,5 @@ PullRequest:
     Best regards,
     Hyperion-Project [bot]
   synchronize: |
-    I have a new link to your workflow artifacts for you:
-    [GitHub Actions](https://github.com/$REPO_FULL_NAME/actions/runs/$RUN_ID)
+    [Here](https://github.com/$REPO_FULL_NAME/actions/runs/$RUN_ID) is your new link to your workflow artifacts.
       
