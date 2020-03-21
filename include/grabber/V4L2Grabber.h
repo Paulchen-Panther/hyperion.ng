@@ -15,11 +15,21 @@
 #include <grabber/VideoStandard.h>
 #include <utils/Components.h>
 
-#ifdef HAVE_JPEG
+// general JPEG decoder includes
+#ifdef HAVE_JPEG_DECODER
 	#include <QImage>
 	#include <QColor>
+#endif
+
+// System JPEG decoder
+#ifdef HAVE_JPEG
 	#include <jpeglib.h>
 	#include <csetjmp>
+#endif
+
+// TurboJPEG decoder
+#ifdef HAVE_TURBO_JPEG
+	#include <turbojpeg.h>
 #endif
 
 /// Capture class for V4L2 devices
@@ -173,6 +183,11 @@ private:
 
 	jpeg_decompress_struct* _decompress;
 	errorManager* _error;
+#endif
+
+#ifdef HAVE_TURBO_JPEG
+	tjhandle _decompress = nullptr;
+	int _subsamp;
 #endif
 
 private:
