@@ -14,17 +14,17 @@ $(document).ready( function() {
 
 	if(window.showOptHelp)
 	{
-		//fg
+		// Instance Capture
 		$('#conf_cont').append(createRow('conf_cont_instCapt'));
 		$('#conf_cont_instCapt').append(createOptPanel('fa-camera', $.i18n("edt_conf_instCapture_heading_title"), 'editor_container_instCapt', 'btn_submit_instCapt'));
 		$('#conf_cont_instCapt').append(createHelpTable(window.schema.instCapture.properties, $.i18n("edt_conf_instCapture_heading_title")));
 
-		//fg
+		// Framegrabber
 		$('#conf_cont').append(createRow('conf_cont_fg'));
 		$('#conf_cont_fg').append(createOptPanel('fa-camera', $.i18n("edt_conf_fg_heading_title"), 'editor_container_fg', 'btn_submit_fg'));
 		$('#conf_cont_fg').append(createHelpTable(window.schema.framegrabber.properties, $.i18n("edt_conf_fg_heading_title")));
 
-		//v4l
+		// V4L2
 		$('#conf_cont').append(createRow('conf_cont_v4l'));
 		$('#conf_cont_v4l').append(createOptPanel('fa-camera', $.i18n("edt_conf_v4l2_heading_title"), 'editor_container_v4l2', 'btn_submit_v4l2'));
 		$('#conf_cont_v4l').append(createHelpTable(window.schema.grabberV4L2.properties, $.i18n("edt_conf_v4l2_heading_title")));
@@ -36,7 +36,7 @@ $(document).ready( function() {
 		$('#conf_cont').append(createOptPanel('fa-camera', $.i18n("edt_conf_fg_heading_title"), 'editor_container_fg', 'btn_submit_fg'));
 		$('#conf_cont').append(createOptPanel('fa-camera', $.i18n("edt_conf_v4l2_heading_title"), 'editor_container_v4l2', 'btn_submit_v4l2'));
 	}
-	//instCapt
+	// Instance Capture
 	conf_editor_instCapt = createJsonEditor('editor_container_instCapt', {
 		instCapture: window.schema.instCapture
 	}, true, true);
@@ -50,7 +50,7 @@ $(document).ready( function() {
 	});
 
 
-	//fg
+	// Framegrabber
 	conf_editor_fg = createJsonEditor('editor_container_fg', {
 		framegrabber: window.schema.framegrabber
 	}, true, true);
@@ -63,7 +63,24 @@ $(document).ready( function() {
 		requestWriteConfig(conf_editor_fg.getValue());
 	});
 
-	//vl4
+	// V4L2
+
+	// Build dynamic enum schema parts
+	var buildSchemaPart = function(enums, type, key, title, order) {
+    var auto = ["Auto"];
+		var enumVals = auto.concat(JSON.parse(JSON.stringify(enums)));
+		window.schema.grabberV4L2.properties[key] = {
+			"type": type,
+			"title": title,
+			"enum": enumVals,
+			"options" : {
+				"enum_titles" : ["edt_conf_enum_automatic"]
+			},
+			"propertyOrder" : order,
+			"required" : true
+		};
+	};
+
 	conf_editor_v4l2 = createJsonEditor('editor_container_v4l2', {
 		grabberV4L2 : window.schema.grabberV4L2
 	}, true, true);
@@ -72,7 +89,20 @@ $(document).ready( function() {
 		conf_editor_v4l2.validate().length ? $('#btn_submit_v4l2').attr('disabled', true) : $('#btn_submit_v4l2').attr('disabled', false);
 	});
 
+	conf_editor_v4l2.on('ready', function() {
+		buildSchemaPart(window.serverInfo.grabbers.v4l2_properties.resolutions, 'string', 'resolution', 'edt_conf_fg_resolution_title', 3);
+		buildSchemaPart(window.serverInfo.grabbers.v4l2_properties.framerates, 'string', 'framerate', 'edt_conf_fg_framerate_title', 4);
+
+		if (conf_editor_v4l2)
+			conf_editor_v4l2.destroy();
+
+		conf_editor_v4l2 = createJsonEditor('editor_container_v4l2', {
+			grabberV4L2 : window.schema.grabberV4L2
+		}, true, true);
+	});
+
 	$('#btn_submit_v4l2').off().on('click',function() {
+    console.log(conf_editor_v4l2.getValue());
 		requestWriteConfig(conf_editor_v4l2.getValue());
 	});
 

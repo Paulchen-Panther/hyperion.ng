@@ -219,3 +219,19 @@ void GrabberWrapper::tryStart()
 		start();
 	}
 }
+
+QStringList GrabberWrapper::getResolutions()
+{
+	if(_grabberName.startsWith("V4L"))
+		return _ggrabber->getResolutions();
+
+	return QStringList();
+}
+
+QList<int> GrabberWrapper::getFramerates()
+{
+	if(_grabberName.startsWith("V4L"))
+		return _ggrabber->getFramerates();
+
+	return QList<int>();
+}

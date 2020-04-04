@@ -48,7 +48,7 @@ public:
 			PixelFormat pixelFormat,
 			int pixelDecimation
 	);
-	virtual ~V4L2Grabber();
+	~V4L2Grabber() override;
 
 	QRectF getSignalDetectionOffset()
 	{
@@ -63,49 +63,54 @@ public:
 	/// @brief  set new PixelDecimation value to ImageResampler
 	/// @param  pixelDecimation  The new pixelDecimation value
 	///
-	virtual void setPixelDecimation(int pixelDecimation);
+	void setPixelDecimation(int pixelDecimation) override;
 
 	///
 	/// @brief  overwrite Grabber.h implementation
 	///
-	virtual void setSignalThreshold(
+	void setSignalThreshold(
 					double redSignalThreshold,
 					double greenSignalThreshold,
 					double blueSignalThreshold,
-					int noSignalCounterThreshold = 50);
+					int noSignalCounterThreshold = 50) override;
 
 	///
 	/// @brief  overwrite Grabber.h implementation
 	///
-	virtual void setSignalDetectionOffset(
+	void setSignalDetectionOffset(
 					double verticalMin,
 					double horizontalMin,
 					double verticalMax,
-					double horizontalMax);
+					double horizontalMax) override;
 	///
 	/// @brief  overwrite Grabber.h implementation
 	///
-	virtual void setSignalDetectionEnable(bool enable);
+	void setSignalDetectionEnable(bool enable) override;
 
 	///
 	/// @brief overwrite Grabber.h implementation
 	///
-	virtual void setDeviceVideoStandard(QString device, VideoStandard videoStandard);
+	void setDeviceVideoStandard(QString device, VideoStandard videoStandard) override;
 
 	///
 	/// @brief overwrite Grabber.h implementation
 	///
-	virtual bool setFramerate(int fps);
+	bool setFramerate(int fps) override;
 
 	///
 	/// @brief overwrite Grabber.h implementation
 	///
-	virtual bool setWidthHeight(int width, int height);
+	bool setWidthHeight(int width, int height) override;
 
 	///
-	/// @brief overwrite GrabberWrapper.h implementation
+	/// @brief overwrite Grabber.h implementation
 	///
-	virtual QStringList getV4L2Resolution();
+	QStringList getResolutions() override { return _availableResolutions; }
+
+	///
+	/// @brief overwrite Grabber.h implementation
+	///
+	QList<int> getFramerates() override { return _availableFramerates; }
 
 public slots:
 
@@ -203,12 +208,14 @@ private:
 
 private:
 	QString _deviceName;
-	std::map<QString,QString> _v4lDevices;
-	int                 _input;
-	VideoStandard       _videoStandard;
-	io_method           _ioMethod;
-	int                 _fileDescriptor;
-	std::vector<buffer> _buffers;
+	std::map<QString,QString>	_v4lDevices;
+	QStringList					_availableResolutions;
+	QList<int>					_availableFramerates;
+	int							_input;
+	VideoStandard				_videoStandard;
+	io_method					_ioMethod;
+	int							_fileDescriptor;
+	std::vector<buffer>			_buffers;
 
 	PixelFormat _pixelFormat;
 	int         _pixelDecimation;
@@ -230,4 +237,7 @@ private:
 
 	bool _initialized;
 	bool _deviceAutoDiscoverEnabled;
+
+protected:
+	void enumFrameIntervals(int pixelformat, int width, int height);
 };

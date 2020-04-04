@@ -591,11 +591,12 @@ void V4L2Grabber::init_device(VideoStandard videoStandard, int input)
 			break;
 	}
 
-	// collect available device resolutions
-	v4l2_frmsizeenum frmsizeenum;
+	// collect available device resolutions & frame rates
+	struct v4l2_frmsizeenum frmsizeenum;
 	CLEAR(frmsizeenum);
 
-	QString v4lDevice_res;
+	_availableResolutions.clear();
+	_availableFramerates.clear();
 	frmsizeenum.index = 0;
 	frmsizeenum.pixel_format = fmt.fmt.pix.pixelformat;
 	while (xioctl(VIDIOC_ENUM_FRAMESIZES, &frmsizeenum) >= 0)
@@ -603,7 +604,10 @@ void V4L2Grabber::init_device(VideoStandard videoStandard, int input)
 		switch (frmsizeenum.type)
 		{
 			case V4L2_FRMSIZE_TYPE_DISCRETE:
-				v4lDevice_res += "\t"+ QString::number(frmsizeenum.discrete.width) + "x" + QString::number(frmsizeenum.discrete.height) + "\n";
+			{
+				_availableResolutions << QString::number(frmsizeenum.discrete.width) + "x" + QString::number(frmsizeenum.discrete.height);
+				enumFrameIntervals(fmt.fmt.pix.pixelformat, frmsizeenum.discrete.width, frmsizeenum.discrete.height);
+			}
 			break;
 			case V4L2_FRMSIZE_TYPE_CONTINUOUS:
 			case V4L2_FRMSIZE_TYPE_STEPWISE:
@@ -612,17 +616,14 @@ void V4L2Grabber::init_device(VideoStandard videoStandard, int input)
 				{
 					for(unsigned int x = frmsizeenum.stepwise.min_width; x <= frmsizeenum.stepwise.max_width; x += frmsizeenum.stepwise.step_width)
 					{
-						v4lDevice_res += "\t"+ QString::number(x) + "x" + QString::number(y) + "\n";
+						_availableResolutions << QString::number(x) + "x" + QString::number(y);
+						enumFrameIntervals(fmt.fmt.pix.pixelformat, x, y);
 					}
 				}
 			}
 		}
 		frmsizeenum.index++;
 	}
-
-	// print available device resolutions in debug mode
-	if (!v4lDevice_res.isEmpty())
-		Debug(_log, "available V4L2 resolutions:\n%s", QSTRING_CSTR(v4lDevice_res));
 
 	// set custom resolution for width and height if they are not zero
 	if(_width && _height)
@@ -650,11 +651,19 @@ void V4L2Grabber::init_device(VideoStandard videoStandard, int input)
 	CLEAR(streamparms);
 
 	streamparms.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-	streamparms.parm.capture.timeperframe.numerator = 1;
-	streamparms.parm.capture.timeperframe.denominator = _fps;
-	(-1 == xioctl(VIDIOC_S_PARM, &streamparms))
-	?	Debug(_log, "Frame rate settings not supported.")
-	:	Debug(_log, "Set framerate to %d fps", _fps);
+	// Check that the driver knows about framerate get/set
+	if (xioctl(VIDIOC_G_PARM, &streamparms) >= 0)
+	{
+		// Check if the device is able to accept a capture framerate set.
+		if (streamparms.parm.capture.capability == V4L2_CAP_TIMEPERFRAME)
+		{
+			streamparms.parm.capture.timeperframe.numerator = 1;
+			streamparms.parm.capture.timeperframe.denominator = _fps;
+			(-1 == xioctl(VIDIOC_S_PARM, &streamparms))
+			?	Debug(_log, "Frame rate settings not supported.")
+			:	Debug(_log, "Set framerate to %d fps", _fps);
+		}
+	}
 
 	// set the line length
 	_lineLength = fmt.fmt.pix.bytesperline;
@@ -1170,6 +1179,47 @@ int V4L2Grabber::xioctl(int request, void *arg)
 	return r;
 }
 
+void V4L2Grabber::enumFrameIntervals(int pixelformat, int width, int height)
+{
+	// collect available frame rates
+	struct v4l2_frmivalenum frmivalenum;
+	CLEAR(frmivalenum);
+
+	frmivalenum.index = 0;
+	frmivalenum.pixel_format = pixelformat;
+	frmivalenum.width = width;
+	frmivalenum.height = height;
+
+	while (xioctl(VIDIOC_ENUM_FRAMEINTERVALS, &frmivalenum) >= 0)
+	{
+		int rate;
+		switch (frmivalenum.type)
+		{
+			case V4L2_FRMSIZE_TYPE_DISCRETE:
+			{
+				if (frmivalenum.discrete.numerator != 0)
+				{
+					rate = frmivalenum.discrete.denominator / frmivalenum.discrete.numerator;
+					if (!_availableFramerates.contains(rate))
+						_availableFramerates.append(rate);
+				}
+			}
+			break;
+			case V4L2_FRMSIZE_TYPE_CONTINUOUS:
+			case V4L2_FRMSIZE_TYPE_STEPWISE:
+			{
+				if (frmivalenum.stepwise.min.denominator != 0)
+				{
+					rate = frmivalenum.stepwise.min.denominator / frmivalenum.stepwise.min.numerator;
+					if (!_availableFramerates.contains(rate))
+						_availableFramerates.append(rate);
+				}
+			}
+		}
+		frmivalenum.index++;
+	}
+}
+
 void V4L2Grabber::setSignalDetectionEnable(bool enable)
 {
 	if (_signalDetectionEnabled != enable)
@@ -1228,50 +1278,4 @@ bool V4L2Grabber::setWidthHeight(int width, int height)
 		return true;
 	}
 	return false;
-}
-
-QStringList V4L2Grabber::getV4L2Resolution()
-{
-	if(_initialized)
-	{
-		// get the current settings
-		struct v4l2_format fmt;
-		CLEAR(fmt);
-
-		fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-		xioctl(VIDIOC_G_FMT, &fmt);
-
-		// collect available device resolutions
-		v4l2_frmsizeenum frmsizeenum;
-		CLEAR(frmsizeenum);
-
-		QStringList ret;
-		frmsizeenum.index = 0;
-		frmsizeenum.pixel_format = fmt.fmt.pix.pixelformat;
-		while (xioctl(VIDIOC_ENUM_FRAMESIZES, &frmsizeenum) >= 0)
-		{
-			switch (frmsizeenum.type)
-			{
-				case V4L2_FRMSIZE_TYPE_DISCRETE:
-					ret << QString::number(frmsizeenum.discrete.width) + "x" + QString::number(frmsizeenum.discrete.height);
-				break;
-				case V4L2_FRMSIZE_TYPE_CONTINUOUS:
-				case V4L2_FRMSIZE_TYPE_STEPWISE:
-				{
-					for(unsigned int y = frmsizeenum.stepwise.min_height; y <= frmsizeenum.stepwise.max_height; y += frmsizeenum.stepwise.step_height)
-					{
-						for(unsigned int x = frmsizeenum.stepwise.min_width; x <= frmsizeenum.stepwise.max_width; x += frmsizeenum.stepwise.step_width)
-						{
-							ret << QString::number(x) + "x" + QString::number(y);
-						}
-					}
-				}
-			}
-			frmsizeenum.index++;
-		}
-
-		return ret;
-	}
-
-	return QStringList();
 }

@@ -27,32 +27,32 @@
 		"width" :
 		{
 			"type" : "integer",
-			"title" : "edt_conf_fg_width_title",
 			"default" : 0,
 			"minimum" : 0,
 			"required" : true,
-			"access" : "expert",
-			"propertyOrder" : 3
+			"options" : {
+				"hidden":true
+			}
 		},
 		"height" :
 		{
 			"type" : "integer",
-			"title" : "edt_conf_fg_height_title",
 			"default" : 0,
 			"minimum" : 0,
 			"required" : true,
-			"access" : "expert",
-			"propertyOrder" : 4
+			"options" : {
+				"hidden":true
+			}
 		},
 		"fps" :
 		{
 			"type" : "integer",
-			"title" : "Framerate",
 			"default" : 15,
 			"minimum" : 1,
 			"required" : true,
-			"access" : "expert",
-			"propertyOrder" : 5
+			"options" : {
+				"hidden":true
+			}
 		},
 		"sizeDecimation" :
 		{
@@ -62,7 +62,7 @@
 			"maximum" : 30,
 			"default" : 6,
 			"required" : true,
-			"propertyOrder" : 6
+			"propertyOrder" : 5
 		},
 		"cropLeft" :
 		{
@@ -72,7 +72,7 @@
 			"default" : 0,
 			"append" : "edt_append_pixel",
 			"required" : true,
-			"propertyOrder" : 7
+			"propertyOrder" : 6
 		},
 		"cropRight" :
 		{
@@ -82,7 +82,7 @@
 			"default" : 0,
 			"append" : "edt_append_pixel",
 			"required" : true,
-			"propertyOrder" : 8
+			"propertyOrder" : 7
 		},
 		"cropTop" :
 		{
@@ -92,7 +92,7 @@
 			"default" : 0,
 			"append" : "edt_append_pixel",
 			"required" : true,
-			"propertyOrder" : 9
+			"propertyOrder" : 8
 		},
 		"cropBottom" :
 		{
@@ -102,7 +102,7 @@
 			"default" : 0,
 			"append" : "edt_append_pixel",
 			"required" : true,
-			"propertyOrder" : 10
+			"propertyOrder" : 9
 		},
 		"signalDetection" :
 		{
@@ -110,7 +110,7 @@
 			"title" : "edt_conf_v4l2_signalDetection_title",
 			"default" : false,
 			"required" : true,
-			"propertyOrder" : 11
+			"propertyOrder" : 10
 		},
 		"redSignalThreshold" :
 		{
@@ -126,7 +126,7 @@
 				}
 			},
 			"required" : true,
-			"propertyOrder" : 12
+			"propertyOrder" : 11
 		},
 		"greenSignalThreshold" :
 		{
@@ -142,7 +142,7 @@
 				}
 			},
 			"required" : true,
-			"propertyOrder" : 13
+			"propertyOrder" : 12
 		},
 		"blueSignalThreshold" :
 		{
@@ -158,7 +158,7 @@
 				}
 			},
 			"required" : true,
-			"propertyOrder" : 14
+			"propertyOrder" : 13
 		},
 		"sDVOffsetMin" :
 		{
@@ -174,7 +174,7 @@
 				}
 			},
 			"required" : true,
-			"propertyOrder" : 15
+			"propertyOrder" : 14
 		},
 		"sDVOffsetMax" :
 		{
@@ -190,7 +190,7 @@
 				}
 			},
 			"required" : true,
-			"propertyOrder" : 16
+			"propertyOrder" : 15
 		},
 		"sDHOffsetMin" :
 		{
@@ -206,7 +206,7 @@
 				}
 			},
 			"required" : true,
-			"propertyOrder" : 17
+			"propertyOrder" : 16
 		},
 		"sDHOffsetMax" :
 		{
@@ -222,7 +222,7 @@
 				}
 			},
 			"required" : true,
-			"propertyOrder" : 18
+			"propertyOrder" : 17
 		}
 	},
 	"additionalProperties" : true
