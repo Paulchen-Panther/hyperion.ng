@@ -4,6 +4,72 @@ $(document).ready( function() {
 	var conf_editor_fg = null;
 	var conf_editor_instCapt = null;
 
+	// Dynamic v4l2 enum schema
+	var v4l2_dynamic_enum_schema = {
+		"resolution":
+		{
+			"enumVals" : 'serverInfo.grabbers.v4l2_properties.resolutions',
+			"type": "string",
+			"title": "edt_conf_fg_resolution_title",
+			"propertyOrder" : 3,
+			"required" : true
+		},
+		"framerate":
+		{
+			"enumVals" : 'serverInfo.grabbers.v4l2_properties.framerates',
+			"type": "string",
+			"title": "edt_conf_fg_framerate_title",
+			"propertyOrder" : 6,
+			"required" : true
+    }
+  };
+
+	// Build dynamic v4l2 enum schema parts
+	var buildSchemaPart = function(key, schema) {
+		if (schema[key] && schema[key].enumVals) {
+			var enumVals = JSON.parse(JSON.stringify(eval(schema[key].enumVals)));
+
+			window.schema.grabberV4L2.properties[key] = {
+				"type": schema[key].type,
+				"title": schema[key].title,
+				"enum": [].concat(["auto"], enumVals, ["custom"]),
+				"options" : {
+					"enum_titles" : [].concat(["edt_conf_enum_automatic"], enumVals, ["edt_conf_enum_custom"]),
+				},
+				"propertyOrder" : schema[key].propertyOrder,
+				"required" : schema[key].required
+			};
+    }
+	};
+
+	// Watch all v4l2 dynamic fields
+	var setWatchers = function(schema) {
+		var path = 'root.grabberV4L2.';
+		Object.keys(schema).forEach(function(key) {
+
+			conf_editor_v4l2.watch(path + key, function() {
+				var ed = conf_editor_v4l2.getEditor(path + key);
+				var val = ed.getValue();
+
+				/////////////////////////////////////////// TODO ///////////////////////////////////////////////////////
+				// 1. Unterscheide welcher key ausgewählt ist | if (key == 'resolution') else if (key == 'framerate')
+				// 2. Unterscheide ob auto/custom oder etwas anderes ausgewählt ist | if (val == auto || val == custom) else ...
+				// 3. Wenn auto/custom NICHT ausgewählt ist:
+				//   - breite/höhe oder fps feld ausblenden
+				//   - resolution oder framerate feld auslesen und in breite/höhe oder fps feld übertragen
+				// 4. Wenn auto/custom ausgewählt ist:
+				//   - auto = breite/höhe oder fps feld ausblenden
+				//   - custom = breite/höhe oder fps feld einblenden
+				////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+			});
+
+		});
+	};
+
+	buildSchemaPart('resolution', v4l2_dynamic_enum_schema);
+	buildSchemaPart('framerate', v4l2_dynamic_enum_schema);
+
 	function hideEl(el)
 	{
 		for(var i = 0; i<el.length; i++)
@@ -49,7 +115,6 @@ $(document).ready( function() {
 		requestWriteConfig(conf_editor_instCapt.getValue());
 	});
 
-
 	// Framegrabber
 	conf_editor_fg = createJsonEditor('editor_container_fg', {
 		framegrabber: window.schema.framegrabber
@@ -64,23 +129,6 @@ $(document).ready( function() {
 	});
 
 	// V4L2
-
-	// Build dynamic enum schema parts
-	var buildSchemaPart = function(enums, type, key, title, order) {
-    var auto = ["Auto"];
-		var enumVals = auto.concat(JSON.parse(JSON.stringify(enums)));
-		window.schema.grabberV4L2.properties[key] = {
-			"type": type,
-			"title": title,
-			"enum": enumVals,
-			"options" : {
-				"enum_titles" : ["edt_conf_enum_automatic"]
-			},
-			"propertyOrder" : order,
-			"required" : true
-		};
-	};
-
 	conf_editor_v4l2 = createJsonEditor('editor_container_v4l2', {
 		grabberV4L2 : window.schema.grabberV4L2
 	}, true, true);
@@ -90,19 +138,17 @@ $(document).ready( function() {
 	});
 
 	conf_editor_v4l2.on('ready', function() {
-		buildSchemaPart(window.serverInfo.grabbers.v4l2_properties.resolutions, 'string', 'resolution', 'edt_conf_fg_resolution_title', 3);
-		buildSchemaPart(window.serverInfo.grabbers.v4l2_properties.framerates, 'string', 'framerate', 'edt_conf_fg_framerate_title', 4);
-
-		if (conf_editor_v4l2)
-			conf_editor_v4l2.destroy();
-
-		conf_editor_v4l2 = createJsonEditor('editor_container_v4l2', {
-			grabberV4L2 : window.schema.grabberV4L2
-		}, true, true);
+		setWatchers(v4l2_dynamic_enum_schema);
 	});
 
 	$('#btn_submit_v4l2').off().on('click',function() {
-    console.log(conf_editor_v4l2.getValue());
+		/////////////////////////////////////////// TODO ///////////////////////////////////////////////////////
+		// 1. Neue variable erstellen
+		// 2. v4l2 config in neue variable übertragen
+		// 3. 'v4l2_dynamic_enum_schema' keys aus neuer variable entfernen
+		// 4. neue variable abspeichern (requestWriteConfig)
+		////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 		requestWriteConfig(conf_editor_v4l2.getValue());
 	});
 
