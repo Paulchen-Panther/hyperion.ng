@@ -2,7 +2,6 @@ name: Hyperion PR Build
 on:
   pull_request:
     branches:
-      - master
 
 jobs:
 
@@ -114,3 +113,47 @@ jobs:
         with:
           name: macOS.zip
           path: macOS
+
+######################
+###### Windows #######
+######################
+
+  windows:
+    name: Windows
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+        with:
+          submodules: true
+
+      # Append PR number to version
+      - name: Append PR number to version
+        shell: bash
+        run: echo -n "-PR#${{ github.event.pull_request.number }}" >> version
+
+      # Install dependencies
+      - name: Install dependencies
+        shell: bash
+        run: ./.ci/ci_install.sh
+
+      # Build packages
+      - name: Build packages
+        env:
+          PLATFORM: windows
+        shell: bash
+        run: ./.ci/ci_build.sh
+
+      # Collecting deployable artifacts
+      - name: Collecting deployable artifacts
+        shell: bash
+        run: |
+          mkdir -p windows
+          mv build/*.tar.gz windows
+
+      # Upload artifacts
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v1
+        with:
+          name: windows.zip
+          path: windows
