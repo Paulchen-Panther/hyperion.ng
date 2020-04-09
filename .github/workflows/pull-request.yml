@@ -1,5 +1,6 @@
 name: Hyperion PR Build
 on:
+  push:
   pull_request:
     branches:
 
