@@ -31,7 +31,7 @@ function installAndUpgrade()
 		fi
 	done
 }
-echo "We are: $CI_NAME"
+
 # install osx deps for hyperion compile
 if [[ $CI_NAME == 'osx' || $CI_NAME == 'darwin' ]]; then
 	echo "Install dependencies"
@@ -41,7 +41,7 @@ if [[ $CI_NAME == 'osx' || $CI_NAME == 'darwin' ]]; then
 # github actions uname -> windows-2019 -> mingw64_nt-10.0-17763
 # TODO: Azure uname windows?
 elif [[ $CI_NAME == *"mingw64_nt"* ]]; then
-echo "Yes, we are Windows"
+	echo "Yes, we are Windows: $CI_NAME"
 # Windows has no dependency manager
 elif [[ $CI_NAME != 'linux' ]]; then
 	echo "Unsupported platform: $CI_NAME"

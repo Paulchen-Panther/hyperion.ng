@@ -117,7 +117,7 @@ elseif ( "${PLATFORM}" MATCHES "x11" )
 	endif()
 elseif ( "${PLATFORM}" STREQUAL "imx6" )
 	SET ( DEFAULT_FB         ON )
-elseif ( "${PLATFORM}" STREQUAL "windows" )
+elseif (WIN32)
 	SET ( DEFAULT_AVAHI    OFF)
 endif()
 
@@ -209,7 +209,7 @@ ENDIF ()
 
 # for python 3 the checkschema.py file must be rewritten
 # TODO on windows it can't resolve the path inside the file (Das System kann den angegebenen Pfad nicht finden: '\\schema\\schema-general.json')
-IF ( NOT "${PLATFORM}" STREQUAL "windows" )
+IF (WIN32)
 	EXECUTE_PROCESS (
 		COMMAND python test/jsonchecks/checkschema.py config/hyperion.config.json.default libsrc/hyperion/hyperion.schema.json
 		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
@@ -348,7 +348,7 @@ if (ENABLE_V4L2)
 		endif()
 	endif (TURBOJPEG_FOUND)
 
-	
+
 	if (TURBOJPEG_FOUND OR JPEG_FOUND)
 		add_definitions(-DHAVE_JPEG_DECODER)
 	endif()
