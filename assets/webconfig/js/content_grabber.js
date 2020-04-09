@@ -44,12 +44,43 @@ $(document).ready( function() {
 
 	// Watch all v4l2 dynamic fields
 	var setWatchers = function(schema) {
+		
 		var path = 'root.grabberV4L2.';
 		Object.keys(schema).forEach(function(key) {
 
 			conf_editor_v4l2.watch(path + key, function() {
 				var ed = conf_editor_v4l2.getEditor(path + key);
 				var val = ed.getValue();
+
+				if (ed.key == 'resolution')
+				{
+					
+					if (val != 'custom')
+					{
+						toggleOption('width', false);
+						toggleOption('height', false);
+					}
+					else
+					{
+						toggleOption('width', true);
+						toggleOption('height', true);
+					}
+
+				}
+
+				if (ed.key == 'framerate')
+				{
+					
+					if (val != 'custom')
+					{
+						toggleOption('fps', false);
+					}
+					else
+					{
+						toggleOption('fps', true);
+					}
+
+				}
 
 				/////////////////////////////////////////// TODO ///////////////////////////////////////////////////////
 				// 1. Unterscheide welcher key ausgewählt ist | if (key == 'resolution') else if (key == 'framerate')
@@ -76,6 +107,12 @@ $(document).ready( function() {
 		{
 			$('[data-schemapath*="root.framegrabber.'+el[i]+'"]').toggle(false);
 		}
+	}
+
+	function toggleOption(option, state)
+	{
+		$('[data-schemapath*="root.grabberV4L2.'+option+'"]').toggle(state);
+		$('[data-schemapath*="root.grabberV4L2.'+option+'"]').addClass('col-md-12');
 	}
 
 	if(window.showOptHelp)
@@ -139,6 +176,18 @@ $(document).ready( function() {
 
 	conf_editor_v4l2.on('ready', function() {
 		setWatchers(v4l2_dynamic_enum_schema);
+		
+		if (window.serverConfig.grabberV4L2.resolution == 'custom')
+		{
+			toggleOption('width', true);
+			toggleOption('height', true);
+		}
+
+		if (window.serverConfig.grabberV4L2.framerate == 'custom')
+		{
+			toggleOption('fps', true);
+		}
+		
 	});
 
 	$('#btn_submit_v4l2').off().on('click',function() {
@@ -148,8 +197,28 @@ $(document).ready( function() {
 		// 3. 'v4l2_dynamic_enum_schema' keys aus neuer variable entfernen
 		// 4. neue variable abspeichern (requestWriteConfig)
 		////////////////////////////////////////////////////////////////////////////////////////////////////////
+		var v4l2Options = conf_editor_v4l2.getValue()
 
-		requestWriteConfig(conf_editor_v4l2.getValue());
+		if (v4l2Options.grabberV4L2.resolution != 'custom' && v4l2Options.grabberV4L2.resolution != 'auto')
+		{
+			v4l2Options.grabberV4L2.width = v4l2Options.grabberV4L2.resolution.split('x')[0]; 
+			v4l2Options.grabberV4L2.height = v4l2Options.grabberV4L2.resolution.split('x')[1];
+		}
+
+		if (v4l2Options.grabberV4L2.resolution == 'auto')
+		{
+			v4l2Options.grabberV4L2.width = 0;
+			v4l2Options.grabberV4L2.height = 0;
+		}
+
+		if (v4l2Options.grabberV4L2.framerate != 'custom' && v4l2Options.grabberV4L2.framerate != 'auto')
+			v4l2Options.grabberV4L2.fps = v4l2Options.grabberV4L2.framerate;
+
+		if (v4l2Options.grabberV4L2.framerate == 'auto')
+			v4l2Options.grabberV4L2.fps = 0;
+
+		debugger;
+		requestWriteConfig(v4l2Options);
 	});
 
 	//create introduction
