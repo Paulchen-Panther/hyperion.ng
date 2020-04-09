@@ -133,10 +133,17 @@ jobs:
         shell: bash
         run: echo -n "-PR#${{ github.event.pull_request.number }}" >> version
 
-      # Install dependencies
-      - name: Install dependencies
-        shell: bash
-        run: ./.ci/ci_install.sh
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v2
+        with:
+          version: '5.12.7'
+          target: 'desktop'
+          arch: 'win64_msvc2017_64'
+
+      - name: Install Python
+        uses: actions/setup-python@v1
+        with:
+          python-version: '3.x'
 
       # Build packages
       - name: Build packages
