@@ -209,7 +209,7 @@ ENDIF ()
 
 # for python 3 the checkschema.py file must be rewritten
 # TODO on windows it can't resolve the path inside the file (Das System kann den angegebenen Pfad nicht finden: '\\schema\\schema-general.json')
-IF (WIN32)
+IF (NOT WIN32)
 	EXECUTE_PROCESS (
 		COMMAND python test/jsonchecks/checkschema.py config/hyperion.config.json.default libsrc/hyperion/hyperion.schema.json
 		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
