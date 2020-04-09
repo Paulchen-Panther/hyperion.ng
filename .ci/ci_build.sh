@@ -42,7 +42,7 @@ elif [[ $CI_NAME == *"mingw64_nt"* ]]; then
 	# compile prepare
 	mkdir build || exit 1
 	cd build
-	cmake -DPLATFORM=${PLATFORM} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} || exit 2
+	cmake -DPLATFORM=${PLATFORM} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} ../ || exit 2
 	make -j $(sysctl -n hw.ncpu) package || exit 3
 	exit 0;
 	exit 1 || { echo "---> Hyperion compilation failed! Abort"; exit 5; }
