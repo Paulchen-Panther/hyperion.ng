@@ -104,6 +104,12 @@ public:
 	void setEnabled(bool enable);
 
 	///
+	/// @brief Get a list of available V4L devices
+	/// @return List of available V4L devices on success else empty List
+	///
+	virtual QStringList getV4L2devices() { return QStringList(); }
+
+	///
 	/// @brief Get a list of supported device resolutions
 	/// @return List of resolutions on success else empty List
 	///
@@ -113,7 +119,7 @@ public:
 	/// @brief Get a list of supported device framerates
 	/// @return List of framerates on success else empty List
 	///
-	virtual QList<int> getFramerates() { return QList<int>(); }
+	virtual QStringList getFramerates() { return QStringList(); }
 
 protected:
 	ImageResampler _imageResampler;

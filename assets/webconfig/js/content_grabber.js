@@ -6,34 +6,46 @@ $(document).ready( function() {
 
 	// Dynamic v4l2 enum schema
 	var v4l2_dynamic_enum_schema = {
+		"available_devices":
+		{
+			"enumVals" : 'serverInfo.grabbers.v4l2_properties.available_v4l2_devices',
+			"type": "string",
+			"title": "edt_conf_v4l2_device_title",
+			"propertyOrder" : 1,
+			"required" : true
+		},
 		"resolution":
 		{
 			"enumVals" : 'serverInfo.grabbers.v4l2_properties.resolutions',
 			"type": "string",
-			"title": "edt_conf_fg_resolution_title",
-			"propertyOrder" : 3,
+			"title": "edt_conf_v4l2_resolution_title",
+			"propertyOrder" : 4,
 			"required" : true
 		},
 		"framerate":
 		{
 			"enumVals" : 'serverInfo.grabbers.v4l2_properties.framerates',
 			"type": "string",
-			"title": "edt_conf_fg_framerate_title",
-			"propertyOrder" : 6,
+			"title": "edt_conf_v4l2_framerate_title",
+			"propertyOrder" : 7,
 			"required" : true
     }
   };
 
 	// Build dynamic v4l2 enum schema parts
-	var buildSchemaPart = function(key, schema) {
-		if (schema[key] && schema[key].enumVals) {
+	var buildSchemaPart = function(key, schema)
+	{
+		if (schema[key] && schema[key].enumVals)
+		{
 			var enumVals = JSON.parse(JSON.stringify(eval(schema[key].enumVals)));
 
-			window.schema.grabberV4L2.properties[key] = {
+			window.schema.grabberV4L2.properties[key] =
+			{
 				"type": schema[key].type,
 				"title": schema[key].title,
 				"enum": [].concat(["auto"], enumVals, ["custom"]),
-				"options" : {
+				"options" :
+				{
 					"enum_titles" : [].concat(["edt_conf_enum_automatic"], enumVals, ["edt_conf_enum_custom"]),
 				},
 				"propertyOrder" : schema[key].propertyOrder,
@@ -43,61 +55,33 @@ $(document).ready( function() {
 	};
 
 	// Watch all v4l2 dynamic fields
-	var setWatchers = function(schema) {
-		
+	var setWatchers = function(schema)
+	{
 		var path = 'root.grabberV4L2.';
 		Object.keys(schema).forEach(function(key) {
-
 			conf_editor_v4l2.watch(path + key, function() {
 				var ed = conf_editor_v4l2.getEditor(path + key);
 				var val = ed.getValue();
 
-				if (ed.key == 'resolution')
-				{
-					
-					if (val != 'custom')
-					{
-						toggleOption('width', false);
-						toggleOption('height', false);
-					}
-					else
-					{
-						toggleOption('width', true);
-						toggleOption('height', true);
-					}
+				if (key == 'available_devices')
+					val != 'custom'
+						? toggleOption('device', false)
+						: toggleOption('device', true);
 
-				}
+				if (key == 'resolution')
+					val != 'custom'
+						? (toggleOption('width', false), toggleOption('height', false))
+						: (toggleOption('width', true), toggleOption('height', true));
 
-				if (ed.key == 'framerate')
-				{
-					
-					if (val != 'custom')
-					{
-						toggleOption('fps', false);
-					}
-					else
-					{
-						toggleOption('fps', true);
-					}
-
-				}
-
-				/////////////////////////////////////////// TODO ///////////////////////////////////////////////////////
-				// 1. Unterscheide welcher key ausgewählt ist | if (key == 'resolution') else if (key == 'framerate')
-				// 2. Unterscheide ob auto/custom oder etwas anderes ausgewählt ist | if (val == auto || val == custom) else ...
-				// 3. Wenn auto/custom NICHT ausgewählt ist:
-				//   - breite/höhe oder fps feld ausblenden
-				//   - resolution oder framerate feld auslesen und in breite/höhe oder fps feld übertragen
-				// 4. Wenn auto/custom ausgewählt ist:
-				//   - auto = breite/höhe oder fps feld ausblenden
-				//   - custom = breite/höhe oder fps feld einblenden
-				////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+				if (key == 'framerate')
+					val != 'custom'
+						? toggleOption('fps', false)
+						: toggleOption('fps', true);
 			});
-
 		});
 	};
 
+	buildSchemaPart('available_devices', v4l2_dynamic_enum_schema);
 	buildSchemaPart('resolution', v4l2_dynamic_enum_schema);
 	buildSchemaPart('framerate', v4l2_dynamic_enum_schema);
 
@@ -111,8 +95,12 @@ $(document).ready( function() {
 
 	function toggleOption(option, state)
 	{
-		$('[data-schemapath*="root.grabberV4L2.'+option+'"]').toggle(state);
-		$('[data-schemapath*="root.grabberV4L2.'+option+'"]').addClass('col-md-12');
+    $('[data-schemapath*="root.grabberV4L2.'+option+'"]').toggle(state);
+		if (state) (
+			$('[data-schemapath*="root.grabberV4L2.'+option+'"]').addClass('col-md-12'),
+			$('label[for="root_grabberV4L2_'+option+'"]').css('left','10px'),
+			$('[id="root_grabberV4L2_'+option+'"]').css('left','10px')
+		);
 	}
 
 	if(window.showOptHelp)
@@ -176,48 +164,40 @@ $(document).ready( function() {
 
 	conf_editor_v4l2.on('ready', function() {
 		setWatchers(v4l2_dynamic_enum_schema);
-		
+
+		if (window.serverConfig.grabberV4L2.available_devices == 'custom')
+			toggleOption('device', true);
+
 		if (window.serverConfig.grabberV4L2.resolution == 'custom')
-		{
-			toggleOption('width', true);
-			toggleOption('height', true);
-		}
+			(toggleOption('width', true), toggleOption('height', true));
 
 		if (window.serverConfig.grabberV4L2.framerate == 'custom')
-		{
 			toggleOption('fps', true);
-		}
-		
+
 	});
 
 	$('#btn_submit_v4l2').off().on('click',function() {
-		/////////////////////////////////////////// TODO ///////////////////////////////////////////////////////
-		// 1. Neue variable erstellen
-		// 2. v4l2 config in neue variable übertragen
-		// 3. 'v4l2_dynamic_enum_schema' keys aus neuer variable entfernen
-		// 4. neue variable abspeichern (requestWriteConfig)
-		////////////////////////////////////////////////////////////////////////////////////////////////////////
 		var v4l2Options = conf_editor_v4l2.getValue()
 
+		if (v4l2Options.grabberV4L2.available_devices != 'custom' && v4l2Options.grabberV4L2.available_devices != 'auto')
+			v4l2Options.grabberV4L2.device = v4l2Options.grabberV4L2.available_devices;
+
+		if (v4l2Options.grabberV4L2.available_devices == 'auto')
+			v4l2Options.grabberV4L2.device = 'auto';
+
 		if (v4l2Options.grabberV4L2.resolution != 'custom' && v4l2Options.grabberV4L2.resolution != 'auto')
-		{
-			v4l2Options.grabberV4L2.width = v4l2Options.grabberV4L2.resolution.split('x')[0]; 
-			v4l2Options.grabberV4L2.height = v4l2Options.grabberV4L2.resolution.split('x')[1];
-		}
+			(v4l2Options.grabberV4L2.width = parseInt(v4l2Options.grabberV4L2.resolution.split('x')[0]),
+				v4l2Options.grabberV4L2.height = parseInt(v4l2Options.grabberV4L2.resolution.split('x')[1]));
 
 		if (v4l2Options.grabberV4L2.resolution == 'auto')
-		{
-			v4l2Options.grabberV4L2.width = 0;
-			v4l2Options.grabberV4L2.height = 0;
-		}
+			(v4l2Options.grabberV4L2.width = 0, v4l2Options.grabberV4L2.height = 0);
 
 		if (v4l2Options.grabberV4L2.framerate != 'custom' && v4l2Options.grabberV4L2.framerate != 'auto')
-			v4l2Options.grabberV4L2.fps = v4l2Options.grabberV4L2.framerate;
+			v4l2Options.grabberV4L2.fps = parseInt(v4l2Options.grabberV4L2.framerate);
 
 		if (v4l2Options.grabberV4L2.framerate == 'auto')
-			v4l2Options.grabberV4L2.fps = 0;
+			v4l2Options.grabberV4L2.fps = 15;
 
-		debugger;
 		requestWriteConfig(v4l2Options);
 	});
 

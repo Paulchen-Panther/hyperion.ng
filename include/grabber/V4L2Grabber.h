@@ -105,12 +105,17 @@ public:
 	///
 	/// @brief overwrite Grabber.h implementation
 	///
+	QStringList getV4L2devices() override { return _availableDevices; }
+
+	///
+	/// @brief overwrite Grabber.h implementation
+	///
 	QStringList getResolutions() override { return _availableResolutions; }
 
 	///
 	/// @brief overwrite Grabber.h implementation
 	///
-	QList<int> getFramerates() override { return _availableFramerates; }
+	QStringList getFramerates() override { return _availableFramerates; }
 
 public slots:
 
@@ -154,6 +159,8 @@ private:
 	void process_image(const uint8_t *p, int size);
 
 	int xioctl(int request, void *arg);
+
+	int xioctl(int fileDescriptor, int request, void *arg);
 
 	void throw_exception(const QString & error)
 	{
@@ -209,8 +216,7 @@ private:
 private:
 	QString _deviceName;
 	std::map<QString,QString>	_v4lDevices;
-	QStringList					_availableResolutions;
-	QList<int>					_availableFramerates;
+	QStringList					_availableDevices, _availableResolutions, _availableFramerates;
 	int							_input;
 	VideoStandard				_videoStandard;
 	io_method					_ioMethod;

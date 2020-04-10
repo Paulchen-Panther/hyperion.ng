@@ -220,6 +220,14 @@ void GrabberWrapper::tryStart()
 	}
 }
 
+QStringList GrabberWrapper::getV4L2devices()
+{
+	if(_grabberName.startsWith("V4L"))
+		return _ggrabber->getV4L2devices();
+
+	return QStringList();
+}
+
 QStringList GrabberWrapper::getResolutions()
 {
 	if(_grabberName.startsWith("V4L"))
@@ -228,10 +236,10 @@ QStringList GrabberWrapper::getResolutions()
 	return QStringList();
 }
 
-QList<int> GrabberWrapper::getFramerates()
+QStringList GrabberWrapper::getFramerates()
 {
 	if(_grabberName.startsWith("V4L"))
 		return _ggrabber->getFramerates();
 
-	return QList<int>();
+	return QStringList();
 }

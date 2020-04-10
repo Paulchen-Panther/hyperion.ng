@@ -484,7 +484,12 @@ void JsonAPI::handleServerInfoCommand(const QJsonObject &message, const QString 
 
 #if defined(ENABLE_V4L2)
 
-	QJsonArray availableResolutions, availableFramerates;
+	QJsonArray availableV4L2devices, availableResolutions, availableFramerates;
+
+	for (auto device : GrabberWrapper::getInstance()->getV4L2devices() )
+	{
+		availableV4L2devices.append(device);
+	}
 
 	for (auto resolution : GrabberWrapper::getInstance()->getResolutions() )
 	{
@@ -496,6 +501,7 @@ void JsonAPI::handleServerInfoCommand(const QJsonObject &message, const QString 
 		availableFramerates.append(framerate);
 	}
 
+	availableProperties["available_v4l2_devices"] = availableV4L2devices;
 	availableProperties["resolutions"] = availableResolutions;
 	availableProperties["framerates"] = availableFramerates;
 	grabbers["v4l2_properties"] = availableProperties;
