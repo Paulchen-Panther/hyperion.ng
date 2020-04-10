@@ -117,6 +117,11 @@ public:
 	///
 	QStringList getFramerates() override { return _availableFramerates; }
 
+	///
+	/// @brief overwrite GrabberWrapper.h implementation
+	///
+	virtual QStringList getV4L2Resolution();
+
 public slots:
 
 	bool start();

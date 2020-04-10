@@ -509,6 +509,7 @@ void JsonAPI::handleServerInfoCommand(const QJsonObject &message, const QString 
 #endif
 
 	grabbers["available"] = availableGrabbers;
+	grabbers["Resolution"] = availableResolution;
 	info["videomode"] = QString(videoMode2String(_hyperion->getCurrentVideoMode()));
 	info["grabbers"] = grabbers;
 
