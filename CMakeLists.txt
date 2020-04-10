@@ -282,7 +282,9 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
 endif()
 
 # Use GNU gold linker if available
+if(NOT WIN32)
 include (${CMAKE_CURRENT_SOURCE_DIR}/cmake/LDGold.cmake)
+endif()
 
 # Don't create new dynamic tags (RUNPATH)
 if(NOT CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
