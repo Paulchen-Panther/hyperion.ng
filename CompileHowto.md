@@ -74,6 +74,19 @@ brew install libusb
 brew install doxygen
 ```
 
+## Windows (WIP)
+We assume a 64bit Windows 7 or higher. Install the following
+- [Git](https://git-scm.com/downloads) (Check: Add to PATH)
+- [Python 3 (Windows x86-64 executable installer)](https://www.python.org/downloads/windows/) (Check: Add to PATH and Debug Symbols)
+- [CMake (Windows win64-x64 Installer)](https://cmake.org/download/) (Check: Add to PATH)
+- [Qt5](https://www.qt.io/download-open-source) (Check: Component install: msvc 2017 64bit). No configuration for PATH is set, we assume the default install path.
+- [Visual Studio 2019 Build Tools](https://go.microsoft.com/fwlink/?linkid=840931)
+  - The Visual Studio 2019 Community Editor is not required but will be installed as part of the compiler and Windows SDK
+  - Select C++ Desktop Development Tools
+  - Now just select `MSVC v142 VS 2019 C++ x64/x86-Buildtools`, `C++-CMake Tools for Windows` and `Windows 10 SDK`. Everything else is not needed.
+
+**The target compiler that works is amd64, everything else creates linking issues with Qt. (Based on the pre compiled/installed Qt libs)**
+
 
 # Compiling and installing Hyperion
 

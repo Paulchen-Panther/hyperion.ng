@@ -1,5 +1,11 @@
 #include "LedDeviceFadeCandy.h"
 
+// https://docs.microsoft.com/en-us/windows/win32/winprog/windows-data-types#ssize-t
+#if defined(_MSC_VER)
+#include <BaseTsd.h>
+typedef SSIZE_T ssize_t;
+#endif
+
 static const signed   MAX_NUM_LEDS    = 10000; // OPC can handle 21845 leds - in theory, fadecandy device should handle 10000 leds
 static const unsigned OPC_SET_PIXELS  = 0;     // OPC command codes
 static const unsigned OPC_SYS_EX      = 255;     // OPC command codes
@@ -159,7 +165,7 @@ int LedDeviceFadeCandy::sendSysEx(uint8_t systemId, uint8_t commandId, QByteArra
 	if ( isConnected() )
 	{
 		QByteArray sysExData;
-		ssize_t data_size = msg.size() + 4;
+		size_t data_size = msg.size() + 4;
 		sysExData.resize( 4 + OPC_HEADER_SIZE );
 
 		sysExData[0] = 0;
