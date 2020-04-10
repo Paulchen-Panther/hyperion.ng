@@ -95,6 +95,26 @@ jobs:
     condition: and(succeeded(), ne(variables['system.pullrequest.isfork'], true), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))
     displayName: 'Publish artifacts'
 
+######################
+###### windows #######
+######################
+
+- job: windows
+  timeoutInMinutes: 120
+  pool:
+    vmImage: 'windows-2019'
+
+  steps:
+  - checkout: self # represents the repo where the initial Pipelines YAML file was found
+    submodules: recursive # set to 'recursive' to get submodules of submodules
+
+  # build process
+  - bash: ./.ci/ci_build.sh
+    env:
+      PLATFORM: 'windows'
+    condition: succeeded()
+    displayName: 'Build windows packages'
+
 ################################
 ###### Publish Releases ########
 ################################
