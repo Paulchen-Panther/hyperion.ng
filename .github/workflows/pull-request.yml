@@ -133,6 +133,9 @@ jobs:
         shell: bash
         run: echo -n "-PR#${{ github.event.pull_request.number }}" >> version
 
+      - name: Install ninja-build tool
+        uses: seanmiddleditch/gha-setup-ninja@v1
+
       - name: Install Qt
         uses: jurplel/install-qt-action@v2
         with:
