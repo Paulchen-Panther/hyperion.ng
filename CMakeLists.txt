@@ -286,9 +286,6 @@ if(NOT WIN32)
 include (${CMAKE_CURRENT_SOURCE_DIR}/cmake/LDGold.cmake)
 endif()
 
-# Don't create new dynamic tags (RUNPATH)
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--enable-new-dtags" CACHE INTERNAL "" FORCE)
-
 # setup -rpath to search for shared libs in BINARY/../lib folder
 if (UNIX AND NOT APPLE)
 	SET(CMAKE_SKIP_BUILD_RPATH  FALSE)
