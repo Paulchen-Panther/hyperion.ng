@@ -38,7 +38,7 @@ if [[ "$CI_NAME" == 'osx' || "$CI_NAME" == 'darwin' ]]; then
 	exit 1 || { echo "---> Hyperion compilation failed! Abort"; exit 5; }
 # github actions uname -> windows-2019 -> mingw64_nt-10.0-17763
 # TODO: Azure uname windows?
-elif [[ $CI_NAME == *"mingw64_nt"* || "$CI_NAME" == 'Windows_NT' ]]; then
+elif [[ $CI_NAME == *"mingw64_nt"* || "$CI_NAME" == 'windows_nt' ]]; then
 	# compile prepare
 	echo "Number of Cores $NUMBER_OF_PROCESSORS"
 	mkdir build || exit 1
