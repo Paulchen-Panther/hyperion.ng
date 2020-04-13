@@ -10,6 +10,9 @@ jobs:
     vmImage: 'VS2017-Win2016'
 
   steps:
+  - checkout: self # represents the repo where the initial Pipelines YAML file was found
+    submodules: recursive # set to 'recursive' to get submodules of submodules
+
   - task: UsePythonVersion@0
     inputs:
       versionSpec: '3.x'
@@ -23,11 +26,8 @@ jobs:
 
   - script: |
       cd $(Build.SourcesDirectory)
-      python -m aqt install -O c:\Qt 5.14.0 windows desktop win64_msvc2017_64
+      python -m aqt install -O c:\Qt 5.14.0 windows desktop win64_msvc2017_64 -m qtcore qtgui qtnetwork qtserialport qtsql
     displayName: 'Install Qt 5.14.0'
-
-  - checkout: self # represents the repo where the initial Pipelines YAML file was found
-    submodules: recursive # set to 'recursive' to get submodules of submodules
 
   # build process
   - bash: ./.ci/ci_build.sh
