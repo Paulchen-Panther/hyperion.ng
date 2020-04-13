@@ -44,10 +44,10 @@ elif [[ $CI_NAME == *"mingw64_nt"* || "$CI_NAME" == 'windows_nt' ]]; then
 	mkdir build || exit 1
 	cd build
 	if [[ "$CI_NAME" == 'windows_nt' ]]; then
-		cmake -DPLATFORM=${PLATFORM} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} ../ -G "Visual Studio 15 2017 Win64" || exit 2
+		cmake -DPLATFORM=${PLATFORM} -DCMAKE_BUILD_TYPE=Release ../ -G "Visual Studio 15 2017 Win64" || exit 2
 		cmake --build . --config Release -- -maxcpucount || exit 3
 	elif [[ "$CI_NAME" == 'mingw64_nt' ]]; then
-		cmake -DPLATFORM=${PLATFORM} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} ../ -G "Visual Studio 15 2017 Win64" || exit 2
+		cmake -DPLATFORM=${PLATFORM} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} ../ -G "Ninja" || exit 2
 		cmake --build . --config ${BUILD_TYPE} || exit 3
 	fi
 	exit 0;
