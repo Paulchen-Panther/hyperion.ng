@@ -117,10 +117,6 @@ jobs:
   - script: |
       cd $(Build.SourcesDirectory)
       python -m pip install aqtinstall
-    displayName: 'Install another (unofficial) Qt (aqt) CLI Installer'
-
-  - script: |
-      cd $(Build.SourcesDirectory)
       python -m aqt install -O c:\Qt 5.14.0 windows desktop win64_msvc2017_64
     displayName: 'Install Qt 5.14.0'
 
