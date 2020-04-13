@@ -43,7 +43,7 @@ elif [[ $CI_NAME == *"mingw64_nt"* || "$CI_NAME" == 'windows_nt' ]]; then
 	mkdir build || exit 1
 	cd build
 	cmake -G "Visual Studio 16 2019" -A x64 -DPLATFORM=${PLATFORM} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} ../ || exit 2
-	cmake --build . --config Release -- -maxcpucount || exit 3
+	cmake --build . --target package --config Release -- -maxcpucount || exit 3
 	exit 0;
 	exit 1 || { echo "---> Hyperion compilation failed! Abort"; exit 5; }
 elif [[ "$CI_NAME" == 'linux' ]]; then
