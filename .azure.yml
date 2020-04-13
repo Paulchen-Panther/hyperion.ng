@@ -26,7 +26,7 @@ jobs:
 
   - script: |
       cd $(Build.SourcesDirectory)
-      python -m aqt install -O c:\Qt 5.14.0 windows desktop win64_msvc2017_64 -m qtcore qtgui qtnetwork qtserialport qtsql
+      python -m aqt install -O c:\Qt 5.14.0 windows desktop win64_msvc2017_64
     displayName: 'Install Qt 5.14.0'
 
   # build process
