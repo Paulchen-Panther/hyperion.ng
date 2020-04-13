@@ -161,7 +161,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p windows
-          mv build/*.tar.gz windows
+          mv build/*.zip windows
       # Upload artifacts
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
