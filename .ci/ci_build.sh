@@ -43,8 +43,8 @@ elif [[ $CI_NAME == *"mingw64_nt"* || "$CI_NAME" == 'windows_nt' ]]; then
 	echo "Number of Cores $NUMBER_OF_PROCESSORS"
 	mkdir build || exit 1
 	cd build
-	cmake -DPLATFORM=${PLATFORM} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} ../ -G "Visual Studio 15 2017 Win64" || exit 2
-	cmake --build . --config ${BUILD_TYPE} -- -maxcpucount || exit 3
+	cmake -DPLATFORM=${PLATFORM} -DCMAKE_BUILD_TYPE=Release ../ -G "Visual Studio 15 2017 Win64" || exit 2
+	cmake --build . --config Release -- -maxcpucount || exit 3
 	exit 0;
 	exit 1 || { echo "---> Hyperion compilation failed! Abort"; exit 5; }
 elif [[ "$CI_NAME" == 'linux' ]]; then
