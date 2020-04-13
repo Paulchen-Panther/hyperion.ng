@@ -1,6 +1,5 @@
 name: Hyperion PR Build
 on:
-  push:
   pull_request:
     branches:
 
@@ -114,57 +113,3 @@ jobs:
         with:
           name: macOS.zip
           path: macOS
-
-######################
-###### Windows #######
-######################
-
-  windows:
-    name: Windows
-    runs-on: windows-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v1
-        with:
-          submodules: true
-
-      # Append PR number to version
-      - name: Append PR number to version
-        shell: bash
-        run: echo -n "-PR#${{ github.event.pull_request.number }}" >> version
-
-      - name: Install ninja-build tool
-        uses: seanmiddleditch/gha-setup-ninja@v1
-
-      - name: Install Qt
-        uses: jurplel/install-qt-action@v2
-        with:
-          version: '5.12.7'
-          target: 'desktop'
-          arch: 'win64_msvc2017_64'
-
-      - name: Install Python
-        uses: actions/setup-python@v1
-        with:
-          python-version: '3.x'
-
-      # Build packages
-      - name: Build packages
-        env:
-          PLATFORM: windows
-        shell: bash
-        run: ./.ci/ci_build.sh
-
-      # Collecting deployable artifacts
-      - name: Collecting deployable artifacts
-        shell: bash
-        run: |
-          mkdir -p windows
-          mv build/*.tar.gz windows
-
-      # Upload artifacts
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v1
-        with:
-          name: windows.zip
-          path: windows

@@ -7,7 +7,7 @@ jobs:
 - job: windows
   timeoutInMinutes: 120
   pool:
-    vmImage: 'VS2017-Win2016'
+    vmImage: 'windows-latest'
 
   steps:
   - checkout: self # represents the repo where the initial Pipelines YAML file was found

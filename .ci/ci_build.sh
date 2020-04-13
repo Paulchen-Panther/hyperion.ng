@@ -37,19 +37,13 @@ if [[ "$CI_NAME" == 'osx' || "$CI_NAME" == 'darwin' ]]; then
 	exit 0;
 	exit 1 || { echo "---> Hyperion compilation failed! Abort"; exit 5; }
 # github actions uname -> windows-2019 -> mingw64_nt-10.0-17763
-# TODO: Azure uname windows?
 elif [[ $CI_NAME == *"mingw64_nt"* || "$CI_NAME" == 'windows_nt' ]]; then
 	# compile prepare
 	echo "Number of Cores $NUMBER_OF_PROCESSORS"
 	mkdir build || exit 1
 	cd build
-	if [[ "$CI_NAME" == 'windows_nt' ]]; then
-		cmake -DPLATFORM=${PLATFORM} -DCMAKE_BUILD_TYPE=Release ../ -G "Visual Studio 15 2017 Win64" || exit 2
-		cmake --build . --config Release -- -maxcpucount || exit 3
-	elif [[ "$CI_NAME" == 'mingw64_nt' ]]; then
-		cmake -DPLATFORM=${PLATFORM} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} ../ -G "Ninja" || exit 2
-		cmake --build . --config ${BUILD_TYPE} || exit 3
-	fi
+	cmake -G "Visual Studio 16 2019" -A x64 -DPLATFORM=${PLATFORM} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} ../ || exit 2
+	cmake --build . --config Release -- -maxcpucount || exit 3
 	exit 0;
 	exit 1 || { echo "---> Hyperion compilation failed! Abort"; exit 5; }
 elif [[ "$CI_NAME" == 'linux' ]]; then
