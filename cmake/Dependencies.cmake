@@ -10,7 +10,6 @@ macro(DeployUnix TARGET)
 			"libfontconfig"
 			"libfreetype"
 			"libgcc_s"
-			"libgcrypt"
 			"libGL"
 			"libGLdispatch"
 			"libglib-2"
