@@ -27,7 +27,7 @@ jobs:
 
       - name: Powershell test
         shell: pwsh
-        run: vcpkg install libjpeg-turbo
+        run: conda install -c conda-forge libjpeg-turbo
 
       - name: Cache Qt
         uses: actions/cache@v2
