@@ -27,7 +27,7 @@ jobs:
 
       - name: Powershell test
         shell: pwsh
-        run: vcpkg search
+        run: vcpkg install libjpeg-turbo
 
       - name: Cache Qt
         uses: actions/cache@v2
