@@ -102,6 +102,10 @@ jobs:
         with:
           submodules: true
 
+      - name: Powershell test
+        shell: pwsh
+        run: vcpkg search
+
       - name: Cache Qt
         uses: actions/cache@v2
         id: cache-qt-windows
