@@ -4,7 +4,7 @@ If you are using [Docker](https://www.docker.com/), you can compile Hyperion ins
 The compiled binaries and packages will be available at the deploy folder next to the script.<br/>
 Note: call the script with `./docker-compile.sh -h` for more options.
 
-## Native compilation on Raspberry Pi for:
+## Native compilation on Raspberry Pi for::
 
 **Raspbian Stretch**
 ```
