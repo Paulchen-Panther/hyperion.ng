@@ -18,20 +18,11 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        dockerImage: [ x86_64, armv6l, armv7l, aarch64 ]
+        dockerImage: [ x86_64 ]
         include:
           - dockerImage: x86_64
             dockerName: Debian Stretch (x86_64)
             platform: x11
-          - dockerImage: armv6l
-            dockerName: Debian Stretch (Raspberry Pi v1 & ZERO)
-            platform: rpi
-          - dockerImage: armv7l
-            dockerName: Debian Stretch (Raspberry Pi 2 & 3)
-            platform: rpi
-          - dockerImage: aarch64
-            dockerName: Debian Stretch (Generic AARCH64)
-            platform: amlogic
 
     steps:
       - uses: actions/checkout@v1
@@ -48,143 +39,28 @@ jobs:
         shell: bash
         run: ./.ci/ci_build.sh
 
-      # upload artifacts (only on tagged commit)
-      - name: Upload artifacts
-        if: startsWith(github.event.ref, 'refs/tags')
-        uses: actions/upload-artifact@v2
-        with:
-          path: deploy/Hyperion-*
-
-######################
-###### macOS #########
-######################
-
-  macOS:
-    name: macOS
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v1
-        with:
-          submodules: true
-
-      # install dependencies
-      - name: Install dependencies
-        shell: bash
-        run: ./.ci/ci_install.sh
-
-      # build process
-      - name: Build packages
-        env:
-          PLATFORM: osx
-        shell: bash
-        run: ./.ci/ci_build.sh
-
-      # upload artifacts (only on tagged commit)
-      - name: Upload artifacts
-        if: startsWith(github.event.ref, 'refs/tags')
-        uses: actions/upload-artifact@v2
-        with:
-          path: build/Hyperion-*
-
-######################
-###### Windows #######
-######################
-
-  windows:
-    name: Windows
-    runs-on: windows-latest
-    env:
-      VCINSTALLDIR: 'C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC'
-      QT_VERSION: 5.15.0
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v1
-        with:
-          submodules: true
-
-      - name: Cache Qt
-        uses: actions/cache@v2
-        id: cache-qt-windows
-        with:
-          path: ${{ runner.workspace }}/Qt
-          key: ${{ runner.os }}-Qt.${{ env.QT_VERSION }}
-
-      - name: Install Qt
-        uses: jurplel/install-qt-action@v2
-        with:
-          version: ${{ env.QT_VERSION }}
-          target: 'desktop'
-          arch: 'win64_msvc2019_64'
-          cached: ${{ steps.cache-qt-windows.outputs.cache-hit }}
-
-      - name: Cache Chocolatey downloads
-        uses: actions/cache@v2
-        with:
-          path: C:\Users\runneradmin\AppData\Local\Temp\chocolatey
-          key: ${{ runner.os }}-chocolatey
-
-      - name: Install Python, NSIS, OpenSSL
-        shell: powershell
-        run: |
-          choco install --no-progress python nsis openssl -y
-
-      - name: Set up x64 build architecture environment
-        shell: cmd
-        run: call "${{env.VCINSTALLDIR}}\Auxiliary\Build\vcvars64.bat"
-
-      # Build packages
-      - name: Build packages
-        env:
-          PLATFORM: windows
-        shell: bash
-        run: ./.ci/ci_build.sh
-
-      # upload artifacts (only on tagged commit)
-      - name: Upload artifacts
-        if: startsWith(github.event.ref, 'refs/tags')
-        uses: actions/upload-artifact@v2
-        with:
-          path: build/Hyperion-*
-
 ################################
-###### Publish Releases ########
+###### Snapcraft Release #######
 ################################
 
   publish:
     name: Publish Releases
-    if: startsWith(github.event.ref, 'refs/tags')
-    needs: [Linux, macOS, windows]
+    needs: [Linux]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v2
 
-      # generate environment variables
-      - name: Generate environment variables from version and tag
-        run: |
-          echo "TAG=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_ENV
-          echo "VERSION=$(tr -d '\n' < version)" >> $GITHUB_ENV
-          echo "preRelease=false" >> $GITHUB_ENV
+      - name: Setup Snapcraft
+        uses: snapcore/action-build@v1
 
-      # If version contains alpha or beta, mark draft release as pre-release
-      - name: Mark release as pre-release
-        if: contains(env.VERSION, 'alpha') || contains(env.VERSION, 'beta')
-        run: echo "preRelease=true" >> $GITHUB_ENV
-
-      # Download artifacts from previous build process
-      - name: Download artifacts
-        uses: actions/download-artifact@v2
+      - uses: actions/upload-artifact@v2
         with:
-          path: artifacts
+          name: snap
+          path: ${{ steps.snapcraft.outputs.snap }}
 
-      # create draft release and upload artifacts
-      - name: Create draft release
-        uses: softprops/action-gh-release@v1
-        with:
-          name: Hyperion ${{ env.VERSION }}
-          tag_name: ${{ env.TAG }}
-          files: "artifacts/**"
-          draft: true
-          prerelease: ${{ env.preRelease }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#			- uses: snapcore/action-publish@v1
+#      	with:
+#        	store_login: ${{ secrets.STORE_LOGIN }}
+#        	snap: ${{ steps.build.outputs.snap }}
+#        	release: edge
