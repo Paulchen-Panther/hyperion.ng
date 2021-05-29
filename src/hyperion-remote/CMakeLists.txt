@@ -38,7 +38,8 @@ target_link_libraries(${PROJECT_NAME}
 	ssdp
 	Qt5::Gui
 	Qt5::Core
-	Qt5::Network)
+	Qt5::Network
+)
 
 if (ENABLE_AMLOGIC)
 	target_link_libraries(${PROJECT_NAME}

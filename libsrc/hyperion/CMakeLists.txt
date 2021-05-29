@@ -4,6 +4,7 @@ SET(CURRENT_HEADER_DIR ${CMAKE_SOURCE_DIR}/include/hyperion)
 SET(CURRENT_SOURCE_DIR ${CMAKE_SOURCE_DIR}/libsrc/hyperion)
 
 include_directories(
+	${LIBYUV_INCLUDE_DIR}
 	${CMAKE_CURRENT_BINARY_DIR}/../../libsrc/flatbufserver
 )
 

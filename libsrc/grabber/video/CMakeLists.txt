@@ -3,6 +3,9 @@
 # Define the wrapper/header/source locations and collect them
 SET(WRAPPER_DIR ${CMAKE_SOURCE_DIR}/libsrc/grabber/video)
 SET(HEADER_DIR ${CMAKE_SOURCE_DIR}/include/grabber)
+
+include_directories(${LIBYUV_INCLUDE_DIR})
+
 if (ENABLE_MF)
 	project(mf-grabber)
 	SET(CURRENT_SOURCE_DIR ${CMAKE_SOURCE_DIR}/libsrc/grabber/video/mediafoundation)

@@ -4,7 +4,10 @@ SET(CURRENT_SOURCE_DIR ${CMAKE_SOURCE_DIR}/libsrc/grabber/qt)
 
 find_package(Qt5Widgets REQUIRED)
 
-include_directories( ${X11_INCLUDES} )
+include_directories(
+	${X11_INCLUDES}
+	${LIBYUV_INCLUDE_DIR}
+)
 
 FILE ( GLOB QT_GRAB_SOURCES "${CURRENT_HEADER_DIR}/Qt*.h"  "${CURRENT_SOURCE_DIR}/*.h"  "${CURRENT_SOURCE_DIR}/*.cpp" )
 

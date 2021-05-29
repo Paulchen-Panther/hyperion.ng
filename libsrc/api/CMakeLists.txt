@@ -18,4 +18,5 @@ target_link_libraries(hyperion-api
 	Qt5::Core
 	Qt5::Gui
 	Qt5::Network
+	yuv
 )

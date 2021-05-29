@@ -1,12 +1,3 @@
-find_package(libyuv REQUIRED)
-include_directories(hyperion-utils ${libyuv_INCLUDE_DIRS})
-
-find_package(TurboJPEG REQUIRED)
-if (TURBOJPEG_FOUND)
-	message( STATUS "Using Turbo JPEG library: ${TurboJPEG_LIBRARY}")
-	include_directories(${TurboJPEG_INCLUDE_DIRS})
-endif ()
-
 # Include the python directory. Also include the parent (which is for example /usr/include)
 # which may be required when it is not includes by the (cross-) compiler by default.
 if (NOT CMAKE_VERSION VERSION_LESS "3.12")
@@ -33,6 +24,7 @@ add_library(hyperion-utils
 	${Utils_SOURCES}
 )
 
+target_include_directories(hyperion-utils SYSTEM PUBLIC ${LIBYUV_INCLUDE_DIR})
 target_link_libraries(hyperion-utils
 	hyperion
 	python
@@ -40,5 +32,4 @@ target_link_libraries(hyperion-utils
 	Qt5::Gui
 	Qt5::Network
 	yuv
-	${TurboJPEG_LIBRARY}
 )

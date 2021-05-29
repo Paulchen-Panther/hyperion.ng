@@ -11,7 +11,7 @@
 #include <utils/ColorRgb.h>
 
 // libyuv
-#include <libyuv.h>
+#include "libyuv.h"
 
 // Determine the cmake options
 #include <HyperionConfig.h>

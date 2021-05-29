@@ -29,6 +29,7 @@ if (WIN32)
 	target_link_options(hyperiond PUBLIC /SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup)
 endif(WIN32)
 
+target_include_directories(hyperiond SYSTEM PUBLIC ${LIBYUV_INCLUDE_DIR} ${JPEG_INCLUDE_DIR})
 target_link_libraries(hyperiond
 	commandline
 	hyperion
@@ -42,6 +43,8 @@ target_link_libraries(hyperiond
 	python
 	resources
 	Qt5::Widgets
+	yuv
+	${JPEG_LIBRARY}
 )
 
 if (NOT CMAKE_VERSION VERSION_LESS "3.12")

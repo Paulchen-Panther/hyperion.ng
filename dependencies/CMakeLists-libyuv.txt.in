@@ -1,0 +1,47 @@
+cmake_minimum_required(VERSION 3.2)
+
+project(libyuv)
+
+include(ExternalProject)
+ExternalProject_Add(
+        libyuv
+        GIT_REPOSITORY        https://chromium.googlesource.com/libyuv/libyuv
+        GIT_TAG               master
+        BUILD_ALWAYS          OFF
+        DOWNLOAD_DIR          "${CMAKE_BINARY_DIR}/dependencies/external/libyuv/download"
+        SOURCE_DIR            "${CMAKE_BINARY_DIR}/dependencies/external/libyuv/src"
+        BINARY_DIR            "${CMAKE_BINARY_DIR}/dependencies/external/libyuv/build"
+        INSTALL_DIR           "${CMAKE_BINARY_DIR}"
+        PATCH_COMMAND         "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/dependencies/patches/libyuv/CMakeLists.txt" "<SOURCE_DIR>/CMakeLists.txt"
+        CONFIGURE_COMMAND     ""
+        UPDATE_COMMAND        ""
+        BUILD_COMMAND         ""
+        INSTALL_COMMAND       ""
+        TEST_COMMAND          ""
+)
+
+ExternalProject_Get_Property(libyuv SOURCE_DIR)
+set(LIBYUV_INCLUDE_DIR ${SOURCE_DIR}/include)
+
+ExternalProject_Get_Property(libyuv BINARY_DIR)
+set(LIBYUV_LIBRARY_PATH ${BINARY_DIR})
+
+add_library(yuv UNKNOWN IMPORTED)
+if(CMAKE_GENERATOR STREQUAL Xcode)
+        set_target_properties(yuv PROPERTIES
+                IMPORTED_LOCATION ${LIBYUV_LIBRARY_PATH}/${CMAKE_FIND_LIBRARY_PREFIXES}yuv.a
+                IMPORTED_LOCATION_RELEASE ${LIBYUV_LIBRARY_PATH}/Release/${CMAKE_FIND_LIBRARY_PREFIXES}yuv.a
+                IMPORTED_LOCATION_DEBUG ${LIBYUV_LIBRARY_PATH}/Debug/${CMAKE_FIND_LIBRARY_PREFIXES}yuv.a
+        )
+elseif(MSVC)
+        set_target_properties(yuv PROPERTIES
+                IMPORTED_LOCATION_DEBUG "${LIBYUV_LIBRARY_PATH}/${CMAKE_FIND_LIBRARY_PREFIXES}/Debug/yuv.lib"
+                IMPORTED_LOCATION_RELEASE "${LIBYUV_LIBRARY_PATH}/${CMAKE_FIND_LIBRARY_PREFIXES}/Release/yuv.lib"
+        )
+else()
+        set_target_properties(yuv PROPERTIES
+                IMPORTED_LOCATION ${LIBYUV_LIBRARY_PATH}/${CMAKE_FIND_LIBRARY_PREFIXES}libyuv.a
+        )
+endif()
+
+add_dependencies(yuv libyuv)

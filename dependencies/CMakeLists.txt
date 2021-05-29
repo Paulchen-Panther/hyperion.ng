@@ -305,3 +305,61 @@ if (NOT USE_SYSTEM_MBEDTLS_LIBS)
 	mark_as_advanced (MBEDTLS_INCLUDE_DIR MBEDTLS_LIBRARIES MBEDTLS_SSL_LIBRARY MBEDTLS_X509_LIBRARY MBEDTLS_CRYPTO_LIBRARY)
 
 endif (NOT USE_SYSTEM_MBEDTLS_LIBS)
+
+#=============================================================================
+# LIBYUV
+#=============================================================================
+
+set(USE_SYSTEM_LIBYUV_LIBS ${DEFAULT_USE_SYSTEM_LIBYUV_LIBS} CACHE BOOL "use libyuv library from system")
+find_package(JPEG REQUIRED)
+if (JPEG_FOUND)
+	set(JPEG_INCLUDE_DIR ${JPEG_INCLUDE_DIR} PARENT_SCOPE)
+	set(JPEG_LIBRARY ${JPEG_LIBRARY} PARENT_SCOPE)
+endif(JPEG_FOUND)
+
+if(USE_SYSTEM_LIBYUV_LIBS)
+	find_package(libyuv REQUIRED)
+	if (NOT libyuv_FOUND)
+		message(FATAL_ERROR "Could NOT find libyuv system libraries")
+	endif (NOT libyuv_FOUND)
+endif (USE_SYSTEM_LIBYUV_LIBS)
+
+if(NOT USE_SYSTEM_LIBYUV_LIBS)
+	include(ExternalProject)
+	ExternalProject_Add(
+		libyuv
+		GIT_REPOSITORY        https://chromium.googlesource.com/libyuv/libyuv
+		GIT_TAG               master
+		UPDATE_COMMAND        ""
+		INSTALL_COMMAND       ""
+		PATCH_COMMAND         "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/dependencies/patches/libyuv/CMakeLists.txt" "<SOURCE_DIR>/CMakeLists.txt"
+	)
+
+	ExternalProject_Get_Property(libyuv SOURCE_DIR)
+	set(LIBYUV_INCLUDE_DIR "${SOURCE_DIR}/include")
+	set(LIBYUV_INCLUDE_DIR ${LIBYUV_INCLUDE_DIR} PARENT_SCOPE)
+
+	ExternalProject_Get_Property(libyuv BINARY_DIR)
+	set(LIBYUV_LIBRARY_PATH ${BINARY_DIR})
+	set(LIBYUV_LIBRARY_PATH ${LIBYUV_LIBRARY_PATH} PARENT_SCOPE)
+
+	add_library(yuv STATIC IMPORTED GLOBAL)
+	if(CMAKE_GENERATOR STREQUAL Xcode)
+		set_target_properties(yuv PROPERTIES
+			IMPORTED_LOCATION ${LIBYUV_LIBRARY_PATH}/${CMAKE_FIND_LIBRARY_PREFIXES}yuv.a
+			IMPORTED_LOCATION_RELEASE ${LIBYUV_LIBRARY_PATH}/Release/${CMAKE_FIND_LIBRARY_PREFIXES}yuv.a
+			IMPORTED_LOCATION_DEBUG ${LIBYUV_LIBRARY_PATH}/Debug/${CMAKE_FIND_LIBRARY_PREFIXES}yuv.a
+		)
+	elseif(MSVC)
+		set_target_properties(yuv PROPERTIES
+			IMPORTED_LOCATION_DEBUG "${LIBYUV_LIBRARY_PATH}/Debug/yuv.lib"
+			IMPORTED_LOCATION_RELEASE "${LIBYUV_LIBRARY_PATH}/Release/yuv.lib"
+		)
+	else()
+		set_target_properties(yuv PROPERTIES
+			IMPORTED_LOCATION ${LIBYUV_LIBRARY_PATH}/${CMAKE_FIND_LIBRARY_PREFIXES}libyuv.a
+		)
+	endif()
+
+	add_dependencies(yuv libyuv)
+endif(NOT USE_SYSTEM_LIBYUV_LIBS)
