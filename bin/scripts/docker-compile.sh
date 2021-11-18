@@ -10,7 +10,7 @@ BUILD_TYPE="Release"
 # the docker image at GitHub Container Registry
 BUILD_IMAGE="x86_64"
 # the docker tag at GitHub Container Registry
-BUILD_TAG="bullseye"
+BUILD_TAG="buster"
 # build packages (.deb .zip ...)
 BUILD_PACKAGES=true
 # packages string inserted to cmake cmd
@@ -61,7 +61,7 @@ echo "########################################################
 ## A script to compile Hyperion inside a docker container
 ## Requires installed Docker: https://www.docker.com/
 ## Without arguments it will compile Hyperion for Debian Buster (x86_64) and uses Hyperion code from GitHub repository.
-## Supports Raspberry Pi (armv6l, armv7l) cross compilation (Debian Stretch/Buster) and native compilation (Raspbian Stretch/Buster)
+## Supports Raspberry Pi (armv6l, armv7l) cross compilation (Debian Stretch/Buster/Bullseye) and native compilation (Raspbian Stretch/Buster/Bullseye)
 ##
 ## Homepage: https://www.hyperion-project.org
 ## Forum: https://hyperion-project.org/forum/

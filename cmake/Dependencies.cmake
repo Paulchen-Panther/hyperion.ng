@@ -100,14 +100,9 @@ macro(DeployLinux TARGET)
 			"libfontconfig"
 			"libfreetype"
 			"libgcc_s"
-			"libgcrypt"
-			"libGL"
-			"libGLdispatch"
 			"libglib-2"
-			"libGLX"
 			"libgpg-error"
 			"libm"
-			"libpthread"
 			"librt"
 			"libstdc++"
 			"libudev"
@@ -174,7 +169,7 @@ macro(DeployLinux TARGET)
 				COMMAND ${QT_QMAKE_EXECUTABLE} -query QT_INSTALL_PLUGINS
 				OUTPUT_VARIABLE QT_PLUGINS_DIR
 				OUTPUT_STRIP_TRAILING_WHITESPACE
-			)		
+			)
 		endif()
 
 		# Copy Qt plugins to 'share/hyperion/lib'

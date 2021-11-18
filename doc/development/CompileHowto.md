@@ -1,16 +1,12 @@
 
 # With Docker
-If you are using [Docker](https://www.docker.com/), you can compile Hyperion inside a docker container. This keeps your system clean and with a simple script it's easy to use. Supported is also cross compiling for Raspberry Pi (Debian Stretch or higher). To compile Hyperion just execute one of the following commands.
+If you are using [Docker](https://www.docker.com/), you can compile Hyperion inside a docker container. This keeps your system clean and with a simple script it's easy to use. Supported is also cross compiling for Raspberry Pi (Debian Buster or higher). To compile Hyperion just execute one of the following commands.
 
 The compiled binaries and packages will be available at the deploy folder next to the script.<br/>
 Note: call the script with `./docker-compile.sh -h` for more options.
 
 ## Native compilation on Raspberry Pi for:
 
-**Raspbian Stretch**
-```console
-wget -qN https://raw.github.com/hyperion-project/hyperion.ng/master/bin/scripts/docker-compile.sh && chmod +x *.sh && ./docker-compile.sh -i rpi-raspbian
-```
 **Raspbian Buster/Raspberry Pi OS**
 ```console
 wget -qN https://raw.github.com/hyperion-project/hyperion.ng/master/bin/scripts/docker-compile.sh && chmod +x *.sh && ./docker-compile.sh -i rpi-raspbian -t buster
@@ -22,10 +18,6 @@ wget -qN https://raw.github.com/hyperion-project/hyperion.ng/master/bin/scripts/
 
 ## Cross compilation on x86_64 for:
 
-**x86_64 (Debian Stretch):**
-```console
-wget -qN https://raw.github.com/hyperion-project/hyperion.ng/master/bin/scripts/docker-compile.sh && chmod +x *.sh && ./docker-compile.sh -i x86_64
-```
 **x86_64 (Debian Buster):**
 ```console
 wget -qN https://raw.github.com/hyperion-project/hyperion.ng/master/bin/scripts/docker-compile.sh && chmod +x *.sh && ./docker-compile.sh -i x86_64 -t buster
@@ -34,10 +26,6 @@ wget -qN https://raw.github.com/hyperion-project/hyperion.ng/master/bin/scripts/
 ```console
 wget -qN https://raw.github.com/hyperion-project/hyperion.ng/master/bin/scripts/docker-compile.sh && chmod +x *.sh && ./docker-compile.sh -i x86_64 -t bullseye
 ```
-**Raspberry Pi v1 & ZERO (Debian Stretch)**
-```console
-wget -qN https://raw.github.com/hyperion-project/hyperion.ng/master/bin/scripts/docker-compile.sh && chmod +x *.sh && ./docker-compile.sh -i armv6l
-```
 **Raspberry Pi v1 & ZERO (Debian Buster)**
 ```console
 wget -qN https://raw.github.com/hyperion-project/hyperion.ng/master/bin/scripts/docker-compile.sh && chmod +x *.sh && ./docker-compile.sh -i armv6l -t buster
@@ -45,10 +33,6 @@ wget -qN https://raw.github.com/hyperion-project/hyperion.ng/master/bin/scripts/
 **Raspberry Pi v1 & ZERO (Debian Bullseye)**
 ```console
 wget -qN https://raw.github.com/hyperion-project/hyperion.ng/master/bin/scripts/docker-compile.sh && chmod +x *.sh && ./docker-compile.sh -i armv6l -t bullseye
-```
-**Raspberry Pi 2/3/4 (Debian Stretch)**
-```console
-wget -qN https://raw.github.com/hyperion-project/hyperion.ng/master/bin/scripts/docker-compile.sh && chmod +x *.sh && ./docker-compile.sh -i armv7l
 ```
 **Raspberry Pi 2/3/4 (Debian Buster)**
 ```console
@@ -80,7 +64,7 @@ sudo apt-get install git cmake build-essential qtbase5-dev libqt5serialport5-dev
 **For Linux X11/XXCB grabber support**
 
 ```console
-sudo apt-get install libxrandr-dev libxrender-dev libxcb-image0-dev libxcb-util0-dev libxcb-shm0-dev libxcb-render0-dev libxcb-randr0-dev 
+sudo apt-get install libxrandr-dev libxrender-dev libxcb-image0-dev libxcb-util0-dev libxcb-shm0-dev libxcb-render0-dev libxcb-randr0-dev
 ```
 
 **For Linux CEC support**

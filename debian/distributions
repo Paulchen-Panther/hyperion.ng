@@ -1,13 +1,5 @@
 Origin: Hyperion-Project
 Label: apt.hyperion-project.org
-Codename: bionic
-Architectures: amd64 armhf arm64
-Components: main
-Description: Official APT Repository by Hyperion Project
-SignWith: yes
-
-Origin: Hyperion-Project
-Label: apt.hyperion-project.org
 Codename: focal
 Architectures: amd64 armhf arm64
 Components: main
@@ -42,15 +34,6 @@ Origin: Hyperion-Project
 Label: apt.hyperion-project.org
 Codename: jammy
 Architectures: amd64
-Components: main
-Description: Official APT Repository by Hyperion Project
-SignWith: yes
-
-Origin: Hyperion-Project
-Label: apt.hyperion-project.org
-Suite: oldoldstable
-Codename: stretch
-Architectures: armhf amd64
 Components: main
 Description: Official APT Repository by Hyperion Project
 SignWith: yes
