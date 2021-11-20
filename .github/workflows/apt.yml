@@ -1,5 +1,10 @@
 name: Hyperion APT Build
-on: [workflow_call]
+on:
+  push:
+    branches:
+      - '**'
+    tags:
+      - '*'
 
 jobs:
   setup:
@@ -54,7 +59,6 @@ jobs:
             cp ../hyperion_* /deploy"
 
       - name: Upload package artifact
-        if: startsWith(github.event.ref, 'refs/tags')
         uses: actions/upload-artifact@v2
         with:
           path: deploy
@@ -62,7 +66,6 @@ jobs:
 
   publish:
     name: Publish APT packages
-    if: startsWith(github.event.ref, 'refs/tags')
     needs: [setup, build]
     runs-on: ubuntu-latest
     steps:
