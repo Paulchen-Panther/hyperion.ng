@@ -199,5 +199,6 @@ jobs:
 
   apt_build:
     name: APT Build
+    if: github.repository_owner == 'hyperion-project'
     needs: [Linux, macOS, windows]
     uses: hyperion-project/hyperion.ng/.github/workflows/apt.yml@master
