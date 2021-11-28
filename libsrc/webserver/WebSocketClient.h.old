@@ -1,0 +1,31 @@
+#pragma once
+
+#include <utils/Logger.h>
+
+class QTcpSocket;
+class QWebSocketServer;
+class QWebSocket;
+
+class Hyperion;
+class JsonAPI;
+
+class WebSocketClient : public QObject
+{
+	Q_OBJECT
+public:
+	WebSocketClient(QTcpSocket* sock, bool localConnection, QObject* parent);
+
+private:
+	QWebSocketServer* _socket;
+	QList<QWebSocket*> _clients;
+	Logger* _log;
+	Hyperion* _hyperion;
+	JsonAPI* _jsonAPI;
+
+private slots:
+	void onWsConnection();
+	void onWsTextMessage(QString);
+	void onWsBinaryMessage(QByteArray);
+	void onWsDisconnect();
+	void sendMessage(QJsonObject obj);
+};

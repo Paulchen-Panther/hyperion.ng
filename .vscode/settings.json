@@ -1,0 +1,19 @@
+{
+    "files.associations": {
+        "qtcpsocket": "cpp",
+        "qtendian": "cpp",
+        "qwebsocketserver": "cpp",
+        "qwebsocket": "cpp",
+        "condition_variable": "cpp",
+        "future": "cpp",
+        "thread": "cpp",
+        "array": "cpp",
+        "string": "cpp",
+        "string_view": "cpp",
+        "qsslcertificate": "cpp",
+        "*.tcc": "cpp",
+        "fstream": "cpp",
+        "qjsonobject": "cpp",
+        "qfileinfo": "cpp"
+    }
+}

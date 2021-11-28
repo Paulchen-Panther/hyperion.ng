@@ -17,6 +17,7 @@
 		<file alias="schema-protoServer.json">schema/schema-protoServer.json</file>
 		<file alias="schema-boblightServer.json">schema/schema-boblightServer.json</file>
 		<file alias="schema-webConfig.json">schema/schema-webConfig.json</file>
+		<file alias="schema-webSocket.json">schema/schema-webSocket.json</file>
 		<file alias="schema-effects.json">schema/schema-effects.json</file>
 		<file alias="schema-ledConfig.json">schema/schema-ledConfig.json</file>
 		<file alias="schema-leds.json">schema/schema-leds.json</file>

@@ -9,7 +9,6 @@ class QTcpSocket;
 class QtHttpRequest;
 class QtHttpReply;
 class QtHttpServer;
-class WebSocketClient;
 class WebJsonRpc;
 
 class QtHttpClientWrapper : public QObject {
@@ -56,7 +55,6 @@ private:
 	QtHttpRequest *   m_currentRequest;
 	QtHttpServer  *   m_serverHandle;
 	const bool        m_localConnection;
-	WebSocketClient * m_websocketClient;
 	WebJsonRpc *      m_webJsonRpc;
 };
 

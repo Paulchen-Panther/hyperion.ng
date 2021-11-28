@@ -179,6 +179,15 @@
 		"keyPassPhrase"	: ""
 	},
 
+	"webSocket" :
+	{
+		"port"          : 8190,
+		"sslPort"		: 8192,
+		"crtPath"		: "",
+		"keyPath"		: "",
+		"keyPassPhrase"	: ""
+	},
+
 	"effects" :
 	{
 		"paths" : ["$ROOT/custom-effects"],

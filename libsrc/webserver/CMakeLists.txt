@@ -24,4 +24,5 @@ target_link_libraries(webserver
 	hyperion-utils
 	hyperion-api
 	Qt${QT_VERSION_MAJOR}::Network
+	Qt${QT_VERSION_MAJOR}::WebSockets
 )

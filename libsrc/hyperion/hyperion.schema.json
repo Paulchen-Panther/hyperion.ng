@@ -67,6 +67,10 @@
 		{
 			"$ref": "schema-webConfig.json"
 		},
+		"webSocket" :
+		{
+			"$ref": "schema-webSocket.json"
+		},
 		"effects" :
 		{
 			"$ref": "schema-effects.json"

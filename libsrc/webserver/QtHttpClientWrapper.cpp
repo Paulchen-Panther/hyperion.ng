@@ -5,7 +5,6 @@
 #include "QtHttpReply.h"
 #include "QtHttpServer.h"
 #include "QtHttpHeader.h"
-#include "WebSocketClient.h"
 #include "WebJsonRpc.h"
 
 #include <QCryptographicHash>
@@ -25,21 +24,20 @@ QtHttpClientWrapper::QtHttpClientWrapper (QTcpSocket * sock, const bool& localCo
 	, m_currentRequest (Q_NULLPTR)
 	, m_serverHandle   (parent)
 	, m_localConnection(localConnection)
-	, m_websocketClient(nullptr)
 	, m_webJsonRpc     (nullptr)
 {
 	connect (m_sockClient, &QTcpSocket::readyRead, this, &QtHttpClientWrapper::onClientDataReceived);
 }
 
-QString QtHttpClientWrapper::getGuid (void)
+QString QtHttpClientWrapper::getGuid(void)
 {
-	if (m_guid.isEmpty ())
+	if (m_guid.isEmpty())
 	{
-		m_guid = QString::fromLocal8Bit (
-			QCryptographicHash::hash (
-			QByteArray::number ((quint64) (this)),
+		m_guid = QString::fromLocal8Bit(
+			QCryptographicHash::hash(
+			QByteArray::number((quint64) (this)),
 			QCryptographicHash::Md5
-			).toHex ()
+			).toHex()
 		);
 	}
 
@@ -50,28 +48,32 @@ void QtHttpClientWrapper::onClientDataReceived (void)
 {
 	if (m_sockClient != Q_NULLPTR)
 	{
-		while (m_sockClient->bytesAvailable ())
+
+		while (m_sockClient->bytesAvailable())
 		{
-			QByteArray line = m_sockClient->readLine ();
+			if (!m_sockClient->isTransactionStarted())
+				m_sockClient->startTransaction();
+
+			QByteArray line = m_sockClient->readLine();
 
 			switch (m_parsingStatus) // handle parsing steps
 			{
 				case AwaitingRequest: // "command url version" × 1
 				{
-					QString str = QString::fromUtf8 (line).trimmed ();
+					QString str = QString::fromUtf8 (line).trimmed();
 					QStringList parts = QStringUtils::split(str,SPACE, QStringUtils::SplitBehavior::SkipEmptyParts);
-					if (parts.size () == 3)
+					if (parts.size() == 3)
 					{
-						QString command = parts.at (0);
-						QString url     = parts.at (1);
-						QString version = parts.at (2);
+						QString command = parts.at(0);
+						QString url     = parts.at(1);
+						QString version = parts.at(2);
 
 						if (version == QtHttpServer::HTTP_VERSION)
 						{
-							m_currentRequest = new QtHttpRequest (this, m_serverHandle);
+							m_currentRequest = new QtHttpRequest(this, m_serverHandle);
 							m_currentRequest->setClientInfo(m_sockClient->localAddress(), m_sockClient->peerAddress());
-							m_currentRequest->setUrl (QUrl (url));
-							m_currentRequest->setCommand (command);
+							m_currentRequest->setUrl(QUrl (url));
+							m_currentRequest->setCommand(command);
 							m_parsingStatus = AwaitingHeaders;
 						}
 						else
@@ -152,22 +154,6 @@ void QtHttpClientWrapper::onClientDataReceived (void)
 			{
 				case RequestParsed: // a valid request has ben fully parsed
 				{
-					// Catch websocket header "Upgrade"
-					if(m_currentRequest->getHeader(QtHttpHeader::Upgrade).toLower() == "websocket")
-					{
-						if(m_websocketClient == Q_NULLPTR)
-						{
-							// disconnect this slot from socket for further requests
-							disconnect(m_sockClient, &QTcpSocket::readyRead, this, &QtHttpClientWrapper::onClientDataReceived);
-							// disabling packet bunching
-							m_sockClient->setSocketOption(QAbstractSocket::LowDelayOption, 1);
-							m_sockClient->setSocketOption(QAbstractSocket::KeepAliveOption, 1);
-							m_websocketClient = new WebSocketClient(m_currentRequest, m_sockClient, m_localConnection, this);
-						}
-
-						break;
-					}
-
 					// add  post data to request and catch /jsonrpc subroute url
 					if ( m_currentRequest->getCommand() == "POST")
 					{

@@ -16,7 +16,7 @@ window.serverSchema = {};
 window.serverConfig = {};
 window.schema = {};
 window.sysInfo = {};
-window.jsonPort = 8090;
+window.jsonPort = 8190;
 window.websocket = null;
 window.hyperion = {};
 window.wsTan = 1;
@@ -72,25 +72,23 @@ setInterval(connectionLostDetection, 3000);
 
 // init websocket to hyperion and bind socket events to jquery events of $(hyperion) object
 
-function initWebSocket()
-{
-  if ("WebSocket" in window)
-  {
-    if (window.websocket == null)
-    {
+function initWebSocket() {
+  if ("WebSocket" in window) {
+    if (window.websocket == null) {
       window.jsonPort = '';
-      if(document.location.port == '' && document.location.protocol == "http:")
+      if (document.location.port == '' && document.location.protocol == "http:")
         window.jsonPort = '80';
       else if (document.location.port == '' && document.location.protocol == "https:")
         window.jsonPort = '443';
       else
         window.jsonPort = document.location.port;
-      window.websocket = (document.location.protocol == "https:") ? new WebSocket('wss://'+document.location.hostname+":"+window.jsonPort) : new WebSocket('ws://'+document.location.hostname+":"+window.jsonPort);
+      window.websocket = (document.location.protocol == "https:") ? new WebSocket('wss://' + document.location.hostname + ':8192') : new WebSocket('ws://' + document.location.hostname + ':8190');
+      console.log(document.location.hostname);
 
       window.websocket.onopen = function (event) {
-        $(window.hyperion).trigger({type:"open"});
+        $(window.hyperion).trigger({ type: "open" });
 
-        $(window.hyperion).on("cmd-serverinfo", function(event) {
+        $(window.hyperion).on("cmd-serverinfo", function (event) {
           window.watchdog = 0;
         });
       };
@@ -98,8 +96,7 @@ function initWebSocket()
       window.websocket.onclose = function (event) {
         // See http://tools.ietf.org/html/rfc6455#section-7.4.1
         var reason;
-        switch(event.code)
-        {
+        switch (event.code) {
           case 1000: reason = "Normal closure, meaning that the purpose for which the connection was established has been fulfilled."; break;
           case 1001: reason = "An endpoint is \"going away\", such as a server going down or a browser having navigated away from a page."; break;
           case 1002: reason = "An endpoint is terminating the connection due to a protocol error"; break;
@@ -115,47 +112,43 @@ function initWebSocket()
           case 1015: reason = "The connection was closed due to a failure to perform a TLS handshake (e.g., the server certificate can't be verified)."; break;
           default: reason = "Unknown reason";
         }
-        $(window.hyperion).trigger({type:"close", reason:reason});
+        $(window.hyperion).trigger({ type: "close", reason: reason });
         window.watchdog = 10;
         connectionLostDetection();
       };
 
       window.websocket.onmessage = function (event) {
-        try
-        {
+        try {
+          console.log("window.websocket.onmessage: ", event.data);
           var response = JSON.parse(event.data);
           var success = response.success;
           var cmd = response.command;
           var tan = response.tan
-          if (success || typeof(success) == "undefined")
-          {
-            $(window.hyperion).trigger({type:"cmd-"+cmd, response:response});
+          if (success || typeof (success) == "undefined") {
+            $(window.hyperion).trigger({ type: "cmd-" + cmd, response: response });
           }
-          else
-          {
-              // skip tan -1 error handling
-              if(tan != -1){
-                var error = response.hasOwnProperty("error")? response.error : "unknown";
-                $(window.hyperion).trigger({type:"error",reason:error});
-                console.log("[window.websocket::onmessage] ",error)
-              }
+          else {
+            // skip tan -1 error handling
+            if (tan != -1) {
+              var error = response.hasOwnProperty("error") ? response.error : "unknown";
+              $(window.hyperion).trigger({ type: "error", reason: error });
+              console.log("[window.websocket::onmessage] ", error)
+            }
           }
         }
-        catch(exception_error)
-        {
-          $(window.hyperion).trigger({type:"error",reason:exception_error});
-          console.log("[window.websocket::onmessage] ",exception_error)
+        catch (exception_error) {
+          $(window.hyperion).trigger({ type: "error", reason: exception_error });
+          console.log("[window.websocket::onmessage] ", exception_error)
         }
       };
 
       window.websocket.onerror = function (error) {
-        $(window.hyperion).trigger({type:"error",reason:error});
-        console.log("[window.websocket::onerror] ",error)
+        $(window.hyperion).trigger({ type: "error", reason: error });
+        console.log("[window.websocket::onerror] ", error)
       };
     }
   }
-  else
-  {
+  else {
     $(window.hyperion).trigger("error");
     alert("Websocket is not supported by your browser");
     return;

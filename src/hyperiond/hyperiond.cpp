@@ -25,6 +25,7 @@
 #include <bonjour/bonjourbrowserwrapper.h>
 #endif
 #include <jsonserver/JsonServer.h>
+#include <webserver/WebSocketServer.h>
 #include <webserver/WebServer.h>
 #include "hyperiond.h"
 
@@ -63,28 +64,30 @@ HyperionDaemon *HyperionDaemon::daemon = nullptr;
 
 HyperionDaemon::HyperionDaemon(const QString& rootPath, QObject* parent, bool logLvlOverwrite, bool readonlyMode)
 	: QObject(parent), _log(Logger::getInstance("DAEMON"))
-	  , _instanceManager(new HyperionIManager(rootPath, this, readonlyMode))
-	  , _authManager(new AuthManager(this, readonlyMode))
+	, _instanceManager(new HyperionIManager(rootPath, this, readonlyMode))
+	, _authManager(new AuthManager(this, readonlyMode))
 #ifdef ENABLE_AVAHI
-	  , _bonjourBrowserWrapper(new BonjourBrowserWrapper())
+	, _bonjourBrowserWrapper(new BonjourBrowserWrapper())
 #endif
-	  , _netOrigin(new NetOrigin(this))
-	  , _pyInit(new PythonInit())
-	  , _webserver(nullptr)
-	  , _sslWebserver(nullptr)
-	  , _jsonServer(nullptr)
-	  , _videoGrabber(nullptr)
-	  , _dispmanx(nullptr)
-	  , _x11Grabber(nullptr)
-	  , _xcbGrabber(nullptr)
-	  , _amlGrabber(nullptr)
-	  , _fbGrabber(nullptr)
-	  , _osxGrabber(nullptr)
-	  , _qtGrabber(nullptr)
-	  , _dxGrabber(nullptr)
-	  , _ssdp(nullptr)
-	  , _cecHandler(nullptr)
-	  , _currVideoMode(VideoMode::VIDEO_2D)
+	, _netOrigin(new NetOrigin(this))
+	, _pyInit(new PythonInit())
+	, _webserver(nullptr)
+	, _webSocket(nullptr)
+	, _sslWebserver(nullptr)
+	, _sslWebSocket(nullptr)
+	, _jsonServer(nullptr)
+	, _videoGrabber(nullptr)
+	, _dispmanx(nullptr)
+	, _x11Grabber(nullptr)
+	, _xcbGrabber(nullptr)
+	, _amlGrabber(nullptr)
+	, _fbGrabber(nullptr)
+	, _osxGrabber(nullptr)
+	, _qtGrabber(nullptr)
+	, _dxGrabber(nullptr)
+	, _ssdp(nullptr)
+	, _cecHandler(nullptr)
+	, _currVideoMode(VideoMode::VIDEO_2D)
 {
 	HyperionDaemon::daemon = this;
 
@@ -207,6 +210,16 @@ void HyperionDaemon::freeObjects()
 		_ssdp = nullptr;
 	}
 
+	// webSocketServer before webserver
+	if (_webSocket != nullptr)
+	{
+		auto webSocketThread = _webSocket->thread();
+		webSocketThread->quit();
+		webSocketThread->wait();
+		delete webSocketThread;
+		_webSocket = nullptr;
+	}
+
 	if (_webserver != nullptr)
 	{
 		auto webserverThread = _webserver->thread();
@@ -214,6 +227,16 @@ void HyperionDaemon::freeObjects()
 		webserverThread->wait();
 		delete webserverThread;
 		_webserver = nullptr;
+	}
+
+	// sslWebSocketServer before sslWebserver
+	if (_sslWebSocket != nullptr)
+	{
+		auto sslWebSocketThread = _sslWebSocket->thread();
+		sslWebSocketThread->quit();
+		sslWebSocketThread->wait();
+		delete sslWebSocketThread;
+		_sslWebSocket = nullptr;
 	}
 
 	if (_sslWebserver != nullptr)
@@ -288,6 +311,16 @@ void HyperionDaemon::startNetworkServices()
 	connect(this, &HyperionDaemon::settingsChanged, _protoServer, &ProtoServer::handleSettingsUpdate);
 	pThread->start();
 
+	// Create Websocket Server in thread
+	_webSocket = new WebSocketServer(getSetting(settings::WEBSOCKET), false);
+	QThread* webSocketThread = new QThread(this);
+	webSocketThread->setObjectName("WebSocketServerThread");
+	_webSocket->moveToThread(webSocketThread);
+	connect(webSocketThread, &QThread::started, _webSocket, &WebSocketServer::initServer);
+	connect(webSocketThread, &QThread::finished, _webSocket, &WebSocketServer::deleteLater);
+	connect(this, &HyperionDaemon::settingsChanged, _webSocket, &WebSocketServer::handleSettingsUpdate);
+	webSocketThread->start();
+
 	// Create Webserver in thread
 	_webserver = new WebServer(getSetting(settings::WEBSERVER), false);
 	QThread* wsThread = new QThread(this);
@@ -297,6 +330,16 @@ void HyperionDaemon::startNetworkServices()
 	connect(wsThread, &QThread::finished, _webserver, &WebServer::deleteLater);
 	connect(this, &HyperionDaemon::settingsChanged, _webserver, &WebServer::handleSettingsUpdate);
 	wsThread->start();
+
+	// Create SSL Websocket Server in thread
+	_sslWebSocket = new WebSocketServer(getSetting(settings::WEBSOCKET), true);
+	QThread* sslWebSocketThread = new QThread(this);
+	sslWebSocketThread->setObjectName("SSLWebSocketServerThread");
+	_sslWebSocket->moveToThread(sslWebSocketThread);
+	connect(sslWebSocketThread, &QThread::started, _sslWebSocket, &WebSocketServer::initServer);
+	connect(sslWebSocketThread, &QThread::finished, _sslWebSocket, &WebSocketServer::deleteLater);
+	connect(this, &HyperionDaemon::settingsChanged, _sslWebSocket, &WebSocketServer::handleSettingsUpdate);
+	sslWebSocketThread->start();
 
 	// Create SSL Webserver in thread
 	_sslWebserver = new WebServer(getSetting(settings::WEBSERVER), true);
@@ -310,11 +353,11 @@ void HyperionDaemon::startNetworkServices()
 
 	// Create SSDP server in thread
 	_ssdp = new SSDPHandler(_webserver,
-							   getSetting(settings::FLATBUFSERVER).object()["port"].toInt(),
-							   getSetting(settings::PROTOSERVER).object()["port"].toInt(),
-							   getSetting(settings::JSONSERVER).object()["port"].toInt(),
-							   getSetting(settings::WEBSERVER).object()["sslPort"].toInt(),
-							   getSetting(settings::GENERAL).object()["name"].toString());
+		getSetting(settings::FLATBUFSERVER).object()["port"].toInt(),
+		getSetting(settings::PROTOSERVER).object()["port"].toInt(),
+		getSetting(settings::JSONSERVER).object()["port"].toInt(),
+		getSetting(settings::WEBSERVER).object()["sslPort"].toInt(),
+		getSetting(settings::GENERAL).object()["name"].toString());
 	QThread* ssdpThread = new QThread(this);
 	ssdpThread->setObjectName("SSDPThread");
 	_ssdp->moveToThread(ssdpThread);

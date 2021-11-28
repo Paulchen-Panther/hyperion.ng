@@ -353,7 +353,7 @@ if (NOT DEFINED QTDIR)
 			endif()
 		endif()
 	endif()
-endif()	
+endif()
 
 if (DEFINED QTDIR)
 	message(STATUS "Add QTDIR: ${QTDIR} to CMAKE_PREFIX_PATH")
@@ -363,7 +363,7 @@ endif()
 message( STATUS "CMAKE_PREFIX_PATH used: ${CMAKE_PREFIX_PATH}" )
 
 # find QT libs
-find_package(QT NAMES Qt6 Qt5 COMPONENTS Core Gui Network SerialPort Sql Widgets REQUIRED)
+find_package(QT NAMES Qt6 Qt5 COMPONENTS Core Gui Network WebSockets SerialPort Sql Widgets REQUIRED)
 message( STATUS "Found Qt Version: ${QT_VERSION}" )
 
 if (${QT_VERSION_MAJOR} GREATER_EQUAL 6 )
@@ -376,7 +376,7 @@ IF ( "${QT_VERSION}" VERSION_LESS "${QT_MIN_VERSION}" )
 	message( FATAL_ERROR "Your Qt version is to old! Minimum required ${QT_MIN_VERSION}" )
 ENDIF()
 
-find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Core Gui Network SerialPort Sql Widgets REQUIRED)
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Core Gui Network WebSockets SerialPort Sql Widgets REQUIRED)
 
 message( STATUS "Qt version used: ${QT_VERSION}" )
 

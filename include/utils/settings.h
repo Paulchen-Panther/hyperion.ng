@@ -25,6 +25,7 @@ namespace settings {
 		LOGGER,
 		SMOOTHING,
 		WEBSERVER,
+		WEBSOCKET,
 		INSTCAPTURE,
 		NETWORK,
 		FLATBUFSERVER,
@@ -58,6 +59,7 @@ namespace settings {
 			case LOGGER:        return "logger";
 			case SMOOTHING:     return "smoothing";
 			case WEBSERVER:     return "webConfig";
+			case WEBSOCKET:     return "webSocket";
 			case INSTCAPTURE:   return "instCapture";
 			case NETWORK:       return "network";
 			case FLATBUFSERVER: return "flatbufServer";
@@ -90,6 +92,7 @@ namespace settings {
 		else if (type == "logger")               return LOGGER;
 		else if (type == "smoothing")            return SMOOTHING;
 		else if (type == "webConfig")            return WEBSERVER;
+		else if (type == "webSocket")            return WEBSOCKET;
 		else if (type == "instCapture")          return INSTCAPTURE;
 		else if (type == "network")              return NETWORK;
 		else if (type == "flatbufServer")        return FLATBUFSERVER;

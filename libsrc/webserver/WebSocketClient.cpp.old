@@ -1,0 +1,95 @@
+#include "WebSocketClient.h"
+
+#include <hyperion/Hyperion.h>
+#include <api/JsonAPI.h>
+
+#include <QTcpSocket>
+#include <QWebSocketServer>
+#include <QWebSocket>
+#include <QJsonObject>
+
+WebSocketClient::WebSocketClient(QTcpSocket* sock, bool localConnection, QObject* parent)
+	: QObject(parent)
+	, _socket(new QWebSocketServer(QStringLiteral("WebSocket"), QWebSocketServer::NonSecureMode, parent))
+	, _log(Logger::getInstance("WEBSOCKET"))
+{
+	// connect socket
+	connect(_socket, &QWebSocketServer::newConnection, this, &WebSocketClient::onWsConnection);
+	// connect(_socket, &QWebSocketServer::closed, this, &WebSocketClient::onWsDisconnect);
+
+	// Json processor
+	_jsonAPI = new JsonAPI(_socket->, _log, localConnection, this);
+	connect(_jsonAPI, &JsonAPI::callbackMessage, this, &WebSocketClient::sendMessage);
+	connect(_jsonAPI, &JsonAPI::forceClose, this,[this]() { _socket->close(); });
+
+	Debug(_log, "New connection from %s", QSTRING_CSTR(client));
+
+	_socket->handleConnection(sock);
+
+	// Init JsonAPI
+	_jsonAPI->initialize();
+}
+
+void WebSocketClient::onWsConnection()
+{
+	qDebug() << "onWsConnection";
+    QWebSocket *socket = _socket->nextPendingConnection();
+
+    connect(socket, &QWebSocket::textMessageReceived, this, &WebSocketClient::onWsTextMessage);
+	connect(socket, &QWebSocket::binaryMessageReceived, this, &WebSocketClient::onWsBinaryMessage);
+    connect(socket, &QWebSocket::disconnected, this, &WebSocketClient::onWsDisconnect);
+
+    _clients << socket;
+}
+
+void WebSocketClient::onWsDisconnect()
+{
+	qDebug() << "onWsDisconnect";
+    QWebSocket *client = qobject_cast<QWebSocket*>(sender());
+	if (client)
+	{
+		_clients.removeAll(client);
+		client->deleteLater();
+	}
+}
+
+void WebSocketClient::onWsTextMessage(QString message)
+{
+	qDebug() << "onWsTextMessage";
+	_jsonAPI->handleMessage(message);
+}
+
+void WebSocketClient::onWsBinaryMessage(QByteArray data)
+{
+	qDebug() << "onWsBinaryMessage";
+	//uint8_t  priority   = data.at(0);
+	//unsigned duration_s = data.at(1);
+	unsigned imgSize    = data.size() - 4;
+	unsigned width      = ((data.at(2) << 8) & 0xFF00) | (data.at(3) & 0xFF);
+	unsigned height     =  imgSize / width;
+
+	if ( imgSize % width > 0 )
+	{
+		Error(_log, "data size is not multiple of width");
+		return;
+	}
+
+	Image<ColorRgb> image;
+	image.resize(width, height);
+
+	memcpy(image.memptr(), data.data()+4, imgSize);
+	//_hyperion->registerInput();
+	//_hyperion->setInputImage(priority, image, duration_s*1000);
+}
+
+void WebSocketClient::sendMessage(QJsonObject obj)
+{
+	qDebug() << "sendMessage";
+	QJsonDocument writer(obj);
+	QByteArray data = writer.toJson(QJsonDocument::Compact) + "\n";
+
+	for (QWebSocket* client : _clients)
+	{
+		client->sendBinaryMessage(data);
+	}
+}

@@ -69,6 +69,7 @@ class HyperionIManager;
 class SysTray;
 class JsonServer;
 class BonjourBrowserWrapper;
+class WebSocketServer;
 class WebServer;
 class SettingsManager;
 class PythonInit;
@@ -168,7 +169,9 @@ private:
 	NetOrigin*                 _netOrigin;
 	PythonInit*                _pyInit;
 	WebServer*                 _webserver;
+	WebSocketServer*           _webSocket;
 	WebServer*                 _sslWebserver;
+	WebSocketServer*           _sslWebSocket;
 	JsonServer*                _jsonServer;
 	VideoWrapper*              _videoGrabber;
 	DispmanxWrapper*           _dispmanx;
