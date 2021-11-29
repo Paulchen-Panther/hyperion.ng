@@ -58,7 +58,7 @@ void WsServer::stop()
 
 void WsServer::onClientConnected()
 {
-	qDebug() << "onClientConnected";
+	qDebug() << "WsServer::onClientConnected";
 	while (_sockServer->hasPendingConnections ())
 	{
 		QWebSocket *socket = _sockServer->nextPendingConnection();
@@ -89,7 +89,7 @@ void WsServer::onClientConnected()
 
 void WsServer::onClientDisconnected()
 {
-	qDebug() << "onClientDisconnected";
+	qDebug() << "WsServer::onClientDisconnected";
     QWebSocket *client = qobject_cast<QWebSocket*>(sender());
 	if (client)
 	{
@@ -100,24 +100,24 @@ void WsServer::onClientDisconnected()
 
 void WsServer::processTextMessage(QString message)
 {
-	qDebug() << "processTextMessage";
+	qDebug() << "WsServer::processTextMessage";
 	_jsonAPI->handleMessage(message);
 }
 
 void WsServer::sendMessage(QJsonObject obj)
 {
-	qDebug() << "sendMessage";
-	QJsonDocument writer(obj);
-	QByteArray data = writer.toJson(QJsonDocument::Compact) + "\n";
+	qDebug() << "WsServer::sendMessage";
+	QByteArray data =  QJsonDocument(obj).toJson(QJsonDocument::Compact);
 
-	for (QWebSocket* client : _clients)
+	for (QWebSocket* client : qAsConst(_clients))
 	{
-		client->sendBinaryMessage(data);
+		client->sendTextMessage(data);
 	}
 }
 
 void WsServer::processBinaryMessage(QByteArray message)
 {
+	qDebug() << "WsServer::processBinaryMessage";
 	//uint8_t  priority   = message.at(0);
 	//unsigned duration_s = message.at(1);
 	unsigned imgSize    = message.size() - 4;
