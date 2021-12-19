@@ -54,6 +54,7 @@ jobs:
       - name: Build packages
         env:
           PLATFORM: windows
+          EXTRA_CMAKE_ARGUMENTS: '-DCMAKE_TOOLCHAIN_FILE=$env:VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake'
         shell: bash
         run: ./.ci/ci_build.sh
 
