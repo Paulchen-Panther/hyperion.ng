@@ -1,94 +1,7 @@
 name: Hyperion CI Build
-on:
-  push:
-    branches:
-      - '**'
-    tags:
-      - '*'
+on: [push]
 
 jobs:
-
-###################
-###### Linux ######
-###################
-
-  Linux:
-    name: ${{ matrix.dockerName }}
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        dockerImage: [ x86_64, armv6l, armv7l, aarch64 ]
-        include:
-          - dockerImage: x86_64
-            dockerName: Debian Stretch (x86_64)
-            platform: x11
-          - dockerImage: armv6l
-            dockerName: Debian Stretch (Raspberry Pi v1 & ZERO)
-            platform: rpi
-          - dockerImage: armv7l
-            dockerName: Debian Stretch (Raspberry Pi 2 & 3)
-            platform: rpi
-          - dockerImage: aarch64
-            dockerName: Debian Stretch (Generic AARCH64)
-            platform: amlogic
-
-    steps:
-      - uses: actions/checkout@v1
-        with:
-          submodules: true
-
-      # Build process
-      - name: Build packages
-        env:
-          DOCKER_IMAGE: ${{ matrix.dockerImage }}
-          DOCKER_TAG: stretch
-          DOCKER_NAME: ${{ matrix.dockerName }}
-          PLATFORM: ${{ matrix.platform }}
-        shell: bash
-        run: ./.ci/ci_build.sh
-
-      # Upload artifacts (only on tagged commit)
-      - name: Upload artifacts
-        if: startsWith(github.event.ref, 'refs/tags')
-        uses: actions/upload-artifact@v2
-        with:
-          path: deploy/Hyperion-*
-
-###################
-###### macOS ######
-###################
-
-  macOS:
-    name: macOS
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v1
-        with:
-          submodules: true
-
-      # Install dependencies
-      - name: Install dependencies
-        shell: bash
-        run: ./.ci/ci_install.sh
-
-      # Build process
-      - name: Build packages
-        env:
-          PLATFORM: osx
-        shell: bash
-        run: ./.ci/ci_build.sh
-
-      # Upload artifacts (only on tagged commit)
-      - name: Upload artifacts
-        if: startsWith(github.event.ref, 'refs/tags')
-        uses: actions/upload-artifact@v2
-        with:
-          path: build/Hyperion-*
-
-#####################
-###### Windows ######
-#####################
-
   windows:
     name: Windows
     runs-on: windows-latest
@@ -138,6 +51,11 @@ jobs:
           Invoke-WebRequest https://netcologne.dl.sourceforge.net/project/libjpeg-turbo/2.0.6/libjpeg-turbo-2.0.6-vc64.exe -OutFile libjpeg-turbo.exe -UserAgent NativeHost
           .\libjpeg-turbo /S
 
+      - name: Install zlib
+        run: |
+          Invoke-WebRequest https://netcologne.dl.sourceforge.net/gnuwin32/zlib/1.2.3/zlib-1.2.3.exe -OutFile zlib-1.2.3.exe -UserAgent NativeHost
+          .\zlib-1.2.3.exe
+
       - name: Set up x64 build architecture environment
         shell: cmd
         run: call "${{env.VCINSTALLDIR}}\Auxiliary\Build\vcvars64.bat"
@@ -156,53 +74,3 @@ jobs:
         with:
           path: build/Hyperion-*
           retention-days: 1
-
-#####################################
-###### Publish GitHub Releases ######
-#####################################
-
-  github_publish:
-    name: Publish GitHub Releases
-    if: startsWith(github.event.ref, 'refs/tags')
-    needs: [Linux, macOS, windows]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      # Generate environment variables
-      - name: Generate environment variables from .version and tag
-        run: |
-          echo "TAG=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_ENV
-          echo "VERSION=$(tr -d '\n' < .version)" >> $GITHUB_ENV
-
-      # Download artifacts from previous build process
-      - name: Download artifacts
-        uses: actions/download-artifact@v2
-        with:
-          path: artifacts
-
-      # Create draft release and upload artifacts
-      - name: Create draft release
-        uses: softprops/action-gh-release@v1
-        with:
-          name: Hyperion ${{ env.VERSION }}
-          tag_name: ${{ env.TAG }}
-          files: "artifacts/**"
-          draft: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-##########################
-###### APT workflow ######
-##########################
-
-  apt_build:
-    name: APT Build
-    needs: [Linux, macOS, windows]
-    uses: hyperion-project/hyperion.ng/.github/workflows/apt.yml@master
-    secrets:
-      APT_GPG: ${{ secrets.APT_GPG }}
-      APT_USER: ${{ secrets.APT_USER }}
-      APT_PASSWORD: ${{ secrets.APT_PASSWORD }}
-      APT_DRAFT: ${{ secrets.APT_DRAFT }}
