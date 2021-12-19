@@ -29,11 +29,12 @@ jobs:
           arch: 'win64_msvc2019_64'
           cached: ${{ steps.cache-qt-windows.outputs.cache-hit }}
 
-      - name: Cache Chocolatey downloads
+      - name: Cache vcpkg
+        id: cache-vcpkg
         uses: actions/cache@v2
         with:
-          path: C:\Users\runneradmin\AppData\Local\Temp\chocolatey
-          key: ${{ runner.os }}-chocolatey
+          path: vcpkg
+          key: ${{ runner.os }}-vcpkg
 
       - name: "Remove Redistributable"
         shell: cmd
@@ -41,20 +42,9 @@ jobs:
           MsiExec.exe /passive /X{F0C3E5D1-1ADE-321E-8167-68EF0DE699A5}
           MsiExec.exe /passive /X{1D8E6291-B0D5-35EC-8441-6616F567A0F7}
 
-      - name: Install Python, NSIS, OpenSSL, DirectX SDK
-        shell: powershell
+      - name: Install Python3, OpenSSL, DirectX SDK, libjpeg-turbo, zlib
         run: |
-          choco install --no-progress python nsis openssl directx-sdk -y
-
-      - name: Install libjpeg-turbo
-        run: |
-          Invoke-WebRequest https://netcologne.dl.sourceforge.net/project/libjpeg-turbo/2.0.6/libjpeg-turbo-2.0.6-vc64.exe -OutFile libjpeg-turbo.exe -UserAgent NativeHost
-          .\libjpeg-turbo /S
-
-      - name: Install zlib
-        run: |
-          Invoke-WebRequest https://netcologne.dl.sourceforge.net/gnuwin32/zlib/1.2.3/zlib-1.2.3.exe -OutFile zlib-1.2.3.exe -UserAgent NativeHost
-          .\zlib-1.2.3.exe
+          vcpkg install python3 openssl-windows directxsdk
 
       - name: Set up x64 build architecture environment
         shell: cmd
