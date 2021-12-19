@@ -44,7 +44,7 @@ jobs:
 
       - name: Install Python3, OpenSSL, DirectX SDK, libjpeg-turbo, zlib
         run: |
-          vcpkg install python3 openssl-windows directxsdk
+          vcpkg install python3 openssl-windows directxsdk libjpeg-turbo zlib --triplet x64-windows
 
       - name: Set up x64 build architecture environment
         shell: cmd
