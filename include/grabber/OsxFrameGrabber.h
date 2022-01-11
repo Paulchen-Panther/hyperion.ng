@@ -9,6 +9,7 @@
 
 // Utils includes
 #include <utils/ColorRgb.h>
+#include <utils/ColorRgba.h>
 #include <hyperion/Grabber.h>
 
 ///
@@ -62,4 +63,8 @@ private:
 
 	/// Reference to the captured display
 	CGDirectDisplayID _display;
+	/// Width of the captured display
+	int _displayWidth;
+	/// Height of the captured display
+	int _displayHeight;
 };

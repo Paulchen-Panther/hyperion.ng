@@ -8,6 +8,9 @@
 		"editor.formatOnSave": false,
 		"cmake.environment": {
 		},
+		"files.associations": {
+			"ios": "cpp"
+		},
 	},
 	"extensions": {
 		"recommendations": [
@@ -16,7 +19,6 @@
 			"ms-vscode.cmake-tools",
 			"spmeesseman.vscode-taskexplorer",
 			"yzhang.markdown-all-in-one",
-			"CoenraadS.bracket-pair-colorizer",
 			"vscode-icons-team.vscode-icons",
 			"editorconfig.editorconfig"
 		]

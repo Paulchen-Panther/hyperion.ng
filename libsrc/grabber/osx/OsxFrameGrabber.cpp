@@ -17,10 +17,10 @@ const bool verbose = false;
 
 OsxFrameGrabber::OsxFrameGrabber(int display)
 	: Grabber("OSXGRABBER")
-	  , _screenIndex(display)
+	, _screenIndex(display)
 {
 	_isEnabled = false;
-	_useImageResampler = true;
+	_useImageResampler = false;
 }
 
 OsxFrameGrabber::~OsxFrameGrabber()
@@ -43,12 +43,22 @@ int OsxFrameGrabber::grabFrame(Image<ColorRgb> & image)
 	{
 
 		CGImageRef dispImage;
-		CFDataRef imgData;
-		unsigned char * pImgData;
-		unsigned dspWidth;
-		unsigned dspHeight;
 
-		dispImage = CGDisplayCreateImage(_display);
+		if (!(_cropLeft > 0 || _cropTop > 0 || _cropRight > 0 || _cropBottom > 0))
+		{
+			dispImage = CGDisplayCreateImage(_display);
+		}
+		else
+		{
+			CGRect region = CGRectMake(
+				_cropLeft,
+				_cropTop,
+				_displayWidth - _cropLeft - _cropRight,
+				_displayHeight - _cropTop - _cropBottom
+			);
+
+			dispImage = CGDisplayCreateImageForRect(_display, region);
+		}
 
 		// display lost, use main
 		if (dispImage == nullptr && _display != 0)
@@ -61,17 +71,40 @@ int OsxFrameGrabber::grabFrame(Image<ColorRgb> & image)
 				return -1;
 			}
 		}
-		imgData   = CGDataProviderCopyData(CGImageGetDataProvider(dispImage));
-		pImgData  = (unsigned char*) CFDataGetBytePtr(imgData);
-		dspWidth  = CGImageGetWidth(dispImage);
-		dspHeight = CGImageGetHeight(dispImage);
 
-		_imageResampler.processImage( pImgData,
-									  static_cast<int>(dspWidth),
-									  static_cast<int>(dspHeight),
-									  static_cast<int>(CGImageGetBytesPerRow(dispImage)),
-									  PixelFormat::BGR32,
-									  image);
+		unsigned dspWidth  = CGImageGetWidth(dispImage);
+		unsigned dspHeight = CGImageGetHeight(dispImage);
+
+		if (_pixelDecimation > 1)
+		{
+			dspWidth = dspWidth / _pixelDecimation;
+			dspHeight = dspHeight /_pixelDecimation;
+
+			CGContextRef context = CGBitmapContextCreate(
+				nullptr,
+				dspWidth,
+				dspHeight,
+				CGImageGetBitsPerComponent(dispImage),
+				CGImageGetBytesPerRow(dispImage) / CGImageGetWidth(dispImage) * dspWidth,
+				CGImageGetColorSpace(dispImage),
+				kCGImageAlphaPremultipliedLast
+			);
+
+			CGContextSetInterpolationQuality(context, kCGInterpolationDefault);
+			CGContextDrawImage(context, CGContextGetClipBoundingBox(context), dispImage);
+			CGImageRelease(dispImage);
+			dispImage = CGBitmapContextCreateImage(context);
+			CGContextRelease(context);
+		}
+
+		CFDataRef imgData   = CGDataProviderCopyData(CGImageGetDataProvider(dispImage));
+		unsigned char *imgDataPtr  = (unsigned char*) CFDataGetBytePtr(imgData);
+
+		image.resize(dspWidth, dspHeight);
+		for (int source=0, destination=0; source < dspWidth * dspHeight * static_cast<int>(sizeof(ColorRgb)); source+=sizeof(ColorRgb), destination+=sizeof(ColorRgba))
+		{
+			memmove((uint8_t*)image.memptr() + source, imgDataPtr + destination, sizeof(ColorRgb));
+		}
 
 		CFRelease(imgData);
 		CGImageRelease(dispImage);
@@ -93,7 +126,7 @@ bool OsxFrameGrabber::setDisplayIndex(int index)
 		err = CGGetActiveDisplayList(0, nullptr, &dspyCnt);
 		if (err == kCGErrorSuccess && dspyCnt > 0)
 		{
-			CGDirectDisplayID *activeDspys = new CGDirectDisplayID [dspyCnt] ;
+			CGDirectDisplayID *activeDspys = new CGDirectDisplayID[dspyCnt];
 			err = CGGetActiveDisplayList(dspyCnt, activeDspys, &dspyCnt) ;
 			if (err == kCGErrorSuccess)
 			{
@@ -117,6 +150,10 @@ bool OsxFrameGrabber::setDisplayIndex(int index)
 					}
 					else
 					{
+						CGRect rect = CGDisplayBounds(activeDspys[_screenIndex]);
+						_displayWidth  = static_cast<int>(rect.size.width);
+						_displayHeight = static_cast<int>(rect.size.height);
+
 						setEnabled(true);
 						rc = true;
 						Info(_log, "Display [%u] opened with resolution: %ux%u@%ubit", _display, CGImageGetWidth(image), CGImageGetHeight(image), CGImageGetBitsPerPixel(image));
@@ -175,12 +212,9 @@ QJsonObject OsxFrameGrabber::discover(const QJsonObject& params)
 
 				QJsonObject resolution;
 
-
-				CGDisplayModeRef dispMode = CGDisplayCopyDisplayMode(did);
 				CGRect rect = CGDisplayBounds(did);
 				resolution["width"] = static_cast<int>(rect.size.width);
 				resolution["height"] = static_cast<int>(rect.size.height);
-				CGDisplayModeRelease(dispMode);
 
 				resolution["fps"] = fps;
 
