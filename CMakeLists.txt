@@ -59,6 +59,7 @@ SET ( DEFAULT_QT                          ON  )
 SET ( DEFAULT_V4L2                        OFF )
 SET ( DEFAULT_X11                         OFF )
 SET ( DEFAULT_XCB                         OFF )
+SET ( DEFAULT_DRM                         OFF )
 
 # Input
 SET ( DEFAULT_BOBLIGHT_SERVER             ON  )
@@ -232,6 +233,9 @@ message(STATUS "ENABLE_AMLOGIC = ${ENABLE_AMLOGIC}")
 
 option(ENABLE_DISPMANX "Enable the RPi dispmanx grabber" ${DEFAULT_DISPMANX} )
 message(STATUS "ENABLE_DISPMANX = ${ENABLE_DISPMANX}")
+
+option(ENABLE_DRM "Enable the DRM grabber" ${DEFAULT_DRM})
+message(STATUS "ENABLE_DRM = ${ENABLE_DRM}")
 
 option(ENABLE_DX "Enable the DirectX grabber" ${DEFAULT_DX})
 message(STATUS "ENABLE_DX = ${ENABLE_DX}")

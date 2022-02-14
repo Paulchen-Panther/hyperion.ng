@@ -28,6 +28,10 @@ if(ENABLE_DX)
 	target_link_libraries(hyperion-api ${DIRECTX9_LIBRARIES})
 endif(ENABLE_DX)
 
+if(ENABLE_DRM)
+	target_link_libraries(hyperion-api drm-grabber)
+endif(ENABLE_DRM)
+
 target_link_libraries(hyperion-api
 	hyperion
 	hyperion-utils

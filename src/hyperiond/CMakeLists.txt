@@ -97,6 +97,10 @@ if (ENABLE_DISPMANX)
 	target_link_libraries(${PROJECT_NAME} dispmanx-grabber)
 endif (ENABLE_DISPMANX)
 
+if (ENABLE_DRM)
+	target_link_libraries(hyperiond	drm-grabber)
+endif (ENABLE_DRM)
+
 if (ENABLE_FB)
 	target_link_libraries(${PROJECT_NAME} framebuffer-grabber)
 endif (ENABLE_FB)
