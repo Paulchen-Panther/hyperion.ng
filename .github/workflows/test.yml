@@ -34,5 +34,5 @@ jobs:
         if: ${{ steps.status.outputs.status }}
         uses: ad-m/github-push-action@master
         with:
-          github_token: ${{ secrets.HYPERION_BOT_TOKEN }}
+          github_token: ${{ secrets.SUBMODULE }}
           branch: ${{ github.ref }}
