@@ -3,12 +3,6 @@
 SET(CURRENT_HEADER_DIR ${CMAKE_SOURCE_DIR}/include/forwarder)
 SET(CURRENT_SOURCE_DIR ${CMAKE_SOURCE_DIR}/libsrc/forwarder)
 
-if(ENABLE_FLATBUF_CONNECT)
-include_directories(
-	${CMAKE_CURRENT_BINARY_DIR}/../../libsrc/flatbufserver
-)
-endif()
-
 FILE ( GLOB Forwarder_SOURCES "${CURRENT_HEADER_DIR}/*.h"  "${CURRENT_SOURCE_DIR}/*.h"  "${CURRENT_SOURCE_DIR}/*.cpp" )
 
 add_library(forwarder ${Forwarder_SOURCES} )

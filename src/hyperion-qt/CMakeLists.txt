@@ -3,11 +3,6 @@ project(hyperion-qt)
 
 find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Core Gui Network Widgets REQUIRED)
 
-include_directories(
-	${CMAKE_CURRENT_BINARY_DIR}/../../libsrc/flatbufserver
-	${FLATBUFFERS_INCLUDE_DIRS}
-)
-
 set(Hyperion_QT_HEADERS
 	QtWrapper.h
 )
@@ -33,7 +28,6 @@ target_link_libraries(${PROJECT_NAME}
 	commandline
 	qt-grabber
 	flatbufconnect
-	flatbuffers
 	ssdp
 	Qt${QT_VERSION_MAJOR}::Core
 	Qt${QT_VERSION_MAJOR}::Gui

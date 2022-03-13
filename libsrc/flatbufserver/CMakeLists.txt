@@ -3,10 +3,7 @@
 set(CURRENT_HEADER_DIR ${CMAKE_SOURCE_DIR}/include/flatbufserver)
 set(CURRENT_SOURCE_DIR ${CMAKE_SOURCE_DIR}/libsrc/flatbufserver)
 
-include_directories(
-	${CMAKE_CURRENT_BINARY_DIR}
-	${FLATBUFFERS_INCLUDE_DIRS}
-)
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 set(Flatbuffer_GENERATED_FBS
 	hyperion_reply_generated.h
@@ -29,36 +26,37 @@ set_source_files_properties(
 ### Split flatbufconnect from flatbufserver as flatbufserver relates to HyperionDaemon
 
 if(ENABLE_FLATBUF_CONNECT)
-add_library(flatbufconnect
-	${CURRENT_HEADER_DIR}/FlatBufferConnection.h
-	${CURRENT_SOURCE_DIR}/FlatBufferConnection.cpp
-	${FLATBUFSERVER_SOURCES}
-	${Flatbuffer_GENERATED_FBS}
+	add_library(flatbufconnect
+		${CURRENT_HEADER_DIR}/FlatBufferConnection.h
+		${CURRENT_SOURCE_DIR}/FlatBufferConnection.cpp
+		${Flatbuffer_GENERATED_FBS}
 
-)
-target_link_libraries(flatbufconnect
-	hyperion-utils
-	flatbuffers
-	Qt${QT_VERSION_MAJOR}::Network
-	Qt${QT_VERSION_MAJOR}::Core
-)
+	)
+
+	target_include_directories(flatbufconnect PUBLIC ${FLATBUFFERS_INCLUDE_DIRS})
+	target_link_libraries(flatbufconnect
+		hyperion-utils
+		flatbuffers
+		Qt${QT_VERSION_MAJOR}::Network
+		Qt${QT_VERSION_MAJOR}::Core
+	)
 endif()
 
 if(ENABLE_FLATBUF_SERVER)
-add_library(flatbufserver
-	${CURRENT_HEADER_DIR}/FlatBufferServer.h
-	${CURRENT_SOURCE_DIR}/FlatBufferServer.cpp
-	${CURRENT_SOURCE_DIR}/FlatBufferClient.h
-	${CURRENT_SOURCE_DIR}/FlatBufferClient.cpp
-	${FLATBUFSERVER_SOURCES}
-	${Flatbuffer_GENERATED_FBS}
-)
+	add_library(flatbufserver
+		${CURRENT_HEADER_DIR}/FlatBufferServer.h
+		${CURRENT_SOURCE_DIR}/FlatBufferServer.cpp
+		${CURRENT_SOURCE_DIR}/FlatBufferClient.h
+		${CURRENT_SOURCE_DIR}/FlatBufferClient.cpp
+		${Flatbuffer_GENERATED_FBS}
+	)
 
-target_link_libraries(flatbufserver
-hyperion-utils
-flatbuffers
-Qt${QT_VERSION_MAJOR}::Network
-Qt${QT_VERSION_MAJOR}::Core
-)
+	target_include_directories(flatbufserver PUBLIC ${FLATBUFFERS_INCLUDE_DIRS})
+	target_link_libraries(flatbufserver
+		hyperion-utils
+		flatbuffers
+		Qt${QT_VERSION_MAJOR}::Network
+		Qt${QT_VERSION_MAJOR}::Core
+	)
 endif()
 

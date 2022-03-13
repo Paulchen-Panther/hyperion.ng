@@ -3,12 +3,6 @@
 SET(CURRENT_HEADER_DIR ${CMAKE_SOURCE_DIR}/include/hyperion)
 SET(CURRENT_SOURCE_DIR ${CMAKE_SOURCE_DIR}/libsrc/hyperion)
 
-if(ENABLE_FLATBUF_SERVER)
-include_directories(
-	${CMAKE_CURRENT_BINARY_DIR}/../../libsrc/flatbufserver
-)
-endif()
-
 FILE ( GLOB Hyperion_SOURCES "${CURRENT_HEADER_DIR}/*.h"  "${CURRENT_SOURCE_DIR}/*.h"  "${CURRENT_SOURCE_DIR}/*.cpp" )
 
 SET(Hyperion_RESOURCES ${CURRENT_SOURCE_DIR}/resource.qrc)

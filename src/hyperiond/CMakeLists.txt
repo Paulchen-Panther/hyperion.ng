@@ -4,16 +4,6 @@ else()
 	project(hyperiond)
 endif()
 
-if(ENABLE_EFFECTENGINE)
-	if (NOT CMAKE_VERSION VERSION_LESS "3.12")
-		find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
-		include_directories(${Python3_INCLUDE_DIRS} ${Python3_INCLUDE_DIRS}/..)
-	else()
-		find_package (PythonLibs ${PYTHON_VERSION_STRING} EXACT) # Maps PythonLibs to the PythonInterp version of the main cmake
-		include_directories(${PYTHON_INCLUDE_DIRS} ${PYTHON_INCLUDE_DIRS}/..)
-	endif()
-endif ()
-
 find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Core Network Gui Widgets REQUIRED)
 
 # generate windows .rc file for this binary
@@ -62,12 +52,6 @@ target_link_libraries(${PROJECT_NAME}
 
 if(ENABLE_EFFECTENGINE)
 	target_link_libraries(${PROJECT_NAME} effectengine python)
-
-	if (NOT CMAKE_VERSION VERSION_LESS "3.12")
-		target_link_libraries( ${PROJECT_NAME} ${Python3_LIBRARIES} )
-	else()
-		target_link_libraries( ${PROJECT_NAME} ${PYTHON_LIBRARIES} )
-	endif()
 endif ()
 
 if(ENABLE_FLATBUF_SERVER)
@@ -136,7 +120,6 @@ if (ENABLE_QT)
 endif (ENABLE_QT)
 
 if (ENABLE_DX)
-	include_directories(${DIRECTX9_INCLUDE_DIRS})
 	target_link_libraries(${PROJECT_NAME} directx-grabber)
 endif (ENABLE_DX)
 

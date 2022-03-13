@@ -3,11 +3,6 @@ project(hyperion-xcb)
 
 find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Core Network Widgets REQUIRED)
 
-include_directories(
-	${CMAKE_CURRENT_BINARY_DIR}/../../libsrc/flatbufserver
-	${FLATBUFFERS_INCLUDE_DIRS}
-)
-
 set(Hyperion_XCB_HEADERS
 	XcbWrapper.h
 )
@@ -26,7 +21,6 @@ target_link_libraries(${PROJECT_NAME}
 	commandline
 	hyperion-utils
 	flatbufconnect
-	flatbuffers
 	xcb-grabber
 	ssdp
 	Qt${QT_VERSION_MAJOR}::Core

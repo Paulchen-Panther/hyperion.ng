@@ -1,15 +1,7 @@
 cmake_minimum_required(VERSION 3.0.0)
 project(hyperion-x11)
 
-find_package(X11 REQUIRED)
 find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Core Gui Network Widgets REQUIRED)
-
-
-include_directories(
-	${CMAKE_CURRENT_BINARY_DIR}/../../libsrc/flatbufserver
-	${X11_INCLUDES}
-	${FLATBUFFERS_INCLUDE_DIRS}
-)
 
 if(APPLE)
 	include_directories("/opt/X11/include")
@@ -33,12 +25,8 @@ target_link_libraries(${PROJECT_NAME}
 	commandline
 	hyperion-utils
 	flatbufconnect
-	flatbuffers
 	x11-grabber
 	ssdp
-	${X11_LIBRARIES}
-	${X11_Xrandr_LIB}
-	${X11_Xrender_LIB}
 	Qt${QT_VERSION_MAJOR}::Core
 	Qt${QT_VERSION_MAJOR}::Gui
 	Qt${QT_VERSION_MAJOR}::Network

@@ -3,15 +3,15 @@ cmake_minimum_required(VERSION 3.0.0)
 message( STATUS "CMake Version: ${CMAKE_VERSION}" )
 
 macro(addIndent text)
-if(${CMAKE_VERSION} VERSION_GREATER "3.16.0")
-	list(APPEND CMAKE_MESSAGE_INDENT ${text})
-endif()
+	if(${CMAKE_VERSION} VERSION_GREATER "3.16.0")
+		list(APPEND CMAKE_MESSAGE_INDENT ${text})
+	endif()
 endmacro()
 
 macro(removeIndent)
-if(${CMAKE_VERSION} VERSION_GREATER "3.16.0")
-	list(POP_BACK CMAKE_MESSAGE_INDENT)
-endif()
+	if(${CMAKE_VERSION} VERSION_GREATER "3.16.0")
+		list(POP_BACK CMAKE_MESSAGE_INDENT)
+	endif()
 endmacro()
 
 PROJECT(hyperion)
@@ -364,9 +364,9 @@ SET ( PROTOBUF_INSTALL_BIN_DIR ${CMAKE_BINARY_DIR}/proto )
 SET ( PROTOBUF_INSTALL_LIB_DIR ${CMAKE_BINARY_DIR}/proto )
 
 if(ENABLE_JSONCHECKS OR ENABLE_EFFECTENGINE)
-	if ("${CMAKE_VERSION}" VERSION_LESS "3.12.0")
-			set(Python_ADDITIONAL_VERSIONS 3.5)
-			find_package(PythonInterp 3.5 REQUIRED)
+	if (CMAKE_VERSION VERSION_LESS "3.12.0")
+		set(Python_ADDITIONAL_VERSIONS 3.5)
+		find_package(PythonInterp 3.5 REQUIRED)
 	else()
 		find_package(Python3 3.5 COMPONENTS Interpreter Development REQUIRED)
 		if(Python3_FOUND)
@@ -441,12 +441,6 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
 	find_package(WindowsSDK REQUIRED)
 	message(STATUS "WINDOWS SDK: ${WINDOWSSDK_LATEST_DIR} ${WINDOWSSDK_LATEST_NAME}")
 	message(STATUS "MSVC VERSION: ${MSVC_VERSION}")
-
-	# Search for DirectX9
-	if (ENABLE_DX)
-		find_package(DirectX9 REQUIRED)
-	endif(ENABLE_DX)
-
 endif()
 
 # Use GNU gold linker if available
@@ -550,9 +544,9 @@ LIST( APPEND GENERATED_QRC
 )
 
 if(ENABLE_EFFECTENGINE)
-LIST( APPEND GENERATED_QRC
-	${CMAKE_BINARY_DIR}/EffectEngine.qrc
-)
+	LIST( APPEND GENERATED_QRC
+		${CMAKE_BINARY_DIR}/EffectEngine.qrc
+	)
 endif ()
 
 set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "${GENERATED_QRC}" )

@@ -3,11 +3,6 @@ project(hyperion-v4l2)
 
 find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Core Network Widgets REQUIRED)
 
-include_directories(
-	${CMAKE_CURRENT_BINARY_DIR}/../../libsrc/flatbufserver
-	${FLATBUFFERS_INCLUDE_DIRS}
-)
-
 set(Hyperion_V4L2_HEADERS
 	ScreenshotHandler.h
 )
@@ -27,7 +22,6 @@ target_link_libraries(${PROJECT_NAME}
 	commandline
 	hyperion-utils
 	flatbufconnect
-	flatbuffers
 	ssdp
 	Qt${QT_VERSION_MAJOR}::Core
 	Qt${QT_VERSION_MAJOR}::Network

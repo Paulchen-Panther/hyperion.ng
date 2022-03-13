@@ -23,11 +23,6 @@ add_library(hyperion-api
 	${Api_RESOURCES}
 )
 
-if(ENABLE_DX)
-	include_directories(${DIRECTX9_INCLUDE_DIRS})
-	target_link_libraries(hyperion-api ${DIRECTX9_LIBRARIES})
-endif(ENABLE_DX)
-
 target_link_libraries(hyperion-api
 	hyperion
 	hyperion-utils
@@ -35,3 +30,7 @@ target_link_libraries(hyperion-api
 	Qt${QT_VERSION_MAJOR}::Gui
 	Qt${QT_VERSION_MAJOR}::Network
 )
+
+if(ENABLE_DX)
+	target_link_libraries(hyperion-api directx-grabber)
+endif(ENABLE_DX)
