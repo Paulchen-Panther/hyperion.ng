@@ -484,11 +484,6 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
 
 endif()
 
-# Use GNU gold linker if available
-if (NOT WIN32 AND NOT APPLE)
-	include (${CMAKE_CURRENT_SOURCE_DIR}/cmake/LDGold.cmake)
-endif()
-
 # Don't create new dynamic tags (RUNPATH) and setup -rpath to search for shared libs in BINARY/../lib folder (only for Unix)
 if (ENABLE_DEPLOY_DEPENDENCIES AND UNIX AND NOT APPLE)
 	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--disable-new-dtags")

@@ -1,0 +1,26 @@
+[
+	{
+		"distribution": "Fedora",
+		"version": "36",
+		"architecture": "x86_64",
+		"build-requires": "python3-devel qt5-qtbase-devel qt5-qtserialport-devel qt5-qtx11extras-devel turbojpeg-devel libjpeg-turbo-devel libusb1-devel avahi-libs avahi-compat-libdns_sd-devel dbus-devel openssl-devel libXrandr-devel xcb-util-image-devel xcb-util-devel protobuf-devel protobuf-compiler flatbuffers-devel flatbuffers-compiler mbedtls-devel libcec-devel alsa-lib-devel systemd",
+		"package-requires": "qt5-qtbase qt5-qtserialport qt5-qtx11extras turbojpeg libusb avahi-libs dbus-libs libXrandr openssl protobuf flatbuffers mbedtls libcec alsa-lib",
+		"description": "Fedora 36 (x86_64)"
+	},
+	{
+		"distribution": "Fedora",
+		"version": "37",
+		"architecture": "x86_64",
+		"build-requires": "python3-devel qt5-qtbase-devel qt5-qtserialport-devel qt5-qtx11extras-devel turbojpeg-devel libjpeg-turbo-devel libusb1-devel avahi-libs avahi-compat-libdns_sd-devel dbus-devel openssl-devel libXrandr-devel xcb-util-image-devel xcb-util-devel protobuf-devel protobuf-compiler flatbuffers-devel flatbuffers-compiler mbedtls-devel libcec-devel alsa-lib-devel systemd",
+		"package-requires": "qt5-qtbase qt5-qtserialport qt5-qtx11extras turbojpeg libusb avahi-libs dbus-libs libXrandr openssl protobuf flatbuffers mbedtls libcec alsa-lib",
+		"description": "Fedora 37 (x86_64)"
+	},
+	{
+		"distribution": "Fedora",
+		"version": "38",
+		"architecture": "x86_64",
+		"build-requires": "python3-devel qt5-qtbase-devel qt5-qtserialport-devel qt5-qtx11extras-devel turbojpeg-devel libjpeg-turbo-devel libusb1-devel avahi-libs avahi-compat-libdns_sd-devel dbus-devel openssl-devel libXrandr-devel xcb-util-image-devel xcb-util-devel protobuf-devel protobuf-compiler flatbuffers-devel flatbuffers-compiler mbedtls-devel libcec-devel alsa-lib-devel systemd",
+		"package-requires": "qt5-qtbase qt5-qtserialport qt5-qtx11extras turbojpeg libusb avahi-libs dbus-libs libXrandr openssl protobuf flatbuffers mbedtls libcec alsa-lib",
+		"description": "Fedora 38 (x86_64)"
+	}
+]
