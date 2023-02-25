@@ -108,7 +108,7 @@ jobs:
               rpm --define "_gpg_name ${{ steps.import_gpg.outputs.keyid }}" --addsign $rpm/*.rpm
               rpm --checksig $rpm/*.rpm
               createrepo $rpm/
-              gpg --yes --detach-sign --armor $rpm/repomd.xml
+              gpg --yes --detach-sign --armor $rpm/repodata/repomd.xml
             fi
           done
 
