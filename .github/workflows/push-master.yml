@@ -9,14 +9,14 @@ on:
 jobs:
 
 ##########################
-###### YUM workflow ######
+###### RPM workflow ######
 ##########################
 
-  yum_build:
-    name: YUM Build GitHub Releases
-    uses: ./.github/workflows/yum.yml
+  rpm_build:
+    name: RPM Build GitHub Releases
+    uses: ./.github/workflows/dnf.yml
     secrets:
-      YUM_GPG: ${{ secrets.YUM_GPG }}
-      YUM_USER: ${{ secrets.YUM_USER }}
-      YUM_PASSWORD: ${{ secrets.YUM_PASSWORD }}
-      YUM_DRAFT: ${{ secrets.YUM_DRAFT }}
+      APT_GPG: ${{ secrets.APT_GPG }}
+      APT_USER: ${{ secrets.APT_USER }}
+      APT_PASSWORD: ${{ secrets.APT_PASSWORD }}
+      APT_DRAFT: ${{ secrets.APT_DRAFT }}

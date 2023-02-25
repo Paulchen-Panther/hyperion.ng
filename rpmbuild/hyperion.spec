@@ -5,7 +5,7 @@
 
 Name:           hyperion
 Version:        %{git_version}
-Release:        0
+Release:        0%{?dist}
 Summary:        The successor to Hyperion aka Hyperion Next Generation
 
 License:        MIT

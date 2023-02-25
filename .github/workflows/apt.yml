@@ -128,4 +128,3 @@ jobs:
           password: ${{ secrets.APT_PASSWORD }}
           local-dir: "./apt/"
           server-dir: ${{ secrets.APT_DRAFT }}
-          dangerous-clean-slate: true
