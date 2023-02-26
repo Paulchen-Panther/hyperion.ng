@@ -131,7 +131,7 @@ jobs:
             dist=${dist%*/}
             dist=${dist##*/}
             cp -f ${GITHUB_WORKSPACE}/rpmbuild/hyperion.repo.in rpm/$dist/hyperion.repo
-            sed -ri 's/@DIST@/$dist/g' rpm/$dist/hyperion.repo
+            sed -ri "s/@DIST@/$dist/g" rpm/$dist/hyperion.repo
           done
 
       - name: Upload to DNF Package Repository (DRAFT)
@@ -142,3 +142,4 @@ jobs:
           password: ${{ secrets.YUM_PASSWORD }}
           local-dir: "./rpm/"
           server-dir: ${{ secrets.DRAFT_FOLDER }}
+          dangerous-clean-slate: true
