@@ -16,6 +16,7 @@ jobs:
           ncftpget -R -T -V -u ${{ secrets.YUM_USER }} -p ${{ secrets.YUM_PASSWORD }} yum.hyperion-project.org ./backup/ ./
           cd backup/ && mv ${{ secrets.DRAFT_FOLDER }}* ../draft_folder/ && rm -f backup.tar.gz
           tar -zcf ../backup.tar.gz .
+          find -maxdepth 1 $(printf "! -name %s " ${{ secrets.EXCLUDED_FTP_FILES }})
           find -maxdepth 1 $(printf "! -name %s " ${{ secrets.EXCLUDED_FTP_FILES }}) -exec rm -rfv {} \;
           mv ../draft_folder/* . && mv ../backup.tar.gz .
           ls -la
