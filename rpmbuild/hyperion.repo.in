@@ -1,0 +1,6 @@
+[hyperion]
+name=Hyperion (stable release for @DIST@)
+baseurl=https://yum.hyperion-project.org/@DIST@/$releasever/$basearch/
+enabled=1
+gpgcheck=1
+gpgkey=https://yum.hyperion-project.org/hyperion.pub.key

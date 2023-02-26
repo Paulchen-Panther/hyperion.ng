@@ -16,7 +16,7 @@ jobs:
     name: RPM Build GitHub Releases
     uses: ./.github/workflows/dnf.yml
     secrets:
-      APT_GPG: ${{ secrets.APT_GPG }}
-      APT_USER: ${{ secrets.APT_USER }}
-      APT_PASSWORD: ${{ secrets.APT_PASSWORD }}
-      APT_DRAFT: ${{ secrets.APT_DRAFT }}
+      GPG_KEY: ${{ secrets.GPG_KEY }}
+      YUM_USER: ${{ secrets.YUM_USER }}
+      YUM_PASSWORD: ${{ secrets.YUM_PASSWORD }}
+      DRAFT_FOLDER: ${{ secrets.DRAFT_FOLDER }}
