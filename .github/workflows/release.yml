@@ -5,18 +5,18 @@ on:
 
 jobs:
   dnf_release:
-    name: Backup/Release DNF repository
+    name: Release DNF repository
     runs-on: ubuntu-latest
     steps:
       - name: Create Backup and Release draft files on DNF repository
         run: |
           sudo apt-get install -y ncftp
           mkdir backup draft_folder
-          ncftpget -R -T -V -u ${{ secrets.YUM_USER }} -p ${{ secrets.YUM_PASSWORD }} yum.hyperion-project.org ./backup/ ./
+          ncftpget -R -T -v -u ${{ secrets.YUM_USER }} -p ${{ secrets.YUM_PASSWORD }} yum.hyperion-project.org ./backup/ ./
           cd backup/ && mv ${{ secrets.DRAFT_FOLDER }}{.,}* ../draft_folder/ && rm -f *.tar.gz
-          tar -zcf ../backup_$(cat .version).tar.gz .
+          tar -zcvf ../backup_$(cat .version).tar.gz .
           find -maxdepth 1 $(printf "! -name %s " ${{ secrets.EXCLUDED_FTP_FILES }}) -exec rm -rvf {} \;
-          mv ../draft_folder/{.,}* . 2> /dev/null && mv ../backup_$(cat .version).tar.gz . 2> /dev/null
+          mv ../draft_folder/{.,}* . && mv ../backup_$(cat .version).tar.gz .
 
       - name: Update DNF Package Repository (Release)
         uses: SamKirkland/FTP-Deploy-Action@4.3.3
