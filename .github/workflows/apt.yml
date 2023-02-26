@@ -97,10 +97,12 @@ jobs:
         run: sudo apt -y install reprepro
 
       - name: Make build folders, export public GPG key and copy distributions file
+        # The .version file is stored on the server to create a backup when publishing.
         run: |
           mkdir -p apt/{conf,dists,db}
           gpg --armor --output apt/hyperion.pub.key --export 'admin@hyperion-project.org'
           cp debian/distributions apt/conf/distributions
+          cp .version apt/.version
 
       - name: Create initial structure/packages files and symbolic links
         run: |
@@ -128,3 +130,4 @@ jobs:
           password: ${{ secrets.APT_PASSWORD }}
           local-dir: "./apt/"
           server-dir: ${{ secrets.DRAFT_FOLDER }}
+          dangerous-clean-slate: true

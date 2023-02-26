@@ -94,10 +94,12 @@ jobs:
         uses: actions/download-artifact@v3.0.2
 
       - name: Make folders, sign/copy packages and create metadata/manifest files
+        # The .version file is stored on the server to create a backup when publishing.
         run: |
           mkdir rpm/
-          gpg --armor --output hyperion.pub.key --export 'admin@hyperion-project.org'
-          rpm --import hyperion.pub.key && cp hyperion.pub.key rpm/
+          gpg --armor --output rpm/hyperion.pub.key --export 'admin@hyperion-project.org'
+          rpm --import rpm/hyperion.pub.key
+          cp .version rpm/.version
           for file in artifact/hyperion-*.rpm; do
             if [ -f "$file" ]; then
               dist_ver_arch=${file##*1.}
