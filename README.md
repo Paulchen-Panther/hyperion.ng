@@ -1,8 +1,8 @@
 <p align="center">
   <a href="https://hyperion-project.org" target="_blank">
     <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/paulchen-panther/hyperion.ng/HEAD/doc/logo_dark.svg">
-      <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/paulchen-panther/hyperion.ng/HEAD/doc/logo_light.svg">
+      <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/paulchen-panther/hyperion.ng/test/doc/logo_dark.svg">
+      <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/paulchen-panther/hyperion.ng/test/doc/logo_light.svg">
       <img alt="Hyperion" src="https://raw.githubusercontent.com/tailwindlabs/tailwindcss/HEAD/.github/logo-light.svg" width="100%" height="100%">
     </picture>
   </a>
