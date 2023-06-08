@@ -1,8 +1,12 @@
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="doc/logo_dark.png">
-  <source media="(prefers-color-scheme: light)" srcset="doc/logo_light.png">
-  <img alt="Hyperion" src="doc/logo_light.png">
-</picture>
+<p align="center">
+  <a href="https://hyperion-project.org" target="_blank">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/paulchen-panther/hyperion.ng/HEAD/doc/logo_dark.svg">
+      <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/paulchen-panther/hyperion.ng/HEAD/doc/logo_light.svg">
+      <img alt="Hyperion" src="https://raw.githubusercontent.com/tailwindlabs/tailwindcss/HEAD/.github/logo-light.svg" width="100%" height="100%">
+    </picture>
+  </a>
+</p>
 
 [![Latest-Release](https://img.shields.io/github/v/release/hyperion-project/hyperion.ng?include_prereleases&label=Latest%20Release&logo=github&logoColor=white&color=0f83e7)](https://github.com/hyperion-project/hyperion.ng/releases)
 [![GitHub Actions](https://github.com/hyperion-project/hyperion.ng/workflows/Hyperion%20CI%20Build/badge.svg?branch=master)](https://github.com/hyperion-project/hyperion.ng/actions)
