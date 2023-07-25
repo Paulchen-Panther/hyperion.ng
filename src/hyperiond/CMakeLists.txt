@@ -213,6 +213,7 @@ if (WIN32)
 	endif()
 
 	find_package(OpenSSL REQUIRED)
+
 	if (OPENSSL_FOUND)
 		string(REGEX MATCHALL "[0-9]+" openssl_versions "${OPENSSL_VERSION}")
 		list(GET openssl_versions 0 openssl_version_major)
@@ -237,9 +238,10 @@ if (WIN32)
 
 		add_custom_command(
 			TARGET ${PROJECT_NAME} POST_BUILD
-			COMMAND ${CMAKE_COMMAND} -E copy
-			${OPENSSL_SSL} ${OPENSSL_CRYPTO}
-			$<TARGET_FILE_DIR:${PROJECT_NAME}>
+			COMMAND ${CMAKE_COMMAND} -E echo "${OPENSSL_SSL}: ${OPENSSL_SSL}"
+			COMMAND ${CMAKE_COMMAND} -E echo "${OPENSSL_CRYPTO}: ${OPENSSL_CRYPTO}"
+
+			# COMMAND ${CMAKE_COMMAND} -E copy ${OPENSSL_SSL} ${OPENSSL_CRYPTO} $<TARGET_FILE_DIR:${PROJECT_NAME}>
 		)
 	endif(OPENSSL_FOUND)
 endif(WIN32)
