@@ -33,17 +33,22 @@ jobs:
           cache: 'true'
           cache-key-prefix: 'cache-qt-windows'
 
-      - name: Cache Chocolatey downloads
+      - name: Setup Chocolatey Cache
         uses: actions/cache@v3
         with:
-          path: C:\Users\runneradmin\AppData\Local\Temp\chocolatey
-          key: ${{ runner.os }}-chocolatey
+          path: ${{ env.CACHE_DIR }}
+          key: ${{ runner.os }}-chocolatey-${{ hashFiles('**/.github/actions/build-phalcon-win/action.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-chocolatey-${{ env.cache-name }}-
+            ${{ runner.os }}-chocolatey-
+            ${{ runner.os }}
 
       - name: Install OpenSSL, DirectX SDK
         shell: powershell
         run: |
-          choco install --forceX64 openssl -y
-          choco install --no-progress directx-sdk -y
+          Write-Output "::group::Install OpenSSL, DirectX SDK"
+          choco install --no-progress -y --cache-location=${{ env.CACHE_DIR }}\Choco --forceX64 openssl directx-sdk
+          Write-Output "::endgroup::"
 
       - name: Install libjpeg-turbo
         run: |
