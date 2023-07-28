@@ -212,23 +212,6 @@ if (WIN32)
 		add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${WINDEPLOYQT_EXECUTABLE} ${WINDEPLOYQT_PARAMS_RUNTIME} "$<TARGET_FILE:${PROJECT_NAME}>")
 	endif()
 
-	# FindOpenSSL will look for 32bit before 64bit
-	if(NOT OPENSSL_ROOT_DIR)
-		find_path(OPENSSL_WIN32
-			NAMES "include/openssl/ssl.h"
-			PATHS "$ENV{PROGRAMFILES}/OpenSSL-Win32" "C:/OpenSSL-Win32/"
-		)
-
-		find_path(OPENSSL_WIN64
-			NAMES  "include/openssl/ssl.h"
-			PATHS "$ENV{PROGRAMFILES}/OpenSSL-Win64" "C:/OpenSSL-Win64/"
-		)
-
-		if(OPENSSL_WIN32 AND OPENSSL_WIN64)
-			set(OPENSSL_ROOT_DIR ${OPENSSL_WIN64})
-		endif()
-	endif()
-
 	find_package(OpenSSL REQUIRED)
 	if(OPENSSL_FOUND)
 
@@ -247,6 +230,13 @@ if (WIN32)
 				HINTS ${OPENSSL_ROOT_DIR}/lib
 			)
 		endif()
+
+		message("OPENSSL_CRYPTO_LIBRARY=${OPENSSL_CRYPTO_LIBRARY}")
+		message("OPENSSL_SSL_LIBRARY=${OPENSSL_SSL_LIBRARY}")
+		message("OPENSSL_FOUND=${OPENSSL_FOUND}")
+		message("OPENSSL_INCLUDE_DIR=${OPENSSL_INCLUDE_DIR}")
+		message("OPENSSL_LIBRARIES=${OPENSSL_LIBRARIES}")
+		message("OPENSSL_VERSION=${OPENSSL_VERSION}")
 
 		# Fetch OpenSSL MAJOR and MINOR version number
 		string(REGEX MATCHALL "[0-9]+" OPENSSL_VERSION_NUMBER "${OPENSSL_VERSION}")
