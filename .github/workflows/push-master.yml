@@ -33,11 +33,19 @@ jobs:
           cache: 'true'
           cache-key-prefix: 'cache-qt-windows'
 
-      - name: Setup Chocolatey Cache
+      - name: Setup choco cache folder
+        id: choco-cache
+        run: |
+          mkdir ${{github.workspace}}\choco_cache
+          choco config set --name cacheLocation --value ${{github.workspace}}\choco_cache
+
+      - name: Cache choco packages
         uses: actions/cache@v3
+        env:
+          cache-name: cache-choco-packages
         with:
-          path: ${{ env.CACHE_DIR }}
-          key: ${{ runner.os }}-chocolatey-${{ hashFiles('**/.github/actions/build-phalcon-win/action.yml') }}
+          path: ${{github.workspace}}\choco_cache
+          key: ${{ hashFiles('.github/workflows/push-master.yml') }}
           restore-keys: |
             ${{ runner.os }}-chocolatey-${{ env.cache-name }}-
             ${{ runner.os }}-chocolatey-
@@ -47,7 +55,7 @@ jobs:
         shell: powershell
         run: |
           Write-Output "::group::Install OpenSSL, DirectX SDK"
-          choco install --no-progress -y --cache-location=${{ env.CACHE_DIR }}\Choco --forceX64 openssl directx-sdk
+          choco install --no-progress -y --cache-location=${{github.workspace}}\choco_cache --forceX64 openssl directx-sdk
           Write-Output "::endgroup::"
 
       - name: Install libjpeg-turbo
