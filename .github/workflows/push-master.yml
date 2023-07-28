@@ -33,6 +33,12 @@ jobs:
           cache: 'true'
           cache-key-prefix: 'cache-qt-windows'
 
+      - name: Setup choco cache folder
+        id: choco-cache
+        run: |
+          mkdir ${{github.workspace}}\choco_cache
+          choco config set --name cacheLocation --value ${{github.workspace}}\choco_cache
+
       - name: Cache choco packages
         uses: actions/cache@v3
         with:
@@ -47,7 +53,8 @@ jobs:
         shell: powershell
         run: |
           Write-Output "::group::Install OpenSSL, DirectX SDK"
-          choco install --no-progress -y --cache-location=${{github.workspace}}\choco_cache --forceX64 openssl directx-sdk
+          choco install --no-progress --forceX64 -y openssl
+          choco install --no-progress -y directx-sdk
           Write-Output "::endgroup::"
 
       - name: Install libjpeg-turbo
