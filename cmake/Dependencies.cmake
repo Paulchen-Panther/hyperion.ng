@@ -14,7 +14,7 @@ macro(DeployMacOS TARGET)
 		install(CODE "set(PLUGIN_DIR \"${QT_PLUGIN_DIR}\")" 	 			COMPONENT "Hyperion")
 		install(CODE "set(BUILD_DIR \"${CMAKE_BINARY_DIR}\")"	 			COMPONENT "Hyperion")
 		install(CODE "set(ENABLE_EFFECTENGINE \"${ENABLE_EFFECTENGINE}\")"	COMPONENT "Hyperion")
-	
+
 		install(CODE [[
 
 				file(GET_RUNTIME_DEPENDENCIES
@@ -75,7 +75,7 @@ macro(DeployMacOS TARGET)
 					endif()
 				endforeach()
 
-				include(BundleUtilities)							
+				include(BundleUtilities)
 				fixup_bundle("${CMAKE_INSTALL_PREFIX}/${TARGET_BUNDLE_NAME}" "${QT_PLUGINS}" "${CMAKE_INSTALL_PREFIX}/${TARGET_BUNDLE_NAME}/Contents/lib" IGNORE_ITEM "python;python3;Python;Python3;.Python;.Python3")
 
 				if(ENABLE_EFFECTENGINE)
@@ -166,9 +166,9 @@ macro(DeployLinux TARGET)
 
 		# Extract dependencies ignoring the system ones
 		get_prerequisites(${TARGET_FILE} DEPENDENCIES 0 1 "" "")
-		
+
 		message(STATUS "Dependencies for target file: ${DEPENDENCIES}")
-		
+
 		# Append symlink and non-symlink dependencies to the list
 		set(PREREQUISITE_LIBS "")
 		foreach(DEPENDENCY ${DEPENDENCIES})
@@ -376,32 +376,59 @@ macro(DeployWindows TARGET)
 
 		# Copy libssl/libcrypto to 'hyperion'
 		if (OPENSSL_FOUND)
-			string(REGEX MATCHALL "[0-9]+" openssl_versions "${OPENSSL_VERSION}")
-			list(GET openssl_versions 0 openssl_version_major)
-			list(GET openssl_versions 1 openssl_version_minor)
+			string(REGEX MATCHALL "([0-9])+" OPENSSL_VERSION_NUMBER "${OPENSSL_VERSION}")
+			list(POP_FRONT OPENSSL_VERSION_NUMBER OPENSSL_VERSION_MAJOR OPENSSL_VERSION_MINOR)
+			unset(OPENSSL_VERSION_NUMBER)
 
-			set(library_suffix "-${openssl_version_major}_${openssl_version_minor}")
+			get_filename_component(OPENSSL_NAME "${OPENSSL_LIBRARY}" NAME_WE)
+			get_filename_component(CRYPTO_NAME "${CRYPTO_LIBRARY}" NAME_WE)
+
+			set(SSL_MSVC_VERSION_SUFFIX)
+			set(SSL_MSVC_ARCH_SUFFIX)
+
 			if (CMAKE_SIZEOF_VOID_P EQUAL 8)
-			  string(APPEND library_suffix "-x64")
+				set(SSL_MSVC_ARCH_SUFFIX "-x64")
 			endif()
 
-			find_file(OPENSSL_SSL
-				NAMES "libssl${library_suffix}.dll"
-				PATHS ${OPENSSL_INCLUDE_DIR}/.. ${OPENSSL_INCLUDE_DIR}/../bin
-				NO_DEFAULT_PATH
+			if(OPENSSL_VERSION_MAJOR VERSION_EQUAL 1)
+				set(SSL_MSVC_VERSION_SUFFIX "-${OPENSSL_VERSION_MAJOR}_${OPENSSL_VERSION_MINOR}")
+			endif()
+
+			if(OPENSSL_VERSION_MAJOR VERSION_EQUAL 3)
+				set(SSL_MSVC_VERSION_SUFFIX "-3")
+			endif()
+
+			find_file(OPENSSL_DLL
+				NAMES
+					"${OPENSSL_NAME}${SSL_MSVC_VERSION_SUFFIX}${SSL_MSVC_ARCH_SUFFIX}.dll"
+				PATHS
+					"${OPENSSL_INCLUDE_DIR}/.."
+					"${OPENSSL_INCLUDE_DIR}/../bin"
+					"${OPENSSL_ROOT_DIR}"
+					"${OPENSSL_ROOT_DIR}/bin"
+					NO_DEFAULT_PATH
 			)
 
-			find_file(OPENSSL_CRYPTO
-				NAMES "libcrypto${library_suffix}.dll"
-				PATHS ${OPENSSL_INCLUDE_DIR}/.. ${OPENSSL_INCLUDE_DIR}/../bin
-				NO_DEFAULT_PATH
+			find_file(CRYPTO_DLL
+				NAMES
+					"${CRYPTO_NAME}${SSL_MSVC_VERSION_SUFFIX}${SSL_MSVC_ARCH_SUFFIX}.dll"
+				PATHS
+					"${OPENSSL_INCLUDE_DIR}/.."
+					"${OPENSSL_INCLUDE_DIR}/../bin"
+					"${OPENSSL_ROOT_DIR}"
+					"${OPENSSL_ROOT_DIR}/bin"
+					NO_DEFAULT_PATH
 			)
 
-			install(
-				FILES ${OPENSSL_SSL} ${OPENSSL_CRYPTO}
-				DESTINATION "bin"
-				COMPONENT "Hyperion"
-			)
+			if(OPENSSL_DLL AND CRYPTO_DLL)
+				install(
+					FILES ${OPENSSL_DLL} ${CRYPTO_DLL}
+					DESTINATION "bin"
+					COMPONENT "Hyperion"
+				)
+			else()
+        		message(WARNING "Cannot find OpenSSL dynamic libraries")
+			endif()
 		endif(OPENSSL_FOUND)
 
 		# Copy libjpeg-turbo to 'hyperion'

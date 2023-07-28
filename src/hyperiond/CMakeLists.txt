@@ -213,36 +213,69 @@ if (WIN32)
 	endif()
 
 	find_package(OpenSSL REQUIRED)
-
 	if (OPENSSL_FOUND)
-		string(REGEX MATCHALL "[0-9]+" openssl_versions "${OPENSSL_VERSION}")
-		list(GET openssl_versions 0 openssl_version_major)
-		list(GET openssl_versions 1 openssl_version_minor)
+		# Fetch OpenSSL version number
+		string(REGEX MATCHALL "([0-9])+" OPENSSL_VERSION_NUMBER "${OPENSSL_VERSION}")
+		list(POP_FRONT OPENSSL_VERSION_NUMBER OPENSSL_VERSION_MAJOR OPENSSL_VERSION_MINOR)
+		unset(OPENSSL_VERSION_NUMBER)
 
-		set(library_suffix "-${openssl_version_major}_${openssl_version_minor}")
+		# Different naming scheme for the matching .dll as of SSL 1.1
+		# OpenSSL 3.x Look for libcrypto-3-x64.dll or libcrypto-3.dll
+		# OpenSSL 1.1 Look for libcrypto-1_1-x64.dll or libcrypto-1_1.dll
+
+		get_filename_component(OPENSSL_NAME "${OPENSSL_LIBRARY}" NAME_WE)
+		get_filename_component(CRYPTO_NAME "${CRYPTO_LIBRARY}" NAME_WE)
+
+		set(SSL_MSVC_VERSION_SUFFIX)
+		set(SSL_MSVC_ARCH_SUFFIX)
+
 		if (CMAKE_SIZEOF_VOID_P EQUAL 8)
-			string(APPEND library_suffix "-x64")
+			set(SSL_MSVC_ARCH_SUFFIX "-x64")
 		endif()
 
-		find_file(OPENSSL_SSL
-			NAMES "libssl${library_suffix}.dll"
-			PATHS ${OPENSSL_INCLUDE_DIR}/.. ${OPENSSL_INCLUDE_DIR}/../bin
-			NO_DEFAULT_PATH
+		if(OPENSSL_VERSION_MAJOR VERSION_EQUAL 1)
+			set(SSL_MSVC_VERSION_SUFFIX "-${OPENSSL_VERSION_MAJOR}_${OPENSSL_VERSION_MINOR}")
+		endif()
+
+		if(OPENSSL_VERSION_MAJOR VERSION_EQUAL 3)
+			set(SSL_MSVC_VERSION_SUFFIX "-3")
+		endif()
+
+		find_file(OPENSSL_DLL
+			NAMES
+				"${OPENSSL_NAME}${SSL_MSVC_VERSION_SUFFIX}${SSL_MSVC_ARCH_SUFFIX}.dll"
+			PATHS
+				"${OPENSSL_INCLUDE_DIR}/.."
+				"${OPENSSL_INCLUDE_DIR}/../bin"
+				"${OPENSSL_ROOT_DIR}"
+				"${OPENSSL_ROOT_DIR}/bin"
+				NO_DEFAULT_PATH
 		)
 
-		find_file(OPENSSL_CRYPTO
-			NAMES "libcrypto${library_suffix}.dll"
-			PATHS ${OPENSSL_INCLUDE_DIR}/.. ${OPENSSL_INCLUDE_DIR}/../bin
-			NO_DEFAULT_PATH
+		find_file(CRYPTO_DLL
+			NAMES
+				"${CRYPTO_NAME}${SSL_MSVC_VERSION_SUFFIX}${SSL_MSVC_ARCH_SUFFIX}.dll"
+			PATHS
+				"${OPENSSL_INCLUDE_DIR}/.."
+				"${OPENSSL_INCLUDE_DIR}/../bin"
+				"${OPENSSL_ROOT_DIR}"
+				"${OPENSSL_ROOT_DIR}/bin"
+				NO_DEFAULT_PATH
 		)
 
-		add_custom_command(
-			TARGET ${PROJECT_NAME} POST_BUILD
-			COMMAND ${CMAKE_COMMAND} -E echo "${OPENSSL_SSL}: ${OPENSSL_SSL}"
-			COMMAND ${CMAKE_COMMAND} -E echo "${OPENSSL_CRYPTO}: ${OPENSSL_CRYPTO}"
+		if(OPENSSL_DLL AND CRYPTO_DLL)
+			add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+				COMMAND ${CMAKE_COMMAND} -E copy_if_different
+				${OPENSSL_DLL}
+				$<TARGET_FILE_DIR:${PROJECT_NAME}>
+				COMMAND ${CMAKE_COMMAND} -E copy_if_different
+				${CRYPTO_DLL}
+				$<TARGET_FILE_DIR:${PROJECT_NAME}>
+			)
+		else()
+        	message(STATUS "Cannot find OpenSSL dynamic libraries")
+		endif()
 
-			# COMMAND ${CMAKE_COMMAND} -E copy ${OPENSSL_SSL} ${OPENSSL_CRYPTO} $<TARGET_FILE_DIR:${PROJECT_NAME}>
-		)
 	endif(OPENSSL_FOUND)
 endif(WIN32)
 
