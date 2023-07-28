@@ -212,40 +212,90 @@ if (WIN32)
 		add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${WINDEPLOYQT_EXECUTABLE} ${WINDEPLOYQT_PARAMS_RUNTIME} "$<TARGET_FILE:${PROJECT_NAME}>")
 	endif()
 
+	# FindOpenSSL will look for 32bit before 64bit
+	if(NOT OPENSSL_ROOT_DIR)
+		find_path(OPENSSL_WIN32
+			NAMES "include/openssl/ssl.h"
+			PATHS "$ENV{PROGRAMFILES}/OpenSSL-Win32" "C:/OpenSSL-Win32/"
+		)
+
+		find_path(OPENSSL_WIN64
+			NAMES  "include/openssl/ssl.h"
+			PATHS "$ENV{PROGRAMFILES}/OpenSSL-Win64" "C:/OpenSSL-Win64/"
+		)
+
+		if(OPENSSL_WIN32 AND OPENSSL_WIN64)
+			set(OPENSSL_ROOT_DIR ${OPENSSL_WIN64})
+		endif()
+	endif()
+
 	find_package(OpenSSL REQUIRED)
-	if (OPENSSL_FOUND)
-		# Fetch OpenSSL version number
+	if(OPENSSL_FOUND)
+
+		# FindOpenSSL prior to 3.2 doesn't provides separate variable OPENSSL_SSL_LIBRARY
+		if(NOT OPENSSL_SSL_LIBRARY)
+			find_library(OPENSSL_SSL_LIBRARY
+				NAMES ssl libssl ssleay32
+				HINTS ${OPENSSL_ROOT_DIR}/lib
+			)
+		endif()
+
+		# FindOpenSSL prior to 3.2 doesn't provides separate variable OPENSSL_CRYPTO_LIBRARY
+		if(NOT OPENSSL_CRYPTO_LIBRARY)
+			find_library(OPENSSL_CRYPTO_LIBRARY
+				NAMES crypto libcrypto libeay32
+				HINTS ${OPENSSL_ROOT_DIR}/lib
+			)
+		endif()
+
+		# Fetch OpenSSL MAJOR and MINOR version number
 		string(REGEX MATCHALL "[0-9]+" OPENSSL_VERSION_NUMBER "${OPENSSL_VERSION}")
 		list(GET OPENSSL_VERSION_NUMBER 0 OPENSSL_VERSION_MAJOR)
 		list(GET OPENSSL_VERSION_NUMBER 1 OPENSSL_VERSION_MINOR)
 		unset(OPENSSL_VERSION_NUMBER)
 
-		# Different naming scheme for the matching .dll as of SSL 1.1
-		# OpenSSL 3.x Look for libcrypto-3-x64.dll or libcrypto-3.dll
-		# OpenSSL 1.1 Look for libcrypto-1_1-x64.dll or libcrypto-1_1.dll
+		# Different naming scheme for the matching .dll
+		# OpenSSL 3.x Look for:
+			# libssl-3-x64.dll and libcrypto-3-x64.dll OR
+			# libssl-3.dll and libcrypto-3.dll
+		# OpenSSL 1.1 Look for:
+			# libssl-1_1-x64.dll and libcrypto-1_1-x64.dll OR
+			# libssl-1_1.dll and libcrypto-1_1.dll
+		# OpenSSL 1.0 Look for:
+			# ssleay32.dll and libeay32.dll
 
-		set(SSL_MSVC_ARCH_SUFFIX "")
-		if (CMAKE_SIZEOF_VOID_P EQUAL 8)
-			set(SSL_MSVC_ARCH_SUFFIX "-x64")
-		endif()
+		SET(SSL_MSVC_VERSION_SUFFIX)
+		SET(SSL_MSVC_ARCH_SUFFIX "-x64")
 
-		set(SSL_MSVC_VERSION_SUFFIX "")
-
+		# OpenSSL 3.x
 		if(OPENSSL_VERSION_MAJOR VERSION_EQUAL 3)
 			set(SSL_MSVC_VERSION_SUFFIX "-3")
+		# OpenSSL 1.1
+		elseif(OPENSSL_VERSION_MAJOR VERSION_EQUAL 1 AND OPENSSL_VERSION_MINOR VERSION_EQUAL 1)
+			set(SSL_MSVC_VERSION_SUFFIX "-1_1")
+		# OpenSSL 1.0
 		else()
-			set(SSL_MSVC_VERSION_SUFFIX "-${OPENSSL_VERSION_MAJOR}_${OPENSSL_VERSION_MINOR}")
+			set(SSL_MSVC_ARCH_SUFFIX "")
 		endif()
 
+		get_filename_component(OPENSSL_NAME "${OPENSSL_SSL_LIBRARY}" NAME_WE)
+		get_filename_component(CRYPTO_NAME "${OPENSSL_CRYPTO_LIBRARY}" NAME_WE)
+
 		find_file(OPENSSL_DLL
-			NAMES "libssl${SSL_MSVC_VERSION_SUFFIX}${SSL_MSVC_ARCH_SUFFIX}.dll"
-			PATHS ${OPENSSL_INCLUDE_DIR}/.. ${OPENSSL_INCLUDE_DIR}/../bin ${OPENSSL_ROOT_DIR} ${OPENSSL_ROOT_DIR}/bin
+			NAMES
+				"${OPENSSL_NAME}${SSL_MSVC_VERSION_SUFFIX}${SSL_MSVC_ARCH_SUFFIX}.dll"
+				"${OPENSSL_NAME}${SSL_MSVC_VERSION_SUFFIX}.dll"
+			PATHS
+				${OPENSSL_ROOT_DIR}/bin
 			NO_DEFAULT_PATH
 		)
 
 		find_file(CRYPTO_DLL
-			NAMES "libcrypto${SSL_MSVC_VERSION_SUFFIX}${SSL_MSVC_ARCH_SUFFIX}.dll"
-			PATHS ${OPENSSL_INCLUDE_DIR}/.. ${OPENSSL_INCLUDE_DIR}/../bin ${OPENSSL_ROOT_DIR} ${OPENSSL_ROOT_DIR}/bin
+			NAMES
+				"${CRYPTO_NAME}${SSL_MSVC_VERSION_SUFFIX}${SSL_MSVC_ARCH_SUFFIX}.dll"
+				"${CRYPTO_NAME}${SSL_MSVC_VERSION_SUFFIX}.dll"
+			PATHS
+				${OPENSSL_ROOT_DIR}/bin
 			NO_DEFAULT_PATH
 		)
 
