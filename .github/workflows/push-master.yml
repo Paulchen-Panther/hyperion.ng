@@ -33,21 +33,13 @@ jobs:
           cache: 'true'
           cache-key-prefix: 'cache-qt-windows'
 
-      - name: Setup choco cache folder
-        id: choco-cache
-        run: |
-          mkdir ${{github.workspace}}\choco_cache
-          choco config set --name cacheLocation --value ${{github.workspace}}\choco_cache
-
       - name: Cache choco packages
         uses: actions/cache@v3
-        env:
-          cache-name: cache-choco-packages
         with:
           path: ${{github.workspace}}\choco_cache
           key: ${{ hashFiles('.github/workflows/push-master.yml') }}
           restore-keys: |
-            ${{ runner.os }}-chocolatey-${{ env.cache-name }}-
+            ${{ runner.os }}-chocolatey-cache-choco-packages-
             ${{ runner.os }}-chocolatey-
             ${{ runner.os }}
 
