@@ -283,19 +283,17 @@ if (WIN32)
 
 		find_file(OPENSSL_DLL
 			NAMES
-				"${OPENSSL_NAME}${SSL_MSVC_VERSION_SUFFIX}${SSL_MSVC_ARCH_SUFFIX}.dll"
-				"${OPENSSL_NAME}${SSL_MSVC_VERSION_SUFFIX}.dll"
-			PATHS
-				${OPENSSL_ROOT_DIR}/bin
+			"${OPENSSL_NAME}${SSL_MSVC_VERSION_SUFFIX}${SSL_MSVC_ARCH_SUFFIX}.dll"
+			"${OPENSSL_NAME}${SSL_MSVC_VERSION_SUFFIX}.dll"
+			PATHS "${OPENSSL_ROOT_DIR}/bin"
 			NO_DEFAULT_PATH
 		)
 
 		find_file(CRYPTO_DLL
 			NAMES
-				"${CRYPTO_NAME}${SSL_MSVC_VERSION_SUFFIX}${SSL_MSVC_ARCH_SUFFIX}.dll"
-				"${CRYPTO_NAME}${SSL_MSVC_VERSION_SUFFIX}.dll"
-			PATHS
-				${OPENSSL_ROOT_DIR}/bin
+			"${CRYPTO_NAME}${SSL_MSVC_VERSION_SUFFIX}${SSL_MSVC_ARCH_SUFFIX}.dll"
+			"${CRYPTO_NAME}${SSL_MSVC_VERSION_SUFFIX}.dll"
+			PATHS "${OPENSSL_ROOT_DIR}/bin"
 			NO_DEFAULT_PATH
 		)
 
@@ -305,7 +303,7 @@ if (WIN32)
 				COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CRYPTO_DLL} $<TARGET_FILE_DIR:${PROJECT_NAME}>
 			)
 		else()
-        	message(STATUS "Cannot find OpenSSL dynamic libraries")
+        	message(WARNING "Cannot find OpenSSL dynamic libraries")
 		endif()
 
 	endif(OPENSSL_FOUND)
