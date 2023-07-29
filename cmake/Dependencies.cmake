@@ -373,61 +373,26 @@ macro(DeployWindows TARGET)
 			list(REMOVE_AT DEPENDENCIES 0 1)
 		endwhile()
 
-		# Copy libssl/libcrypto to 'hyperion'
+		# Copy OpenSSL
 		find_package(OpenSSL REQUIRED)
 		if (OPENSSL_FOUND)
 
-			if (OPENSSL_ROOT_DIR OR NOT "$ENV{OPENSSL_ROOT_DIR}" STREQUAL "")
-				set(_OPENSSL_ROOT_HINTS HINTS ${OPENSSL_ROOT_DIR} ENV OPENSSL_ROOT_DIR)
-				set(_OPENSSL_ROOT_DIR NO_DEFAULT_PATH)
-			else()
-				set(_OPENSSL_ROOT_HINTS
-					HINTS
-						"[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\OpenSSL (32-bit)_is1;Inno Setup: App Path]"
-						"[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\OpenSSL (64-bit)_is1;Inno Setup: App Path]"
-				)
-
-				if("${CMAKE_SIZEOF_VOID_P}" STREQUAL "8")
-					set(_ARCH "Win64")
-					file(TO_CMAKE_PATH "$ENV{PROGRAMFILES}" _PROGRAMFILES)
-				else()
-					set(_ARCH "Win32")
-					if(NOT "$ENV{${ProgramFiles(x86)}}" STREQUAL "")
-						file(TO_CMAKE_PATH "$ENV{${ProgramFiles(x86)}}" _PROGRAMFILES)
-					else()
-						file(TO_CMAKE_PATH "$ENV{ProgramFiles}" _PROGRAMFILES)
-					endif()
-				endif()
-
-				set(_OPENSSL_ROOT_DIR
-					PATHS
-						"${_PROGRAMFILES}/OpenSSL"
-						"${_PROGRAMFILES}/OpenSSL-${_ARCH}"
-						"C:/OpenSSL/"
-						"C:/OpenSSL-${_ARCH}/"
-				)
-				unset(_PROGRAMFILES)
-				unset(_ARCH)
-			endif()
-
-			FIND_LIBRARY(OPENSSL_LIBRARY
-				NAMES ssl libssl ssleay32 ssleay32MD
-				${_OPENSSL_ROOT_HINTS}
-				${_OPENSSL_ROOT_DIR}
-				PATH_SUFFIXES lib
-			)
-
-			FIND_LIBRARY(CRYPTO_LIBRARY
-				NAMES crypto libcrypto libeay32
-				${_OPENSSL_ROOT_HINTS}
-				${_OPENSSL_ROOT_DIR}
-				PATH_SUFFIXES lib
-			)
-
+			# Fetch OpenSSL MAJOR and MINOR version number
+			message(STATUS "OpenSSL version used: ${OPENSSL_VERSION}")
 			string(REGEX MATCHALL "[0-9]+" OPENSSL_VERSION_NUMBER "${OPENSSL_VERSION}")
 			list(GET OPENSSL_VERSION_NUMBER 0 OPENSSL_VERSION_MAJOR)
 			list(GET OPENSSL_VERSION_NUMBER 1 OPENSSL_VERSION_MINOR)
 			unset(OPENSSL_VERSION_NUMBER)
+
+			# Different naming scheme for the matching .dlls
+			# OpenSSL 3.x Look for:
+				# libssl-3-x64.dll and libcrypto-3-x64.dll OR
+				# libssl-3.dll and libcrypto-3.dll
+			# OpenSSL 1.1 Look for:
+				# libssl-1_1-x64.dll and libcrypto-1_1-x64.dll OR
+				# libssl-1_1.dll and libcrypto-1_1.dll
+			# OpenSSL 1.0 Look for:
+				# ssleay32.dll and libeay32.dll
 
 			SET(SSL_MSVC_VERSION_SUFFIX)
 			SET(SSL_MSVC_ARCH_SUFFIX "-x64")
@@ -440,22 +405,32 @@ macro(DeployWindows TARGET)
 				set(SSL_MSVC_ARCH_SUFFIX "")
 			endif()
 
+			FIND_LIBRARY(OPENSSL_LIBRARY
+				NAMES ssl libssl ssleay32 ssleay32MD
+				${OPENSSL_ROOT_HINTS}
+				${OPENSSL_ROOT_DIR}
+				PATH_SUFFIXES lib
+			)
+
+			FIND_LIBRARY(CRYPTO_LIBRARY
+				NAMES crypto libcrypto libeay32
+				${OPENSSL_ROOT_HINTS}
+				${OPENSSL_ROOT_DIR}
+				PATH_SUFFIXES lib
+			)
+
 			get_filename_component(OPENSSL_NAME "${OPENSSL_LIBRARY}" NAME_WE)
 			get_filename_component(CRYPTO_NAME "${CRYPTO_LIBRARY}" NAME_WE)
 
 			find_file(OPENSSL_DLL
-				NAMES
-					"${OPENSSL_NAME}${SSL_MSVC_VERSION_SUFFIX}${SSL_MSVC_ARCH_SUFFIX}.dll"
-					"${OPENSSL_NAME}${SSL_MSVC_VERSION_SUFFIX}.dll"
-				${_OPENSSL_ROOT_DIR}
+				NAMES "${OPENSSL_NAME}${SSL_MSVC_VERSION_SUFFIX}${SSL_MSVC_ARCH_SUFFIX}.dll"
+				${OPENSSL_ROOT_DIR}
 				PATH_SUFFIXES bin
 			)
 
 			find_file(CRYPTO_DLL
-				NAMES
-					"${CRYPTO_NAME}${SSL_MSVC_VERSION_SUFFIX}${SSL_MSVC_ARCH_SUFFIX}.dll"
-					"${CRYPTO_NAME}${SSL_MSVC_VERSION_SUFFIX}.dll"
-				${_OPENSSL_ROOT_DIR}
+				NAMES "${CRYPTO_NAME}${SSL_MSVC_VERSION_SUFFIX}${SSL_MSVC_ARCH_SUFFIX}.dll"
+				${OPENSSL_ROOT_DIR}
 				PATH_SUFFIXES bin
 			)
 

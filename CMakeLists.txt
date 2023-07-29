@@ -544,8 +544,6 @@ endif()
 
 # find QT libs
 find_package(QT NAMES Qt6 Qt5 COMPONENTS Core Gui Network Sql Widgets REQUIRED)
-message( STATUS "Found Qt Version: ${QT_VERSION}" )
-
 if (${QT_VERSION_MAJOR} GREATER_EQUAL 6 )
 	SET(QT_MIN_VERSION "6.2.2")
 else()
@@ -553,15 +551,45 @@ else()
 endif()
 
 if ( "${QT_VERSION}" VERSION_LESS "${QT_MIN_VERSION}" )
-	message( FATAL_ERROR "Your Qt version is to old! Minimum required ${QT_MIN_VERSION}" )
+	message( FATAL_ERROR "Your Qt version (${QT_VERSION}) is to old! Minimum required ${QT_MIN_VERSION}" )
 endif()
 
 find_package(Qt${QT_VERSION_MAJOR} ${QT_VERSION} COMPONENTS Core Gui Network Sql Widgets REQUIRED)
 
 message( STATUS "Qt version used: ${QT_VERSION}" )
 
-if (APPLE AND (${QT_VERSION_MAJOR} GREATER_EQUAL 6) )
-	set(OPENSSL_ROOT_DIR /usr/local/opt/openssl)
+# Allow to overwrite OpenSSL base directory
+# Either supply OPENSSL_ROOT_DIR as -DOPENSSL_ROOT_DIR=<path> to cmake or set and environment variable OPENSSL_ROOT_DIR pointing to the OpenSSL installation
+# For Windows and Apple, the default OpenSSL installation path are tried to resolved automatically
+if (OPENSSL_ROOT_DIR OR NOT "$ENV{OPENSSL_ROOT_DIR}" STREQUAL "")
+	set(OPENSSL_ROOT_HINTS HINTS ${OPENSSL_ROOT_DIR} ENV OPENSSL_ROOT_DIR)
+	set(OPENSSL_ROOT_DIR NO_DEFAULT_PATH)
+else()
+	if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+		set(OPENSSL_ROOT_HINTS
+			HINTS
+				"[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\OpenSSL (32-bit)_is1;Inno Setup: App Path]"
+				"[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\OpenSSL (64-bit)_is1;Inno Setup: App Path]"
+		)
+
+		FIRSTSUBDIR(SUBDIR_QTSSL "${QTDIR}/../../Tools/OpenSSL")
+		if (NOT ${SUBDIR_QTSSL} STREQUAL "")
+			set(QT_OPENSSL "${SUBDIR_QTSSL}")
+		endif()
+
+		file(TO_CMAKE_PATH "$ENV{PROGRAMFILES}" _PROGRAMFILES)
+		set(OPENSSL_ROOT_DIR
+			PATHS
+				"${_PROGRAMFILES}/OpenSSL"
+				"${_PROGRAMFILES}/OpenSSL-Win64"
+				"C:/OpenSSL/"
+				"C:/OpenSSL-Win64/"
+				"${QT_OPENSSL}"
+		)
+		unset(_PROGRAMFILES)
+	elseif (APPLE AND (${QT_VERSION_MAJOR} GREATER_EQUAL 6))
+		set(OPENSSL_ROOT_DIR /usr/local/opt/openssl)
+	endif()
 endif()
 
 # Add libusb and pthreads

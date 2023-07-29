@@ -127,10 +127,12 @@ We assume a 64bit Windows 10. Install the following;
 - [Visual Studio 2022 Community Edition](https://visualstudio.microsoft.com/downloads/#visual-studio-community-2022)
   - Select 'Desktop development with C++'
   - On the right, just select `MSVC v143 VS 2022 C++ x64/x86-Buildtools` and latest `Windows 10 SDK`. Everything else is not needed.
-- [Win64 OpenSSL v1.1.1k](https://slproweb.com/products/Win32OpenSSL.html) ([direct link](https://slproweb.com/download/Win64OpenSSL-1_1_1k.exe))
 - [Python 3 (Windows x86-64 executable installer)](https://www.python.org/downloads/windows/) (Check: Add to PATH and Debug Symbols)
-  - Open a console window and execute `pip install aqtinstall`.
-  - Now we can download Qt to _C:\Qt_ `mkdir c:\Qt && aqt install -O c:\Qt 5.15.2 windows desktop win64_msvc2019_64`
+ - Open a console window and execute: `python3 -m pip install aqtinstall`
+  - Now we can download Qt and OpenSSL to _C:\Qt_
+    - `mkdir c:\Qt`
+    - `aqt install-qt --outputdir c:\Qt windows desktop 5.15.2 win64_msvc2019_64`
+    - `aqt install-tool --outputdir c:\Qt windows desktop tools_openssl_x64`
   - QT6.2 requires the [Vulkan SDK](https://vulkan.lunarg.com/sdk/home) to be installed
 - [libjpeg-turbo SDK for Visual C++](https://sourceforge.net/projects/libjpeg-turbo/files/)
   - Download the latest 64bit installer (currently `libjpeg-turbo-2.1.3-vc64.exe`) and install to its default location `C:\libjpeg-turbo64`.
