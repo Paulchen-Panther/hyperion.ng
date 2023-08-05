@@ -46,7 +46,9 @@ jobs:
       - name: Display python3 error log (macOS) Fails
         if: always()
         run: |
+             cat /usr/local/share/vcpkg/buildtrees/python3/config-arm64-osx-dbg-config.log
              cat /usr/local/share/vcpkg/buildtrees/python3/config-arm64-osx-dbg-out.log
+             cat /usr/local/share/vcpkg/buildtrees/python3/config-arm64-osx-dbg-err.log
 
       - name: Set up gcc/clang problem matcher
         uses: ammaraskar/gcc-problem-matcher@master
