@@ -39,7 +39,7 @@ jobs:
           path: $VCPKG_INSTALLATION_ROOT/installed-arm64-osx
           key: vcpkg-installed-arm64-osx
 
-      - name: [x64;arm64] Install qt5, libusb, libusb, openssl
+      - name: Install qt5, libusb, libusb, openssl
         run: |
           arch -x64 vcpkg install --host-triplet=x64-osx-release --triplet=x64-osx-release --x-install-root=installed-x64-osx qt5 libusb openssl python3
           arch -arm64 vcpkg install --host-triplet=arm64-osx-release --triplet=arm64-osx-release --x-install-root=installed-arm64-osx qt5 libusb openssl python3
