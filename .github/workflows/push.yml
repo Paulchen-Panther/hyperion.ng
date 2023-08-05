@@ -25,7 +25,7 @@ jobs:
           HOMEBREW_NO_AUTO_UPDATE: 1
           HOMEBREW_NO_INSTALL_CLEANUP: 1
         run: |
-          brew install ccache cmake ninja
+          brew install ccache cmake automake ninja
 
       - name: Enable vcpkg cache
         uses: actions/cache@v3
