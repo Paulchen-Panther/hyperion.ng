@@ -15,9 +15,6 @@ jobs:
   macOS:
     name: macOS
     runs-on: macos-latest
-    env:
-      MACOSX_DEPLOYMENT_TARGET: 10.13
-
     steps:
       - uses: actions/checkout@v3
         with:
@@ -28,22 +25,26 @@ jobs:
           HOMEBREW_NO_AUTO_UPDATE: 1
           HOMEBREW_NO_INSTALL_CLEANUP: 1
         run: |
-          brew install ccache automake ninja
+          brew install ccache cmake ninja
 
-      - name: Set up gcc/clang problem matcher
-        uses: ammaraskar/gcc-problem-matcher@master
+      - name: Enable vcpkg cache
+        uses: actions/cache@v3
+        with:
+          path: $VCPKG_INSTALLATION_ROOT/installed
+          key: vcpkg-installed-${{ env.VCPKG_DEFAULT_TRIPLET }}-${{ github.ref }}-${{ github.run_number }}
+          restore-keys: |
+            vcpkg-installed-${{ env.VCPKG_DEFAULT_TRIPLET }}-${{ github.ref }}-
+            vcpkg-installed-${{ env.VCPKG_DEFAULT_TRIPLET }}-
 
       - name: Prepare vcpkg
         run: |
           vcpkg install \
-            cmake:x64-osx \
-            cmake:arm64-osx \
-            qt6:x64-osx \
-            qt6:arm64-osx \
-            python:x64-osx \
-            python:arm64-osx \
-            libusb:x64-osx \
-            libusb:arm64-osx
+            qt5:x64-osx qt5:arm64-osx \
+            python:x64-osx python:arm64-osx \
+            libusb:x64-osx libusb:arm64-osx
+
+      - name: Set up gcc/clang problem matcher
+        uses: ammaraskar/gcc-problem-matcher@master
 
       - name: Configure
         run: |
@@ -51,9 +52,12 @@ jobs:
           cmake -B build \
             -DPLATFORM=osx \
             -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 \
             -DCMAKE_OSX_ARCHITECTURES=arm64 \
-            -DVCPKG_TARGET_TRIPLET=arm64-osx \
-            -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}\vcpkg\scripts\buildsystems\vcpkg.cmake" \
+            -DCMAKE_SYSTEM_PROCESSOR=arm64 \
+            -DCMAKE_SYSTEM_NAME=Darwin \
+            -DVCPKG_TARGET_TRIPLET=arm64-osx-release \
+            -DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake \
             -DCMAKE_INSTALL_PREFIX:PATH=/usr/local ../
 
 
