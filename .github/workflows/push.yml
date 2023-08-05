@@ -41,8 +41,8 @@ jobs:
 
       - name: Install qt5, libusb, libusb, openssl
         run: |
-          arch -x86_64 vcpkg install --host-triplet=x64-osx-release --triplet=x64-osx-release --x-install-root=installed-x64-osx qt5 libusb openssl python3
-          arch -arm64 vcpkg install --host-triplet=arm64-osx-release --triplet=arm64-osx-release --x-install-root=installed-arm64-osx qt5 libusb openssl python3
+          arch -x86_64 vcpkg install --host-triplet=x64-osx-release --triplet=x64-osx-release --x-install-root=installed-x64-osx qt5-base libusb openssl python3
+          arch -arm64 vcpkg install --host-triplet=arm64-osx-release --triplet=arm64-osx-release --x-install-root=installed-arm64-osx qt5-base libusb openssl python3
 
       - name: Set up gcc/clang problem matcher
         uses: ammaraskar/gcc-problem-matcher@master
