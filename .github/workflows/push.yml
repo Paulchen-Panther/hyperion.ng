@@ -21,34 +21,28 @@ jobs:
           submodules: recursive
 
       - name: Install dependencies
-        env:
-          HOMEBREW_NO_AUTO_UPDATE: 1
-          HOMEBREW_NO_INSTALL_CLEANUP: 1
         run: |
           brew install ccache cmake automake ninja
 
-      - name: Enable vcpkg cache
+      - name: Vcpkg Integration
+        run: $VCPKG_INSTALLATION_ROOT/vcpkg integrate install
+
+      - name: Restore vcpkg cache for x64
         uses: actions/cache@v3
         with:
-          path: $VCPKG_INSTALLATION_ROOT/installed
-          key: vcpkg-installed-${{ env.VCPKG_DEFAULT_TRIPLET }}-${{ github.ref }}-${{ github.run_number }}
-          restore-keys: |
-            vcpkg-installed-${{ env.VCPKG_DEFAULT_TRIPLET }}-${{ github.ref }}-
-            vcpkg-installed-${{ env.VCPKG_DEFAULT_TRIPLET }}-
+          path: $VCPKG_INSTALLATION_ROOT/installed-x64-osx
+          key: vcpkg-installed-x64-osx
 
-      - name: Prepare vcpkg
-        run: |
-          vcpkg install \
-            qt5:x64-osx qt5:arm64-osx \
-            python3:x64-osx python3:arm64-osx \
-            libusb:x64-osx libusb:arm64-osx
+      - name: Restore vcpkg cache for arm64
+        uses: actions/cache@v3
+        with:
+          path: $VCPKG_INSTALLATION_ROOT/installed-arm64-osx
+          key: vcpkg-installed-arm64-osx
 
-      - name: Display python3 error log (macOS) Fails
-        if: always()
+      - name: [x64;arm64] Install qt5, libusb, libusb, openssl
         run: |
-             cat /usr/local/share/vcpkg/buildtrees/python3/config-arm64-osx-dbg-config.log
-             cat /usr/local/share/vcpkg/buildtrees/python3/config-arm64-osx-dbg-out.log
-             cat /usr/local/share/vcpkg/buildtrees/python3/config-arm64-osx-dbg-err.log
+          arch -x64 vcpkg install --host-triplet=x64-osx-release --triplet=x64-osx-release --x-install-root=installed-x64-osx qt5 libusb openssl python3
+          arch -arm64 vcpkg install --host-triplet=arm64-osx-release --triplet=arm64-osx-release --x-install-root=installed-arm64-osx qt5 libusb openssl python3
 
       - name: Set up gcc/clang problem matcher
         uses: ammaraskar/gcc-problem-matcher@master
