@@ -40,7 +40,7 @@ jobs:
         run: |
           vcpkg install \
             qt5:x64-osx qt5:arm64-osx \
-            python:x64-osx python:arm64-osx \
+            python3:x64-osx python3:arm64-osx \
             libusb:x64-osx libusb:arm64-osx
 
       - name: Set up gcc/clang problem matcher
