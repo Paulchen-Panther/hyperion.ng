@@ -1,0 +1,68 @@
+name: Hyperion CI Build
+on:
+  push:
+    branches:
+      - '**'
+    tags:
+      - '*'
+
+jobs:
+
+###################
+###### macOS ######
+###################
+
+  macOS:
+    name: macOS
+    runs-on: macos-latest
+    env:
+      MACOSX_DEPLOYMENT_TARGET: 10.13
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: 1
+          HOMEBREW_NO_INSTALL_CLEANUP: 1
+        run: |
+          brew install ccache automake ninja
+
+      - name: Set up gcc/clang problem matcher
+        uses: ammaraskar/gcc-problem-matcher@master
+
+      - name: Prepare vcpkg
+        run: |
+          vcpkg install \
+            cmake:x64-osx \
+            cmake:arm64-osx \
+            qt6:x64-osx \
+            qt6:arm64-osx \
+            python:x64-osx \
+            python:arm64-osx \
+            libusb:x64-osx \
+            libusb:arm64-osx
+
+      - name: Configure
+        run: |
+          mkdir build && cd build
+          cmake -B build \
+            -DPLATFORM=osx \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_OSX_ARCHITECTURES=arm64 \
+            -DVCPKG_TARGET_TRIPLET=arm64-osx \
+            -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}\vcpkg\scripts\buildsystems\vcpkg.cmake" \
+            -DCMAKE_INSTALL_PREFIX:PATH=/usr/local ../
+
+
+      - name: Build
+        run: |
+          cmake --build build -j $(sysctl -n hw.logicalcpu) package
+
+      # Upload artifacts (only on tagged commit)
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          path: build/Hyperion-*
