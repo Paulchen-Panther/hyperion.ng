@@ -18,23 +18,23 @@ jobs:
         dockerImage: [ x86_64, armv6l, armv7l, aarch64 ]
         include:
           - dockerImage: x86_64
-            dockerName: Debian Stretch (x86_64)
+            dockerName: Debian Buster (x86_64)
             platform: x11
           - dockerImage: armv6l
-            dockerName: Debian Stretch (Raspberry Pi v1 & ZERO)
+            dockerName: Debian Buster (Raspberry Pi v1 & ZERO)
             platform: rpi
           - dockerImage: armv7l
-            dockerName: Debian Stretch (Raspberry Pi 2 & 3)
+            dockerName: Debian Buster (Raspberry Pi 2 & 3)
             platform: rpi
           - dockerImage: aarch64
-            dockerName: Debian Stretch (Generic AARCH64)
+            dockerName: Debian Buster (Generic AARCH64)
             platform: amlogic
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v1
+        uses: actions/checkout@v3
         with:
-          submodules: true
+          submodules: recursive
 
       # Append PR number to .version
       - name: Append PR number to version
@@ -47,7 +47,7 @@ jobs:
       - name: Build packages
         env:
           DOCKER_IMAGE: ${{ matrix.dockerImage }}
-          DOCKER_TAG: stretch
+          DOCKER_TAG: buster
           DOCKER_NAME: ${{ matrix.dockerName }}
           PLATFORM: ${{ matrix.platform }}
         shell: bash
@@ -59,15 +59,13 @@ jobs:
         run: |
           mkdir -p ${{ matrix.dockerImage }}
           mv deploy/*.tar.gz ${{ matrix.dockerImage }}
-        if: matrix.dockerImage != 'aarch64'
 
       # Upload artifacts
       - name: Upload artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: ${{ matrix.dockerImage }}
           path: ${{ matrix.dockerImage }}
-        if: matrix.dockerImage != 'aarch64'
 
 ######################
 ###### macOS #########
@@ -78,9 +76,9 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v1
+        uses: actions/checkout@v3
         with:
-          submodules: true
+          submodules: recursive
 
       # Append PR number to .version
       - name: Append PR number to version
@@ -110,7 +108,7 @@ jobs:
 
       # Upload artifacts
       - name: Upload artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: macOS
           path: macOS
@@ -121,15 +119,15 @@ jobs:
 
   windows:
     name: Windows
-    runs-on: windows-latest
+    runs-on: windows-2022
     env:
-      VCINSTALLDIR: 'C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC'
-      QT_VERSION: 5.15.0
+      VCINSTALLDIR: 'C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC'
+      QT_VERSION: 5.15.2
     steps:
       - name: Checkout
-        uses: actions/checkout@v1
+        uses: actions/checkout@v3
         with:
-          submodules: true
+          submodules: recursive
 
       # Append PR number to .version
       - name: Append PR number to version
@@ -138,37 +136,31 @@ jobs:
           tr -d '\n' < .version > temp && mv temp .version
           echo -n "+PR${{ github.event.pull_request.number }}" >> .version
 
-      - name: Cache Qt
-        uses: actions/cache@v2
-        id: cache-qt-windows
-        with:
-          path: ${{ runner.workspace }}/Qt
-          key: ${{ runner.os }}-Qt.${{ env.QT_VERSION }}
-
       - name: Install Qt
-        uses: jurplel/install-qt-action@v2
+        uses: jurplel/install-qt-action@v3
         with:
           version: ${{env.QT_VERSION}}
           target: 'desktop'
           arch: 'win64_msvc2019_64'
-          cached: ${{ steps.cache-qt-windows.outputs.cache-hit }}
+          cache: 'true'
+          cache-key-prefix: 'cache-qt-windows'
 
       - name: Cache Chocolatey downloads
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: C:\Users\runneradmin\AppData\Local\Temp\chocolatey
           key: ${{ runner.os }}-chocolatey
 
-      - name: "Remove Redistributable"
-        shell: cmd
-        run: |
-          MsiExec.exe /passive /X{F0C3E5D1-1ADE-321E-8167-68EF0DE699A5}
-          MsiExec.exe /passive /X{1D8E6291-B0D5-35EC-8441-6616F567A0F7}
+#      - name: Install Python
+#        shell: powershell
+#        run: |
+#          choco install --no-progress python -y
 
-      - name: Install Python, NSIS, OpenSSL, DirectX SDK
+      - name: Install OpenSSL, DirectX SDK
         shell: powershell
         run: |
-          choco install --no-progress python nsis openssl directx-sdk -y
+          choco install --no-progress openssl --version=1.1.1.2100 -y
+          choco install --no-progress directx-sdk -y
 
       - name: Install libjpeg-turbo
         run: |
@@ -195,7 +187,7 @@ jobs:
 
       # Upload artifacts
       - name: Upload artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: windows
           path: windows

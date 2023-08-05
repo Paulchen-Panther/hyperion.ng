@@ -24,7 +24,6 @@ const char API_METHOD_MUSIC_MODE[] = "set_music";
 const int API_METHOD_MUSIC_MODE_ON = 1;
 const int API_METHOD_MUSIC_MODE_OFF = 0;
 
-const char API_METHOD_SETRGB[] = "set_rgb";
 const char API_METHOD_SETSCENE[] = "set_scene";
 const char API_METHOD_GETPROP[] = "get_prop";
 
@@ -449,8 +448,8 @@ public:
 	/// Following parameters are required
 	/// @code
 	/// {
-	///     "hostname"  : "hostname or IP",
-	///     "port"      : port, default port 55443 is used when not provided
+	///     "host"  : "hostname or IP",
+	///     "port"  : port, default port 55443 is used when not provided
 	/// }
 	///@endcode
 	///
@@ -465,8 +464,8 @@ public:
 	/// Following parameters are required
 	/// @code
 	/// {
-	///     "hostname"  : "hostname or IP",
-	///     "port"      : port, default port 55443 is used when not provided
+	///     "host"  : "hostname or IP",
+	///     "port"  : port, default port 55443 is used when not provided
 	/// }
 	///@endcode
 	///

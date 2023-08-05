@@ -10,26 +10,32 @@
 // fg effect
 #include <hyperion/Hyperion.h>
 #include <hyperion/PriorityMuxer.h>
+#if defined(ENABLE_EFFECTENGINE)
 #include <effectengine/Effect.h>
+#endif
 
 ///
 /// @brief Provide utility methods for Hyperion class
 ///
 namespace hyperion {
 
-	void handleInitialEffect(Hyperion* hyperion, const QJsonObject& FGEffectConfig)
+	static void handleInitialEffect(Hyperion* hyperion, const QJsonObject& FGEffectConfig)
 	{
 		#define FGCONFIG_ARRAY fgColorConfig.toArray()
 
 		// initial foreground effect/color
 		if (FGEffectConfig["enable"].toBool(true))
 		{
+			#if defined(ENABLE_EFFECTENGINE)
 			const QString fgTypeConfig = FGEffectConfig["type"].toString("effect");
 			const QString fgEffectConfig = FGEffectConfig["effect"].toString("Rainbow swirl fast");
+			#else
+			const QString fgTypeConfig = "color";
+			#endif
 			const QJsonValue fgColorConfig = FGEffectConfig["color"];
 			int default_fg_duration_ms = 3000;
 			int fg_duration_ms = FGEffectConfig["duration_ms"].toInt(default_fg_duration_ms);
-			if (fg_duration_ms <= Effect::ENDLESS)
+			if (fg_duration_ms <= PriorityMuxer::ENDLESS )
 			{
 				fg_duration_ms = default_fg_duration_ms;
 				Warning(Logger::getInstance("HYPERION"), "foreground effect duration 'infinity' is forbidden, set to default value %d ms",default_fg_duration_ms);
@@ -44,23 +50,25 @@ namespace hyperion {
 					}
 				};
 				hyperion->setColor(PriorityMuxer::FG_PRIORITY, fg_color, fg_duration_ms);
-				Info(Logger::getInstance("HYPERION"),"Initial foreground color set (%d %d %d)",fg_color.at(0).red,fg_color.at(0).green,fg_color.at(0).blue);
+				Info(Logger::getInstance("HYPERION","I"+QString::number(hyperion->getInstanceIndex())),"Initial foreground color set (%d %d %d)",fg_color.at(0).red,fg_color.at(0).green,fg_color.at(0).blue);
 			}
+			#if defined(ENABLE_EFFECTENGINE)
 			else
 			{
 				int result = hyperion->setEffect(fgEffectConfig, PriorityMuxer::FG_PRIORITY, fg_duration_ms);
-				Info(Logger::getInstance("HYPERION"),"Initial foreground effect '%s' %s", QSTRING_CSTR(fgEffectConfig), ((result == 0) ? "started" : "failed"));
+				Info(Logger::getInstance("HYPERION","I"+QString::number(hyperion->getInstanceIndex())),"Initial foreground effect '%s' %s", QSTRING_CSTR(fgEffectConfig), ((result == 0) ? "started" : "failed"));
 			}
+			#endif
 		}
 		#undef FGCONFIG_ARRAY
 	}
 
-	ColorOrder createColorOrder(const QJsonObject &deviceConfig)
+	static ColorOrder createColorOrder(const QJsonObject &deviceConfig)
 	{
 		return stringToColorOrder(deviceConfig["colorOrder"].toString("rgb"));
 	}
 
-	RgbTransform createRgbTransform(const QJsonObject& colorConfig)
+	static RgbTransform createRgbTransform(const QJsonObject& colorConfig)
 	{
 		const double backlightThreshold = colorConfig["backlightThreshold"].toDouble(0.0);
 		const bool   backlightColored   = colorConfig["backlightColored"].toBool(false);
@@ -73,7 +81,15 @@ namespace hyperion {
 		return RgbTransform(gammaR, gammaG, gammaB, backlightThreshold, backlightColored, static_cast<uint8_t>(brightness), static_cast<uint8_t>(brightnessComp));
 	}
 
-	RgbChannelAdjustment createRgbChannelAdjustment(const QJsonObject& colorConfig, const QString& channelName, int defaultR, int defaultG, int defaultB)
+	static OkhsvTransform createOkhsvTransform(const QJsonObject& colorConfig)
+	{
+		const double saturationGain = colorConfig["saturationGain"].toDouble(1.0);
+		const double brightnessGain = colorConfig["brightnessGain"].toDouble(1.0);
+
+		return OkhsvTransform(saturationGain, brightnessGain);
+	}
+
+	static RgbChannelAdjustment createRgbChannelAdjustment(const QJsonObject& colorConfig, const QString& channelName, int defaultR, int defaultG, int defaultB)
 	{
 		const QJsonArray& channelConfig  = colorConfig[channelName].toArray();
 		return RgbChannelAdjustment(
@@ -84,7 +100,7 @@ namespace hyperion {
 		);
 	}
 
-	ColorAdjustment* createColorAdjustment(const QJsonObject & adjustmentConfig)
+	static ColorAdjustment* createColorAdjustment(const QJsonObject & adjustmentConfig)
 	{
 		const QString id = adjustmentConfig["id"].toString("default");
 
@@ -99,11 +115,12 @@ namespace hyperion {
 		adjustment->_rgbMagentaAdjustment = createRgbChannelAdjustment(adjustmentConfig, "magenta", 255,  0,255);
 		adjustment->_rgbYellowAdjustment  = createRgbChannelAdjustment(adjustmentConfig, "yellow" , 255,255,  0);
 		adjustment->_rgbTransform         = createRgbTransform(adjustmentConfig);
+		adjustment->_okhsvTransform       = createOkhsvTransform(adjustmentConfig);
 
 		return adjustment;
 	}
 
-	MultiColorAdjustment * createLedColorsAdjustment(int ledCnt, const QJsonObject & colorConfig)
+	static MultiColorAdjustment * createLedColorsAdjustment(int ledCnt, const QJsonObject & colorConfig)
 	{
 		// Create the result, the transforms are added to this
 		MultiColorAdjustment * adjustment = new MultiColorAdjustment(ledCnt);
@@ -123,13 +140,12 @@ namespace hyperion {
 			{
 				// Special case for indices '*' => all leds
 				adjustment->setAdjustmentForLed(colorAdjustment->_id, 0, ledCnt-1);
-				//Info(Logger::getInstance("HYPERION"), "ColorAdjustment '%s' => [0-%d]", QSTRING_CSTR(colorAdjustment->_id), ledCnt-1);
 				continue;
 			}
 
 			if (!overallExp.match(ledIndicesStr).hasMatch())
 			{
-				//Error(Logger::getInstance("HYPERION"), "Given led indices %d not correct format: %s", i, QSTRING_CSTR(ledIndicesStr));
+				// Given LED indices are not correctly formatted
 				continue;
 			}
 
@@ -156,7 +172,6 @@ namespace hyperion {
 					ss << index;
 				}
 			}
-			//Info(Logger::getInstance("HYPERION"), "ColorAdjustment '%s' => [%s]", QSTRING_CSTR(colorAdjustment->_id), ss.str().c_str());
 		}
 
 		return adjustment;
@@ -169,7 +184,7 @@ namespace hyperion {
 	 * @param deviceOrder  The default RGB channel ordering
 	 * @return The constructed ledstring
 	 */
-	LedString createLedString(const QJsonArray& ledConfigArray, const ColorOrder deviceOrder)
+	static LedString createLedString(const QJsonArray& ledConfigArray, const ColorOrder deviceOrder)
 	{
 		LedString ledString;
 		const QString deviceOrderStr = colorOrderToString(deviceOrder);
@@ -200,7 +215,7 @@ namespace hyperion {
 		return ledString;
 	}
 
-	QSize getLedLayoutGridSize(const QJsonArray& ledConfigArray)
+	static QSize getLedLayoutGridSize(const QJsonArray& ledConfigArray)
 	{
 		std::vector<int> midPointsX;
 		std::vector<int> midPointsY;

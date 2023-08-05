@@ -1,13 +1,5 @@
 Origin: Hyperion-Project
 Label: apt.hyperion-project.org
-Codename: bionic
-Architectures: amd64 armhf arm64
-Components: main
-Description: Official APT Repository by Hyperion Project
-SignWith: yes
-
-Origin: Hyperion-Project
-Label: apt.hyperion-project.org
 Codename: focal
 Architectures: amd64 armhf arm64
 Components: main
@@ -16,41 +8,24 @@ SignWith: yes
 
 Origin: Hyperion-Project
 Label: apt.hyperion-project.org
-Codename: groovy
-Architectures: amd64
-Components: main
-Description: Official APT Repository by Hyperion Project
-SignWith: yes
-
-Origin: Hyperion-Project
-Label: apt.hyperion-project.org
-Codename: hirsute
-Architectures: amd64 armhf arm64
-Components: main
-Description: Official APT Repository by Hyperion Project
-SignWith: yes
-
-Origin: Hyperion-Project
-Label: apt.hyperion-project.org
-Codename: impish
-Architectures: amd64 armhf arm64
-Components: main
-Description: Official APT Repository by Hyperion Project
-SignWith: yes
-
-Origin: Hyperion-Project
-Label: apt.hyperion-project.org
 Codename: jammy
-Architectures: amd64
+Architectures: amd64 armhf arm64
 Components: main
 Description: Official APT Repository by Hyperion Project
 SignWith: yes
 
 Origin: Hyperion-Project
 Label: apt.hyperion-project.org
-Suite: oldoldstable
-Codename: stretch
-Architectures: armhf amd64
+Codename: kinetic
+Architectures: amd64 armhf arm64
+Components: main
+Description: Official APT Repository by Hyperion Project
+SignWith: yes
+
+Origin: Hyperion-Project
+Label: apt.hyperion-project.org
+Codename: lunar
+Architectures: amd64
 Components: main
 Description: Official APT Repository by Hyperion Project
 SignWith: yes
@@ -77,7 +52,7 @@ Origin: Hyperion-Project
 Label: apt.hyperion-project.org
 Suite: unstable
 Codename: bookworm
-Architectures: armhf amd64
+Architectures: amd64
 Components: main
 Description: Official APT Repository by Hyperion Project
 SignWith: yes

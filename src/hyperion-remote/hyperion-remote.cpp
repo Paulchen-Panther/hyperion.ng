@@ -9,15 +9,23 @@
 #include <QCoreApplication>
 #include <QLocale>
 
+#include <utils/Logger.h>
+
 #include "HyperionConfig.h"
 #include <commandline/Parser.h>
 
-// hyperion-remote include
-#include "JsonConnection.h"
-
+#ifdef ENABLE_MDNS
+// mDNS discover
+#include <mdns/MdnsBrowser.h>
+#include <mdns/MdnsServiceRegister.h>
+#else
 // ssdp discover
 #include <ssdp/SSDPDiscover.h>
+#endif
 #include <utils/NetUtils.h>
+
+// hyperion-remote include
+#include "JsonConnection.h"
 
 #include <utils/DefaultSignalHandler.h>
 
@@ -38,10 +46,10 @@ int count(std::initializer_list<bool> values)
 
 void showHelp(Option & option){
 	QString shortOption;
-	QString longOption = QString("--%1").arg(option.names().last());
+	QString longOption = QString("--%1").arg(option.names().constLast());
 
 	if(option.names().size() == 2){
-		shortOption = QString("-%1").arg(option.names().first());
+		shortOption = QString("-%1").arg(option.names().constFirst());
 	}
 
 	qWarning() << qPrintable(QString("\t%1\t%2\t%3").arg(shortOption, longOption, option.description()));
@@ -51,7 +59,7 @@ int getInstaneIdbyName(const QJsonObject & reply, const QString & name){
 	if(reply.contains("instance")){
 		QJsonArray list = reply.value("instance").toArray();
 
-		for (const QJsonValueRef entry : list)	{
+		for ( const auto &entry : qAsConst(list) ) {
 			const QJsonObject obj = entry.toObject();
 			if(obj["friendly_name"] == name && obj["running"].toBool())
 			{
@@ -65,10 +73,6 @@ int getInstaneIdbyName(const QJsonObject & reply, const QString & name){
 
 int main(int argc, char * argv[])
 {
-#ifndef _WIN32
-	setenv("AVAHI_COMPAT_NOWARN", "1", 1);
-#endif
-
 	Logger* log = Logger::getInstance("REMOTE");
 	Logger::setLogLevel(Logger::INFO);
 
@@ -100,17 +104,17 @@ int main(int argc, char * argv[])
 		IntOption       & argDuration           = parser.add<IntOption>    ('d', "duration"               , "Specify how long the LEDs should be switched on in milliseconds [default: infinity]");
 		ColorsOption    & argColor              = parser.add<ColorsOption> ('c', "color"                  , "Set all LEDs to a constant color (either RRGGBB hex getColors or a color name. The color may be repeated multiple time like: RRGGBBRRGGBB)");
 		ImageOption     & argImage              = parser.add<ImageOption>  ('i', "image"                  , "Set the LEDs to the colors according to the given image file");
+#if defined(ENABLE_EFFECTENGINE)
 		Option          & argEffect             = parser.add<Option>       ('e', "effect"                 , "Enable the effect with the given name");
 		Option          & argEffectFile         = parser.add<Option>       (0x0, "effectFile"             , "Arguments to use in combination with --createEffect");
 		Option          & argEffectArgs         = parser.add<Option>       (0x0, "effectArgs"             , "Arguments to use in combination with the specified effect. Should be a JSON object string.", "");
 		Option          & argCreateEffect       = parser.add<Option>       (0x0, "createEffect"           , "Write a new JSON Effect configuration file.\nFirst parameter = Effect name.\nSecond parameter = Effect file (--effectFile).\nLast parameter = Effect arguments (--effectArgs.)", "");
 		Option          & argDeleteEffect       = parser.add<Option>       (0x0, "deleteEffect"           , "Delete a custom created JSON Effect configuration file.");
-		BooleanOption   & argServerInfo         = parser.add<BooleanOption>('l', "list"                   , "List server info and active effects with priority and duration");
-		BooleanOption   & argSysInfo            = parser.add<BooleanOption>('s', "sysinfo"                , "show system info");
+#endif
 		BooleanOption   & argClear              = parser.add<BooleanOption>('x', "clear"                  , "Clear data for the priority channel provided by the -p option");
 		BooleanOption   & argClearAll           = parser.add<BooleanOption>(0x0, "clearall"               , "Clear data for all active priority channels");
-		Option          & argEnableComponent    = parser.add<Option>       ('E', "enable"                 , "Enable the Component with the given name. Available Components are [SMOOTHING, BLACKBORDER, FORWARDER, BOBLIGHTSERVER, GRABBER, V4L, LEDDEVICE]");
-		Option          & argDisableComponent   = parser.add<Option>       ('D', "disable"                , "Disable the Component with the given name. Available Components are [SMOOTHING, BLACKBORDER, FORWARDER, BOBLIGHTSERVER, GRABBER, V4L, LEDDEVICE]");
+		Option          & argEnableComponent    = parser.add<Option>       ('E', "enable"                 , "Enable the Component with the given name. Available Components are [SMOOTHING, BLACKBORDER, FORWARDER, BOBLIGHTSERVER, GRABBER, V4L, AUDIO, LEDDEVICE]");
+		Option          & argDisableComponent   = parser.add<Option>       ('D', "disable"                , "Disable the Component with the given name. Available Components are [SMOOTHING, BLACKBORDER, FORWARDER, BOBLIGHTSERVER, GRABBER, V4L, AUDIO, LEDDEVICE]");
 		Option          & argId                 = parser.add<Option>       ('q', "qualifier"              , "Identifier(qualifier) of the adjustment to set");
 		IntOption       & argBrightness         = parser.add<IntOption>    ('L', "brightness"             , "Set the brightness gain of the LEDs");
 		IntOption       & argBrightnessC        = parser.add<IntOption>    (0x0, "brightnessCompensation" , "Set the brightness compensation");
@@ -134,6 +138,14 @@ int main(int argc, char * argv[])
 		BooleanOption   & argConfigGet          = parser.add<BooleanOption>(0x0, "configGet"              , "Print the current loaded Hyperion configuration file");
 		BooleanOption   & argSchemaGet          = parser.add<BooleanOption>(0x0, "schemaGet"              , "Print the JSON schema for Hyperion configuration");
 		Option          & argConfigSet          = parser.add<Option>       (0x0, "configSet"              , "Write to the actual loaded configuration file. Should be a JSON object string.");
+		BooleanOption   & argServerInfo         = parser.add<BooleanOption>('l', "list"                   , "List server info and active effects with priority and duration");
+		BooleanOption   & argSysInfo            = parser.add<BooleanOption>('s', "sysinfo"                , "Show system info");
+		BooleanOption   & argSystemSuspend      = parser.add<BooleanOption>(0x0, "suspend"                , "Suspend Hyperion. Stop all instances and components");
+		BooleanOption   & argSystemResume       = parser.add<BooleanOption>(0x0, "resume"                 , "Resume Hyperion. Start all instances and components");
+		BooleanOption   & argSystemToggleSuspend= parser.add<BooleanOption>(0x0, "toggleSuspend"          , "Toggle between Suspend and Resume. First request will trigger suspend");
+		BooleanOption   & argSystemIdle         = parser.add<BooleanOption>(0x0, "idle"                   , "Put Hyperion in Idle mode, i.e. all instances, components will be disabled besides the output processing (LED-devices, smoothing).");
+		BooleanOption   & argSystemToggleIdle   = parser.add<BooleanOption>(0x0, "toggleIdle"             , "Toggle between Idle and Working mode. First request will trigger Idle mode");
+		BooleanOption   & argSystemRestart      = parser.add<BooleanOption>(0x0, "restart"                , "Restart Hyperion");
 
 		BooleanOption   & argPrint              = parser.add<BooleanOption>(0x0, "print", "Print the JSON input and output messages on stdout");
 		BooleanOption   & argDebug              = parser.add<BooleanOption>(0x0, "debug", "Enable debug logging");
@@ -160,20 +172,35 @@ int main(int argc, char * argv[])
 			|| parser.isSet(argBacklightThreshold) || parser.isSet(argBacklightColored);
 
 		// check that exactly one command was given
-		int commandCount = count({ parser.isSet(argColor), parser.isSet(argImage), parser.isSet(argEffect), parser.isSet(argCreateEffect), parser.isSet(argDeleteEffect),
-		    parser.isSet(argServerInfo), parser.isSet(argSysInfo),parser.isSet(argClear), parser.isSet(argClearAll), parser.isSet(argEnableComponent), parser.isSet(argDisableComponent), colorAdjust,
-		    parser.isSet(argSource), parser.isSet(argSourceAuto), parser.isSet(argOff), parser.isSet(argOn), parser.isSet(argConfigGet), parser.isSet(argSchemaGet), parser.isSet(argConfigSet),
-		    parser.isSet(argMapping),parser.isSet(argVideoMode) });
+		int commandCount = count({ parser.isSet(argColor), parser.isSet(argImage),
+#if defined(ENABLE_EFFECTENGINE)
+			parser.isSet(argEffect), parser.isSet(argCreateEffect), parser.isSet(argDeleteEffect),
+#endif
+			parser.isSet(argServerInfo), parser.isSet(argSysInfo),
+			parser.isSet(argSystemSuspend), parser.isSet(argSystemResume), parser.isSet(argSystemToggleSuspend),
+			parser.isSet(argSystemIdle), parser.isSet(argSystemToggleIdle),
+			parser.isSet(argSystemRestart),
+			parser.isSet(argClear), parser.isSet(argClearAll), parser.isSet(argEnableComponent), parser.isSet(argDisableComponent), colorAdjust,
+			parser.isSet(argSource), parser.isSet(argSourceAuto), parser.isSet(argOff), parser.isSet(argOn), parser.isSet(argConfigGet), parser.isSet(argSchemaGet), parser.isSet(argConfigSet),
+			parser.isSet(argMapping),parser.isSet(argVideoMode) });
 		if (commandCount != 1)
 		{
 			qWarning() << (commandCount == 0 ? "No command found." : "Multiple commands found.") << " Provide exactly one of the following options:";
 			showHelp(argColor);
 			showHelp(argImage);
+#if defined(ENABLE_EFFECTENGINE)
 			showHelp(argEffect);
 			showHelp(argCreateEffect);
 			showHelp(argDeleteEffect);
+#endif
 			showHelp(argServerInfo);
 			showHelp(argSysInfo);
+			showHelp(argSystemSuspend);
+			showHelp(argSystemResume);
+			showHelp(argSystemToggleSuspend);
+			showHelp(argSystemIdle);
+			showHelp(argSystemToggleIdle);
+			showHelp(argSystemRestart);
 			showHelp(argClear);
 			showHelp(argClearAll);
 			showHelp(argEnableComponent);
@@ -197,27 +224,33 @@ int main(int argc, char * argv[])
 			showHelp(argYAdjust);
 			return 1;
 		}
-
-		// server searching by ssdp
-		QString address = argAddress.value(parser);
-		if(address == "127.0.0.1" || address == "127.0.0.1:19444")
-		{
-			SSDPDiscover discover;
-			address = discover.getFirstService(searchType::STY_JSONSERVER);
-			if(address.isEmpty())
-			{
-				address = argAddress.value(parser);
-			}
-		}
-
-		// Resolve hostname and port (or use default port)
 		QString host;
-		quint16 port{ JSON_DEFAULT_PORT };
+		QString serviceName{ QHostInfo::localHostName() };
+		int port{ JSONAPI_DEFAULT_PORT };
 
-		if (!NetUtils::resolveHostPort(address, host, port))
+		// Split hostname and port (or use default port)
+		QString givenAddress = argAddress.value(parser);
+		if (!NetUtils::resolveHostPort(givenAddress, host, port))
 		{
-			throw std::runtime_error(QString("Wrong address: unable to parse address (%1)").arg(address).toStdString());
+			throw std::runtime_error(QString("Wrong address: unable to parse address (%1)").arg(givenAddress).toStdString());
 		}
+
+		// Search available Hyperion services via mDNS, if default/localhost IP is given
+		if (host == "127.0.0.1" || host == "::1")
+		{
+#ifndef ENABLE_MDNS
+			SSDPDiscover discover;
+			host = discover.getFirstService(searchType::STY_FLATBUFSERVER);
+#endif
+			QHostAddress address;
+			if (!NetUtils::resolveHostToAddress(log, host, address, port))
+			{
+				throw std::runtime_error(QString("Address could not be resolved for hostname: %2").arg(QSTRING_CSTR(host)).toStdString());
+			}
+			host = address.toString();
+		}
+
+		Info(log, "Connecting to Hyperion host: %s, port: %u using service: %s", QSTRING_CSTR(host), port, QSTRING_CSTR(serviceName));
 
 		// create the connection to the hyperion server
 		JsonConnection connection(host, parser.isSet(argPrint), port);
@@ -245,8 +278,10 @@ int main(int argc, char * argv[])
 		}
 		else if (parser.isSet(argImage))
 		{
-			connection.setImage(argImage.getImage(parser), argPriority.getInt(parser), argDuration.getInt(parser));
+			QFileInfo imageFile {argImage.getCString(parser)};
+			connection.setImage(argImage.getImage(parser), argPriority.getInt(parser), argDuration.getInt(parser), imageFile.fileName());
 		}
+#if defined(ENABLE_EFFECTENGINE)
 		else if (parser.isSet(argEffect))
 		{
 			connection.setEffect(argEffect.value(parser), argEffectArgs.value(parser), argPriority.getInt(parser), argDuration.getInt(parser));
@@ -259,6 +294,7 @@ int main(int argc, char * argv[])
 		{
 			connection.deleteEffect(argDeleteEffect.value(parser));
 		}
+#endif
 		else if (parser.isSet(argServerInfo))
 		{
 			std::cout << "Server info:\n" << connection.getServerInfoString().toStdString() << std::endl;
@@ -266,6 +302,30 @@ int main(int argc, char * argv[])
 		else if (parser.isSet(argSysInfo))
 		{
 			std::cout << "System info:\n" << connection.getSysInfo().toStdString() << std::endl;
+		}
+		else if (parser.isSet(argSystemSuspend))
+		{
+			connection.suspend();
+		}
+		else if (parser.isSet(argSystemResume))
+		{
+			connection.resume();
+		}
+		else if (parser.isSet(argSystemToggleSuspend))
+		{
+			connection.toggleSuspend();
+		}
+		else if (parser.isSet(argSystemIdle))
+		{
+			connection.idle();
+		}
+		else if (parser.isSet(argSystemToggleIdle))
+		{
+			connection.toggleIdle();
+		}
+		else if (parser.isSet(argSystemRestart))
+		{
+			connection.restart();
 		}
 		else if (parser.isSet(argClear))
 		{

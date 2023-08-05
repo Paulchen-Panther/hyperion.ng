@@ -1,6 +1,8 @@
 $(document).ready(function () {
   performTranslation();
 
+  var EFFECTENGINE_ENABLED = (jQuery.inArray("effectengine", window.serverInfo.services) !== -1);
+
   // update instance listing
   updateHyperionInstanceListing();
 
@@ -17,7 +19,6 @@ $(document).ready(function () {
   $('.ssthead').html(createTableRow([$.i18n('remote_input_origin'), $.i18n('remote_input_owner'), $.i18n('remote_input_priority'), $.i18n('remote_input_status')], true, true));
   createTable('crthead', 'crtbody', 'adjust_content', true);
 
-
   //create introduction
   if (window.showOptHelp) {
     createHint("intro", $.i18n('remote_color_intro', $.i18n('remote_losthint')), "color_intro");
@@ -26,46 +27,6 @@ $(document).ready(function () {
     createHint("intro", $.i18n('remote_components_intro', $.i18n('remote_losthint')), "comp_intro");
     createHint("intro", $.i18n('remote_maptype_intro', $.i18n('remote_losthint')), "maptype_intro");
     createHint("intro", $.i18n('remote_videoMode_intro', $.i18n('remote_losthint')), "videomode_intro");
-  }
-
-  //color adjustment
-  var sColor = sortProperties(window.serverSchema.properties.color.properties.channelAdjustment.items.properties);
-  var values = window.serverInfo.adjustment[0];
-
-  for (var key in sColor) {
-    if (sColor[key].key != "id" && sColor[key].key != "leds") {
-      var title = '<label for="cr_' + sColor[key].key + '">' + $.i18n(sColor[key].title) + '</label>';
-      var property;
-      var value = values[sColor[key].key];
-
-      if (sColor[key].type == "array") {
-        property = '<div id="cr_' + sColor[key].key + '" class="input-group colorpicker-component" ><input type="text" class="form-control" /><span class="input-group-addon"><i></i></span></div>';
-        $('.crtbody').append(createTableRow([title, property], false, true));
-        createCP('cr_' + sColor[key].key, value, function (rgb, hex, e) {
-          requestAdjustment(e.target.id.substr(e.target.id.indexOf("_") + 1), '[' + rgb.r + ',' + rgb.g + ',' + rgb.b + ']');
-        });
-      }
-      else if (sColor[key].type == "boolean") {
-        property = '<div class="checkbox"><input id="cr_' + sColor[key].key + '" type="checkbox" value="' + value + '"/><label></label></div>';
-        $('.crtbody').append(createTableRow([title, property], false, true));
-
-        $('#cr_' + sColor[key].key).off().on('change', function (e) {
-          requestAdjustment(e.target.id.substr(e.target.id.indexOf("_") + 1), e.currentTarget.checked);
-        });
-      }
-      else {
-        if (sColor[key].key == "brightness" || sColor[key].key == "brightnessCompensation" || sColor[key].key == "backlightThreshold")
-          property = '<div class="input-group"><input id="cr_' + sColor[key].key + '" type="number" class="form-control" min="0" max="100" step="10" value="' + value + '"/><span class="input-group-addon">' + $.i18n("edt_append_percent") + '</span></div>';
-        else
-          property = '<input id="cr_' + sColor[key].key + '" type="number" class="form-control" min="0.1" max="4.0" step="0.1" value="' + value + '"/>';
-
-        $('.crtbody').append(createTableRow([title, property], false, true));
-        $('#cr_' + sColor[key].key).off().on('change', function (e) {
-          valValue(this.id, this.value, this.min, this.max);
-          requestAdjustment(e.target.id.substr(e.target.id.indexOf("_") + 1), e.currentTarget.value);
-        });
-      }
-    }
   }
 
   function sendEffect() {
@@ -82,8 +43,61 @@ $(document).ready(function () {
     requestSetColor(rgb.r, rgb.g, rgb.b, duration);
   }
 
+  function updateChannelAdjustments() {
+
+    $('.crtbody').html("");
+    var sColor = sortProperties(window.serverSchema.properties.color.properties.channelAdjustment.items.properties);
+    var values = window.serverInfo.adjustment[0];
+
+    for (var key in sColor) {
+      if (sColor[key].key != "id" && sColor[key].key != "leds") {
+        var title = '<label for="cr_' + sColor[key].key + '">' + $.i18n(sColor[key].title) + '</label>';
+        var property;
+        var value = values[sColor[key].key];
+
+        if (sColor[key].type == "array") {
+          property = '<div id="cr_' + sColor[key].key + '" class="input-group colorpicker-component" ><input type="text" class="form-control" /><span class="input-group-addon"><i></i></span></div>';
+          $('.crtbody').append(createTableRow([title, property], false, true));
+          createCP('cr_' + sColor[key].key, value, function (rgb, hex, e) {
+            requestAdjustment(e.target.id.substr(e.target.id.indexOf("_") + 1), '[' + rgb.r + ',' + rgb.g + ',' + rgb.b + ']');
+          });
+        }
+        else if (sColor[key].type == "boolean") {
+          property = '<div class="checkbox"><input id="cr_' + sColor[key].key + '" type="checkbox" ' + (value ? "checked" : "") + '/><label></label></div>';
+          $('.crtbody').append(createTableRow([title, property], false, true));
+
+          $('#cr_' + sColor[key].key).off().on('change', function (e) {
+            requestAdjustment(e.target.id.substr(e.target.id.indexOf("_") + 1), e.currentTarget.checked);
+          });
+        }
+        else {
+          if (sColor[key].key == "brightness" ||
+            sColor[key].key == "brightnessCompensation" ||
+            sColor[key].key == "backlightThreshold" ||
+            sColor[key].key == "saturationGain" ||
+            sColor[key].key == "brightnessGain") {
+
+            property = '<input id="cr_' + sColor[key].key + '" type="number" class="form-control" min="' + sColor[key].minimum + '" max="' + sColor[key].maximum + '" step="' + sColor[key].step + '" value="' + value + '"/>';
+            if (sColor[key].append === "edt_append_percent") {
+              property = '<div class="input-group">' + property + '<span class="input-group-addon">' + $.i18n("edt_append_percent") + '</span></div>';
+            }
+          }
+          else {
+            property = '<input id="cr_' + sColor[key].key + '" type="number" class="form-control" min="0.1" max="4.0" step="0.1" value="' + value + '"/>';
+          }
+
+          $('.crtbody').append(createTableRow([title, property], false, true));
+          $('#cr_' + sColor[key].key).off().on('change', function (e) {
+            valValue(this.id, this.value, this.min, this.max);
+            requestAdjustment(e.target.id.substr(e.target.id.indexOf("_") + 1), e.currentTarget.value);
+          });
+        }
+      }
+    }
+  }
+
   function updateInputSelect() {
-    $('.sstbody').html("");
+    $('.sstbody').empty();
     var prios = window.serverInfo.priorities;
     var clearAll = false;
 
@@ -126,19 +140,22 @@ $(document).ready(function () {
 
       switch (compId) {
         case "EFFECT":
-          owner = $.i18n('remote_effects_label_effects') + '  ' + owner;
+          owner = $.i18n('remote_effects_label_effects') + ' ' + owner;
           break;
         case "COLOR":
           owner = $.i18n('remote_color_label_color') + '  ' + '<div style="width:18px; height:18px; border-radius:20px; margin-bottom:-4px; border:1px grey solid; background-color: rgb(' + value + '); display:inline-block" title="RGB: (' + value + ')"></div>';
           break;
         case "IMAGE":
-          owner = $.i18n('remote_effects_label_picture') + ' ' + owner;
+          owner = $.i18n('remote_effects_label_picture') + (owner !== undefined ? ('  ' + owner) : "");
           break;
         case "GRABBER":
           owner = $.i18n('general_comp_GRABBER') + ': (' + owner + ')';
           break;
         case "V4L":
           owner = $.i18n('general_comp_V4L') + ': (' + owner + ')';
+          break;
+        case "AUDIO":
+          owner = $.i18n('general_comp_AUDIO') + ': (' + owner + ')';
           break;
         case "BOBLIGHTSERVER":
           owner = $.i18n('general_comp_BOBLIGHTSERVER');
@@ -151,16 +168,18 @@ $(document).ready(function () {
           break;
       }
 
-      if (duration && compId != "GRABBER" && compId != "FLATBUFSERVER" && compId != "PROTOSERVER")
-        owner += '<br/><span style="font-size:80%; color:grey;">' + $.i18n('remote_input_duration') + ' ' + duration.toFixed(0) + $.i18n('edt_append_s') + '</span>';
+      if (!(duration && duration < 0)) {
+        if (duration && compId != "GRABBER" && compId != "FLATBUFSERVER" && compId != "PROTOSERVER")
+          owner += '<br/><span style="font-size:80%; color:grey;">' + $.i18n('remote_input_duration') + ' ' + duration.toFixed(0) + $.i18n('edt_append_s') + '</span>';
 
-      var btn = '<button id="srcBtn' + i + '" type="button" ' + btn_state + ' class="btn btn-' + btn_type + ' btn_input_selection" onclick="requestSetSource(' + priority + ');">' + btn_text + '</button>';
+        var btn = '<button id="srcBtn' + i + '" type="button" ' + btn_state + ' class="btn btn-' + btn_type + ' btn_input_selection" onclick="requestSetSource(' + priority + ');">' + btn_text + '</button>';
 
-      if ((compId == "EFFECT" || compId == "COLOR" || compId == "IMAGE") && priority < 254)
-        btn += '<button type="button" class="btn btn-sm btn-danger" style="margin-left:10px;" onclick="requestPriorityClear(' + priority + ');"><i class="fa fa-close"></button>';
+        if ((compId == "EFFECT" || compId == "COLOR" || compId == "IMAGE") && priority < 254)
+          btn += '<button type="button" class="btn btn-sm btn-danger" style="margin-left:10px;" onclick="requestPriorityClear(' + priority + ');"><i class="fa fa-close"></button>';
 
-      if (btn_type != 'default')
-        $('.sstbody').append(createTableRow([origin, owner, priority, btn], false, true));
+        if (btn_type != 'default')
+          $('.sstbody').append(createTableRow([origin, owner, priority, btn], false, true));
+      }
     }
     var btn_auto_color = (window.serverInfo.priorities_autoselect ? "btn-success" : "btn-danger");
     var btn_auto_state = (window.serverInfo.priorities_autoselect ? "disabled" : "enabled");
@@ -203,7 +222,8 @@ $(document).ready(function () {
     for (const comp of components) {
       if (comp.name === "ALL" || (comp.name === "FORWARDER" && window.currentHyperionInstance != 0) ||
         (comp.name === "GRABBER" && !window.serverConfig.framegrabber.enable) ||
-        (comp.name === "V4L" && !window.serverConfig.grabberV4L2.enable))
+        (comp.name === "V4L" && !window.serverConfig.grabberV4L2.enable) ||
+        (comp.name === "AUDIO" && !window.serverConfig.grabberAudio.enable))
         continue;
 
       const enable_style = (comp.enabled ? "checked" : "");
@@ -220,7 +240,7 @@ $(document).ready(function () {
         $('#componentsbutton').append(d);
         $(`#${comp_btn_id}`).bootstrapToggle();
         $(`#${comp_btn_id}`).bootstrapToggle((hyperionEnabled ? "enable" : "disable"));
-        $(`#${comp_btn_id}`).change(e => {
+        $(`#${comp_btn_id}`).on("change", e => {
           requestSetComponentState(e.currentTarget.id.split('_').pop(), e.currentTarget.checked);
         });
       }
@@ -311,6 +331,9 @@ $(document).ready(function () {
   if (getStorage('rmduration') != null) {
     $("#remote_duration").val(getStorage('rmduration'));
     duration = getStorage('rmduration');
+    if (duration == 0) {
+      duration = ENDLESS;
+    }
   }
 
   createCP('cp2', cpcolor, function (rgbT, hex) {
@@ -330,6 +353,9 @@ $(document).ready(function () {
   $("#remote_duration").off().on("change", function () {
     duration = valValue(this.id, this.value, this.min, this.max);
     setStorage('rmduration', duration);
+    if (duration == 0) {
+      duration = ENDLESS;
+    }
   });
 
   $("#effect_select").off().on("change", function (event) {
@@ -337,18 +363,22 @@ $(document).ready(function () {
   });
 
   $("#remote_input_reseff, #remote_input_rescol").off().on("click", function () {
-    if (this.id == "remote_input_rescol")
+    if (this.id == "remote_input_rescol") {
       sendColor();
-    else
-      sendEffect();
+    } else {
+      if (EFFECTENGINE_ENABLED) {
+        sendEffect();
+      }
+    }
   });
 
   $("#remote_input_repimg").off().on("click", function () {
-    if (lastImgData != "")
+    if (lastImgData != "") {
       requestSetImage(lastImgData, duration, lastFileName);
+    }
   });
 
-  $("#remote_input_img").change(function () {
+  $("#remote_input_img").on("change", function () {
     readImg(this, function (src, fileName) {
       lastFileName = fileName;
       if (src.includes(","))
@@ -365,12 +395,16 @@ $(document).ready(function () {
   updateInputSelect();
   updateLedMapping();
   updateVideoMode();
-  updateEffectlist();
+  updateChannelAdjustments();
+  if (EFFECTENGINE_ENABLED) {
+    updateEffectlist();
+  } else {
+    $('#effect_row').hide();
+  }
 
   // interval updates
 
   $(window.hyperion).on('components-updated', function (e, comp) {
-    //console.log ("components-updated", e, comp);
     updateComponent(comp);
   });
 
@@ -394,5 +428,16 @@ $(document).ready(function () {
     updateEffectlist();
   });
 
+  $(window.hyperion).on("cmd-settings-update", function (event) {
+    if (event.response.data.color) {
+      window.serverInfo.imageToLedMappingType = event.response.data.color.imageToLedMappingType;
+      updateLedMapping();
+
+      window.serverInfo.adjustment = event.response.data.color.channelAdjustment;
+      updateChannelAdjustments();
+    }
+  });
+
   removeOverlay();
 });
+

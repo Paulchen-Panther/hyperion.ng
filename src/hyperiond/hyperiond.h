@@ -4,6 +4,8 @@
 #include <QObject>
 #include <QJsonObject>
 
+#include <hyperion/HyperionIManager.h>
+
 #ifdef ENABLE_DISPMANX
 	#include <grabber/DispmanxWrapper.h>
 #else
@@ -59,6 +61,12 @@
 #endif
 
 #include <hyperion/GrabberWrapper.h>
+#ifdef ENABLE_AUDIO
+	#include <grabber/AudioWrapper.h>
+#else
+	typedef QObject AudioWrapper;
+#endif
+
 
 #include <utils/Logger.h>
 #include <utils/VideoMode.h>
@@ -67,13 +75,19 @@
 #include <utils/settings.h>
 #include <utils/Components.h>
 
+#include "SuspendHandler.h"
+
 class HyperionIManager;
 class SysTray;
 class JsonServer;
-class BonjourBrowserWrapper;
+#ifdef ENABLE_MDNS
+class MdnsProvider;
+#endif
 class WebServer;
 class SettingsManager;
+#if defined(ENABLE_EFFECTENGINE)
 class PythonInit;
+#endif
 class SSDPHandler;
 class FlatBufferServer;
 class ProtoServer;
@@ -95,6 +109,11 @@ public:
 	/// @brief Get webserver pointer (systray)
 	///
 	WebServer *getWebServerInstance() { return _webserver; }
+
+	///
+	/// @brief Get suspense handler pointer
+	///
+	SuspendHandler* getSuspendHandlerInstance() { return _suspendHandler; }
 
 	///
 	/// @brief Get the current videoMode
@@ -152,6 +171,12 @@ private slots:
 	///
 	void setVideoMode(VideoMode mode);
 
+	/// @brief Handle whenever the state of a instance (HyperionIManager) changes according to enum instanceState
+	/// @param instaneState  A state from enum
+	/// @param instance      The index of instance
+	///
+	void handleInstanceStateChange(InstanceState state, quint8 instance);
+
 private:
 	void createGrabberDispmanx(const QJsonObject & grabberConfig);
 	void createGrabberAmlogic(const QJsonObject & grabberConfig);
@@ -162,13 +187,18 @@ private:
 	void createGrabberQt(const QJsonObject & grabberConfig);
 	void createCecHandler();
 	void createGrabberDx(const QJsonObject & grabberConfig);
+	void createGrabberAudio(const QJsonObject & grabberConfig);
 
 	Logger*                    _log;
 	HyperionIManager*          _instanceManager;
 	AuthManager*               _authManager;
-	BonjourBrowserWrapper*     _bonjourBrowserWrapper;
+#ifdef ENABLE_MDNS
+	MdnsProvider*                _mDNSProvider;
+#endif
 	NetOrigin*                 _netOrigin;
+#if defined(ENABLE_EFFECTENGINE)
 	PythonInit*                _pyInit;
+#endif
 	WebServer*                 _webserver;
 	WebServer*                 _sslWebserver;
 	JsonServer*                _jsonServer;
@@ -181,11 +211,13 @@ private:
 	OsxWrapper*                _osxGrabber;
 	QtWrapper*                 _qtGrabber;
 	DirectXWrapper*            _dxGrabber;
+	AudioWrapper*			   _audioGrabber;
 	SSDPHandler*               _ssdp;
-
 	#ifdef ENABLE_CEC
 	CECHandler*                _cecHandler;
 	#endif
+	SuspendHandler*            _suspendHandler;
+
 	#if defined(ENABLE_FLATBUF_SERVER)
 	FlatBufferServer*          _flatBufferServer;
 	#endif

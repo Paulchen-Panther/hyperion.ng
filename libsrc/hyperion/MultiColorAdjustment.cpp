@@ -42,11 +42,8 @@ void MultiColorAdjustment::setAdjustmentForLed(const QString& id, int startLed, 
 
 	// Get the identified adjustment (don't care if is nullptr)
 	ColorAdjustment * adjustment = getAdjustment(id);
-
-	//Debug(_log,"ColorAdjustment Profile [%s], startLed[%d], endLed[%d]", QSTRING_CSTR(id), startLed, endLed);
 	for (int iLed=startLed; iLed<=endLed; ++iLed)
 	{
-		//Debug(_log,"_ledAdjustments [%d] -> [%p]", iLed, adjustment);
 		_ledAdjustments[iLed] = adjustment;
 	}
 }
@@ -112,8 +109,14 @@ void MultiColorAdjustment::applyAdjustment(std::vector<ColorRgb>& ledColors)
 		uint8_t ored   = color.red;
 		uint8_t ogreen = color.green;
 		uint8_t oblue  = color.blue;
-		uint8_t B_RGB = 0, B_CMY = 0, B_W = 0;
+		uint8_t B_RGB = 0;
+		uint8_t B_CMY = 0;
+		uint8_t B_W = 0;
 
+		if (!adjustment->_okhsvTransform.isIdentity())
+		{
+			adjustment->_okhsvTransform.transform(ored, ogreen, oblue);
+		}
 		adjustment->_rgbTransform.transform(ored,ogreen,oblue);
 		adjustment->_rgbTransform.getBrightnessComponents(B_RGB, B_CMY, B_W);
 

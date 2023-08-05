@@ -74,12 +74,22 @@ protected:
 	bool powerOff() override;
 
 	///
-	/// @brief Discover first devices of a serial device available (for configuration)
+	/// @brief Discover first device of serial devices available (for configuration)
 	///
 	/// @return A string of the device found
 	///
 	QString discoverFirst() override;
 
+	///
+	/// @brief Discover serial devices available (for configuration).
+	///
+	/// Following parameters can be provided optional
+	/// @code
+	/// {
+	///     "discoverAll"  : true/false , "true", in case devices without vendor-id are to be included in the discovery result
+	/// }
+	///@endcode
+	///
 	/// @param[in] params Parameters used to overwrite discovery default behaviour
 	///
 	/// @return A JSON structure holding a list of devices found
@@ -109,9 +119,15 @@ protected slots:
 	///
 	/// @brief Set device in error state
 	///
-	/// @param errorMsg The error message to be logged
+	/// @param[in] errorMsg The error message to be logged
+	/// @param[in] isRecoverable If False, no further retries will be done
 	///
-	void setInError( const QString& errorMsg) override;
+	void setInError( const QString& errorMsg, bool isRecoverable=true) override;
+
+	///
+	/// @brief Handle any feedback provided by the device
+	///
+	virtual void readFeedback();
 
 private:
 

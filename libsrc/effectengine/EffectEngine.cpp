@@ -19,9 +19,12 @@
 
 EffectEngine::EffectEngine(Hyperion * hyperion)
 	: _hyperion(hyperion)
-	, _log(Logger::getInstance("EFFECTENGINE"))
+	, _log(nullptr)
 	, _effectFileHandler(EffectFileHandler::getInstance())
 {
+	QString subComponent = hyperion->property("instance").toString();
+	_log= Logger::getInstance("EFFECTENGINE", subComponent);
+
 	Q_INIT_RESOURCE(EffectEngine);
 	qRegisterMetaType<hyperion::Components>("hyperion::Components");
 
@@ -109,23 +112,30 @@ void EffectEngine::handleUpdatedEffectList()
 {
 	_availableEffects.clear();
 
-	unsigned id = 2;
+	//Add smoothing config entry to support dynamic effects done in configurator
+	_hyperion->updateSmoothingConfig(SmoothingConfigID::EFFECT_DYNAMIC);
+
+	unsigned specificId = SmoothingConfigID::EFFECT_SPECIFIC;
 	for (auto def : _effectFileHandler->getEffects())
 	{
-		// add smoothing configs to Hyperion
+		// add smoothing configurations to Hyperion
 		if (def.args["smoothing-custom-settings"].toBool())
 		{
+			int settlingTime_ms = def.args["smoothing-time_ms"].toInt();
+			double ledUpdateFrequency_hz = def.args["smoothing-updateFrequency"].toDouble();
+			unsigned updateDelay {0};
+
+			Debug(_log, "Effect \"%s\": Add custom smoothing settings [%d]. Type: Linear, Settling time: %dms, Interval: %.fHz ", QSTRING_CSTR(def.name), specificId, settlingTime_ms, ledUpdateFrequency_hz);
+
 			def.smoothCfg = _hyperion->updateSmoothingConfig(
-				id,
-				def.args["smoothing-time_ms"].toInt(),
-				def.args["smoothing-updateFrequency"].toDouble(),
-				0 );
-			//Debug( _log, "Customs Settings: Update effect %s, script %s, file %s, smoothCfg [%u]", QSTRING_CSTR(def.name), QSTRING_CSTR(def.script), QSTRING_CSTR(def.file), def.smoothCfg);
+								++specificId,
+								settlingTime_ms,
+								ledUpdateFrequency_hz,
+								updateDelay );
 		}
 		else
 		{
-			def.smoothCfg = _hyperion->updateSmoothingConfig(id);
-			//Debug( _log, "Default Settings: Update effect %s, script %s, file %s, smoothCfg [%u]", QSTRING_CSTR(def.name), QSTRING_CSTR(def.script), QSTRING_CSTR(def.file), def.smoothCfg);
+			def.smoothCfg = SmoothingConfigID::SYSTEM;
 		}
 		_availableEffects.push_back(def);
 	}
@@ -134,11 +144,37 @@ void EffectEngine::handleUpdatedEffectList()
 
 int EffectEngine::runEffect(const QString &effectName, int priority, int timeout, const QString &origin)
 {
-	return runEffect(effectName, QJsonObject(), priority, timeout, "", origin);
+	unsigned smoothCfg = SmoothingConfigID::SYSTEM;
+	for (const auto &def : _availableEffects)
+	{
+		if (def.name == effectName)
+		{
+			smoothCfg = def.smoothCfg;
+			break;
+		}
+	}
+	return runEffect(effectName, QJsonObject(), priority, timeout, "", origin, smoothCfg);
 }
 
 int EffectEngine::runEffect(const QString &effectName, const QJsonObject &args, int priority, int timeout, const QString &pythonScript, const QString &origin, unsigned smoothCfg, const QString &imageData)
 {
+	//In case smoothing information is provided dynamically use temp smoothing config item (2)
+	if (smoothCfg == SmoothingConfigID::SYSTEM && args["smoothing-custom-settings"].toBool())
+	{
+		int settlingTime_ms = args["smoothing-time_ms"].toInt();
+		double ledUpdateFrequency_hz = args["smoothing-updateFrequency"].toDouble();
+		unsigned updateDelay {0};
+
+		Debug(_log, "Effect \"%s\": Apply dynamic smoothing settings, if smoothing. Type: Linear, Settling time: %dms, Interval: %.fHz ", QSTRING_CSTR(effectName), settlingTime_ms, ledUpdateFrequency_hz);
+
+		smoothCfg = _hyperion->updateSmoothingConfig(
+						SmoothingConfigID::EFFECT_DYNAMIC,
+						settlingTime_ms,
+						ledUpdateFrequency_hz,
+						updateDelay
+						);
+	}
+
 	if (pythonScript.isEmpty())
 	{
 		const EffectDefinition *effectDefinition = nullptr;
@@ -178,7 +214,7 @@ int EffectEngine::runEffectScript(const QString &script, const QString &name, co
 	_activeEffects.push_back(effect);
 
 	// start the effect
-	Debug(_log, "Start the effect: name [%s], smoothCfg [%u]", QSTRING_CSTR(name), smoothCfg);
+	Debug(_log, "Start the effect: name [%s]", QSTRING_CSTR(name));
 	_hyperion->registerInput(priority, hyperion::COMP_EFFECT, origin, name ,smoothCfg);
 	effect->start();
 
@@ -216,7 +252,7 @@ void EffectEngine::effectFinished()
 		_hyperion->clear(effect->getPriority());
 	}
 
-	Info( _log, "effect finished");
+	Info( _log, "Effect [%s] finished", QSTRING_CSTR(effect->getName()));
 	for (auto effectIt = _activeEffects.begin(); effectIt != _activeEffects.end(); ++effectIt)
 	{
 		if (*effectIt == effect)

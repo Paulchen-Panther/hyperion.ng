@@ -28,7 +28,7 @@ QJsonObject SettingsManager::schemaJson;
 
 SettingsManager::SettingsManager(quint8 instance, QObject* parent, bool readonlyMode)
 	: QObject(parent)
-	  , _log(Logger::getInstance("SETTINGSMGR"))
+	  , _log(Logger::getInstance("SETTINGSMGR", "I"+QString::number(instance)))
 	  , _instance(instance)
 	  , _sTable(new SettingsTable(instance, this))
 	  , _configVersion(DEFAULT_VERSION)
@@ -501,6 +501,20 @@ bool SettingsManager::handleConfigUpgrade(QJsonObject& config)
 					Debug(_log, "GrabberV4L2 records migrated");
 				}
 
+				if (config.contains("grabberAudio"))
+				{
+					QJsonObject newGrabberAudioConfig = config["grabberAudio"].toObject();
+
+					//Add new element enable
+					if (!newGrabberAudioConfig.contains("enable"))
+					{
+						newGrabberAudioConfig["enable"] = false;
+						migrated = true;
+					}
+					config["grabberAudio"] = newGrabberAudioConfig;
+					Debug(_log, "GrabberAudio records migrated");
+				}
+
 				if (config.contains("framegrabber"))
 				{
 					QJsonObject newFramegrabberConfig = config["framegrabber"].toObject();
@@ -628,6 +642,8 @@ bool SettingsManager::handleConfigUpgrade(QJsonObject& config)
 									{
 										newJsonConfig["port"] = 19444;
 									}
+									newJsonConfig["name"] = host;
+
 									json.append(newJsonConfig);
 									migrated = true;
 								}
@@ -636,13 +652,10 @@ bool SettingsManager::handleConfigUpgrade(QJsonObject& config)
 
 						if (!json.isEmpty())
 						{
-							newForwarderConfig["json"] = json;
+							newForwarderConfig["jsonapi"] = json;
 						}
-						else
-						{
-							newForwarderConfig.remove("json");
-							migrated = true;
-						}
+						newForwarderConfig.remove("json");
+						migrated = true;
 					}
 
 					QJsonArray flatbuffer;
@@ -672,6 +685,7 @@ bool SettingsManager::handleConfigUpgrade(QJsonObject& config)
 									{
 										newFlattbufferConfig["port"] = 19400;
 									}
+									newFlattbufferConfig["name"] = host;
 
 									flatbuffer.append(newFlattbufferConfig);
 									migrated = true;
@@ -680,13 +694,10 @@ bool SettingsManager::handleConfigUpgrade(QJsonObject& config)
 
 							if (!flatbuffer.isEmpty())
 							{
-								newForwarderConfig["flat"] = flatbuffer;
+								newForwarderConfig["flatbuffer"] = flatbuffer;
 							}
-							else
-							{
-								newForwarderConfig.remove("flat");
-								migrated = true;
-							}
+							newForwarderConfig.remove("flat");
+							migrated = true;
 						}
 					}
 
@@ -699,6 +710,59 @@ bool SettingsManager::handleConfigUpgrade(QJsonObject& config)
 					{
 						config["forwarder"] = newForwarderConfig;
 						Debug(_log, "Forwarder records migrated");
+					}
+				}
+			}
+
+			//Migration steps for versions <= 2.0.13
+			targetVersion.setVersion("2.0.13");
+			if (_previousVersion <= targetVersion)
+			{
+				Info(_log, "Instance [%u]: Migrate from version [%s] to version [%s] or later", _instance, _previousVersion.getVersion().c_str(), targetVersion.getVersion().c_str());
+
+
+				// Have Hostname/IP-address separate from port for LED-Devices
+				if (config.contains("device"))
+				{
+					QJsonObject newDeviceConfig = config["device"].toObject();
+
+					if (newDeviceConfig.contains("type"))
+					{
+						QString type = newDeviceConfig["type"].toString();
+
+						const QStringList serialDevices {"adalight", "dmx", "atmo", "sedu", "tpm2", "karate"};
+						if ( serialDevices.contains(type ))
+						{
+							if (!newDeviceConfig.contains("rateList"))
+							{
+								newDeviceConfig["rateList"] =  "CUSTOM";
+								migrated = true;
+							}
+						}
+
+						if (type == "adalight")
+						{
+							if (newDeviceConfig.contains("lightberry_apa102_mode"))
+							{
+								bool lightberry_apa102_mode = newDeviceConfig["lightberry_apa102_mode"].toBool();
+								if (lightberry_apa102_mode)
+								{
+									newDeviceConfig["streamProtocol"] = "1";
+								}
+								else
+								{
+									newDeviceConfig["streamProtocol"] = "0";
+								}
+								newDeviceConfig.remove("lightberry_apa102_mode");
+								migrated = true;
+							}
+						}
+					}
+
+					if (migrated)
+					{
+						config["device"] = newDeviceConfig;
+						Debug(_log, "LED-Device records migrated");
 					}
 				}
 			}

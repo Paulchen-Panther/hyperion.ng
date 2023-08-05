@@ -1,6 +1,26 @@
 name: Hyperion APT Build
 on:
   workflow_call:
+    inputs:
+      head_sha:
+        type: string
+        description: The branch, tag or SHA to checkout
+        required: true
+    secrets:
+      APT_GPG:
+        required: true
+      APT_USER:
+        required: true
+      APT_PASSWORD:
+        required: true
+      APT_DRAFT:
+        required: true
+  workflow_dispatch:
+    inputs:
+      head_sha:
+        type: string
+        description: The branch, tag or SHA to checkout
+        required: true
     secrets:
       APT_GPG:
         required: true
@@ -16,12 +36,13 @@ jobs:
     name: Setup APT build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Set APT matrix
         id: apt-ppa
         run: |
-          APT=$(jq -n '.include |= [inputs[]]' .github/workflows/apt/*.json --compact-output)
-          echo "::set-output name=apt::$APT"
+          APT=$(jq -n '.include |= [ inputs[] | select(.["exclude"] != true)]' .github/workflows/apt/*.json --compact-output)
+          echo "apt=$APT" >> $GITHUB_OUTPUT
+
     outputs:
       apt-matrix: ${{ steps.apt-ppa.outputs.apt }}
 
@@ -33,8 +54,9 @@ jobs:
       matrix: ${{ fromJson(needs.setup.outputs.apt-matrix) }}
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
+          ref: ${{ github.event.inputs.head_sha || github.event.client_payload.head_sha }}
           submodules: true
 
       - name: Generate environment variables
@@ -69,28 +91,30 @@ jobs:
             sed 's/@CMAKE_ENVIRONMENT@/${{ matrix.cmake-environment }}/g' debian/rules.in > debian/rules && \
             tar -cJf ../hyperion_${{ env.TARBALL_VERSION }}.orig.tar.xz . && \
             debuild --no-lintian -uc -us && \
-            cp ../hyperion_* /deploy"
+            cp ../hyperion_*.deb /deploy"
 
       - name: Upload package artifact
-        if: startsWith(github.event.ref, 'refs/tags')
-        uses: actions/upload-artifact@v2
+        if: ${{ startsWith(github.event.ref, 'refs/tags') || github.event_name == 'workflow_dispatch' }}
+        uses: actions/upload-artifact@v3
         with:
           path: deploy
           retention-days: 1
 
   publish:
     name: Publish APT packages
-    if: startsWith(github.event.ref, 'refs/tags')
+    if: ${{ startsWith(github.event.ref, 'refs/tags') || github.event_name == 'workflow_dispatch' }}
     needs: [setup, build]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.inputs.head_sha || github.event.client_payload.head_sha }}
 
       - name: Import GPG key
-        uses: crazy-max/ghaction-import-gpg@v3.1.0
+        uses: crazy-max/ghaction-import-gpg@v5.3.0
         with:
-          gpg-private-key: ${{ secrets.APT_GPG }}
+          gpg_private_key: ${{ secrets.APT_GPG }}
 
       - name: Install reprepro
         run: sudo apt -y install reprepro
@@ -107,7 +131,7 @@ jobs:
           reprepro -Vb apt export
 
       - name: Download artifacts
-        uses: actions/download-artifact@v2.0.10
+        uses: actions/download-artifact@v3.0.2
 
       - name: Include artifacts into the package source
         run: |
@@ -120,7 +144,7 @@ jobs:
           done
 
       - name: Upload packages to APT server (DRAFT)
-        uses: SamKirkland/FTP-Deploy-Action@4.1.0
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
           server: apt.hyperion-project.org
           username: ${{ secrets.APT_USER }}

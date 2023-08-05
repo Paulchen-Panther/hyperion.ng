@@ -59,8 +59,6 @@ namespace JsonUtils {
 	{
 		//remove Comments in data
 		QString cleanData = data;
-		//cleanData .remove(QRegularExpression("([^:]?\\/\\/.*)"));
-
 		QJsonParseError error;
 		doc = QJsonDocument::fromJson(cleanData.toUtf8(), &error);
 
@@ -78,7 +76,7 @@ namespace JsonUtils {
 					++errorLine;
 				}
 			}
-			Error(log,"Failed to parse json data from %s: Error: %s at Line: %i, Column: %i", QSTRING_CSTR(path), QSTRING_CSTR(error.errorString()), errorLine, errorColumn);
+			Error(log, "Failed to parse json data from %s: Error: %s at Line: %i, Column: %i, Data: '%s'", QSTRING_CSTR(path), QSTRING_CSTR(error.errorString()), errorLine, errorColumn, QSTRING_CSTR(data));
 			return false;
 		}
 		return true;
@@ -145,7 +143,6 @@ namespace JsonUtils {
 				obj.insert(attribute, resolveRefs(attributeValue.toObject(), obj, log));
 			else
 			{
-				//qDebug() <<"ADD ATTR:VALUE"<<attribute<<attributeValue;
 				obj.insert(attribute, attributeValue);
 			}
 		}

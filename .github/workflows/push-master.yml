@@ -20,28 +20,28 @@ jobs:
         dockerImage: [ x86_64, armv6l, armv7l, aarch64 ]
         include:
           - dockerImage: x86_64
-            dockerName: Debian Stretch (x86_64)
+            dockerName: Debian Buster (x86_64)
             platform: x11
           - dockerImage: armv6l
-            dockerName: Debian Stretch (Raspberry Pi v1 & ZERO)
+            dockerName: Debian Buster (Raspberry Pi v1 & ZERO)
             platform: rpi
           - dockerImage: armv7l
-            dockerName: Debian Stretch (Raspberry Pi 2 & 3)
+            dockerName: Debian Buster (Raspberry Pi 2 & 3)
             platform: rpi
           - dockerImage: aarch64
-            dockerName: Debian Stretch (Generic AARCH64)
+            dockerName: Debian Buster (Generic AARCH64)
             platform: amlogic
 
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v3
         with:
-          submodules: true
+          submodules: recursive
 
       # Build process
       - name: Build packages
         env:
           DOCKER_IMAGE: ${{ matrix.dockerImage }}
-          DOCKER_TAG: stretch
+          DOCKER_TAG: buster
           DOCKER_NAME: ${{ matrix.dockerName }}
           PLATFORM: ${{ matrix.platform }}
         shell: bash
@@ -50,7 +50,7 @@ jobs:
       # Upload artifacts (only on tagged commit)
       - name: Upload artifacts
         if: startsWith(github.event.ref, 'refs/tags')
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           path: deploy/Hyperion-*
 
@@ -62,9 +62,9 @@ jobs:
     name: macOS
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v3
         with:
-          submodules: true
+          submodules: recursive
 
       # Install dependencies
       - name: Install dependencies
@@ -81,7 +81,7 @@ jobs:
       # Upload artifacts (only on tagged commit)
       - name: Upload artifacts
         if: startsWith(github.event.ref, 'refs/tags')
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           path: build/Hyperion-*
 
@@ -91,47 +91,41 @@ jobs:
 
   windows:
     name: Windows
-    runs-on: windows-latest
+    runs-on: windows-2022
     env:
-      VCINSTALLDIR: 'C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC'
-      QT_VERSION: 5.15.0
+      VCINSTALLDIR: 'C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC'
+      QT_VERSION: 5.15.2
     steps:
       - name: Checkout
-        uses: actions/checkout@v1
+        uses: actions/checkout@v3
         with:
-          submodules: true
-
-      - name: Cache Qt
-        uses: actions/cache@v2
-        id: cache-qt-windows
-        with:
-          path: ${{ runner.workspace }}/Qt
-          key: ${{ runner.os }}-Qt.${{ env.QT_VERSION }}
+          submodules: recursive
 
       - name: Install Qt
-        uses: jurplel/install-qt-action@v2
+        uses: jurplel/install-qt-action@v3
         with:
-          version: ${{ env.QT_VERSION }}
+          version: ${{env.QT_VERSION}}
           target: 'desktop'
           arch: 'win64_msvc2019_64'
-          cached: ${{ steps.cache-qt-windows.outputs.cache-hit }}
+          cache: 'true'
+          cache-key-prefix: 'cache-qt-windows'
 
       - name: Cache Chocolatey downloads
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: C:\Users\runneradmin\AppData\Local\Temp\chocolatey
           key: ${{ runner.os }}-chocolatey
 
-      - name: "Remove Redistributable"
-        shell: cmd
-        run: |
-          MsiExec.exe /passive /X{F0C3E5D1-1ADE-321E-8167-68EF0DE699A5}
-          MsiExec.exe /passive /X{1D8E6291-B0D5-35EC-8441-6616F567A0F7}
+#      - name: Install Python
+#        shell: powershell
+#        run: |
+#          choco install --no-progress python -y
 
-      - name: Install Python, NSIS, OpenSSL, DirectX SDK
+      - name: Install OpenSSL, DirectX SDK
         shell: powershell
         run: |
-          choco install --no-progress python nsis openssl directx-sdk -y
+          choco install --no-progress openssl --version=1.1.1.2100 -y
+          choco install --no-progress directx-sdk -y
 
       - name: Install libjpeg-turbo
         run: |
@@ -152,7 +146,7 @@ jobs:
       # Upload artifacts (only on tagged commit)
       - name: Upload artifacts
         if: startsWith(github.event.ref, 'refs/tags')
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           path: build/Hyperion-*
           retention-days: 1
@@ -168,7 +162,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       # Generate environment variables
       - name: Generate environment variables from .version and tag
@@ -178,7 +172,7 @@ jobs:
 
       # Download artifacts from previous build process
       - name: Download artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3.0.2
         with:
           path: artifacts
 
@@ -198,11 +192,10 @@ jobs:
 ##########################
 
   apt_build:
-    name: APT Build
+    name: APT Build GitHub Releases
+    if: startsWith(github.event.ref, 'refs/tags')
     needs: [Linux, macOS, windows]
-    uses: hyperion-project/hyperion.ng/.github/workflows/apt.yml@master
-    secrets:
-      APT_GPG: ${{ secrets.APT_GPG }}
-      APT_USER: ${{ secrets.APT_USER }}
-      APT_PASSWORD: ${{ secrets.APT_PASSWORD }}
-      APT_DRAFT: ${{ secrets.APT_DRAFT }}
+    uses: ./.github/workflows/apt.yml
+    secrets: inherit
+    with:
+      head_sha: master

@@ -12,6 +12,8 @@
 #include <QHostInfo>
 #include <QUrl>
 
+#include "HyperionConfig.h"
+
 // hyperion-remote includes
 #include "JsonConnection.h"
 
@@ -66,7 +68,7 @@ void JsonConnection::setColor(std::vector<QColor> colors, int priority, int dura
 	parseReply(reply);
 }
 
-void JsonConnection::setImage(QImage &image, int priority, int duration)
+void JsonConnection::setImage(QImage &image, int priority, int duration, const QString& name)
 {
 	Debug(_log, "Set image has size: %dx%d", image.width(), image.height());
 
@@ -91,6 +93,8 @@ void JsonConnection::setImage(QImage &image, int priority, int duration)
 	command["command"] = QString("image");
 	command["priority"] = priority;
 	command["origin"] = QString("hyperion-remote");
+	if (!name.isEmpty())
+		command["name"] = name;
 	command["imagewidth"] = image.width();
 	command["imageheight"] = image.height();
 	command["imagedata"] = QString(base64Image.data());
@@ -106,6 +110,7 @@ void JsonConnection::setImage(QImage &image, int priority, int duration)
 	parseReply(reply);
 }
 
+#if defined(ENABLE_EFFECTENGINE)
 void JsonConnection::setEffect(const QString &effectName, const QString & effectArgs, int priority, int duration)
 {
 	Debug(_log, "Start effect: %s", QSTRING_CSTR(effectName));
@@ -185,6 +190,7 @@ void JsonConnection::deleteEffect(const QString &effectName)
 	// parse reply message
 	parseReply(reply);
 }
+#endif
 
 QString JsonConnection::getServerInfoString()
 {
@@ -209,7 +215,7 @@ QJsonObject JsonConnection::getServerInfo()
 	{
 		if (!reply.contains("info") || !reply["info"].isObject())
 		{
-			throw std::runtime_error("No info available in result");
+			throw std::runtime_error("No info available in reply");
 		}
 
 		return reply["info"].toObject();
@@ -234,7 +240,7 @@ QString JsonConnection::getSysInfo()
 	{
 		if (!reply.contains("info") || !reply["info"].isObject())
 		{
-			throw std::runtime_error("No info available in result");
+			throw std::runtime_error("No info available in reply");
 		}
 
 		QJsonDocument doc(reply["info"].toObject());
@@ -243,6 +249,78 @@ QString JsonConnection::getSysInfo()
 	}
 
 	return QString();
+}
+
+void JsonConnection::suspend()
+{
+	Info(_log, "Suspend Hyperion. Stop all instances and components");
+	QJsonObject command;
+	command["command"] = QString("system");
+	command["subcommand"] = QString("suspend");
+
+	QJsonObject reply = sendMessage(command);
+
+	parseReply(reply);
+}
+
+void JsonConnection::resume()
+{
+	Info(_log, "Resume Hyperion. Start all instances and components");
+	QJsonObject command;
+	command["command"] = QString("system");
+	command["subcommand"] = QString("resume");
+
+	QJsonObject reply = sendMessage(command);
+
+	parseReply(reply);
+}
+
+void JsonConnection::toggleSuspend()
+{
+	Info(_log, "Toggle between Suspend and Resume");
+	QJsonObject command;
+	command["command"] = QString("system");
+	command["subcommand"] = QString("toggleSuspend");
+
+	QJsonObject reply = sendMessage(command);
+
+	parseReply(reply);
+}
+
+void JsonConnection::idle()
+{
+	Info(_log, "Put Hyperion in Idle mode.");
+	QJsonObject command;
+	command["command"] = QString("system");
+	command["subcommand"] = QString("idle");
+
+	QJsonObject reply = sendMessage(command);
+
+	parseReply(reply);
+}
+
+void JsonConnection::toggleIdle()
+{
+	Info(_log, "Toggle between Idle and Working mode");
+	QJsonObject command;
+	command["command"] = QString("system");
+	command["subcommand"] = QString("toggleIdle");
+
+	QJsonObject reply = sendMessage(command);
+
+	parseReply(reply);
+}
+
+void JsonConnection::restart()
+{
+	Info(_log, "Restart Hyperion...");
+	QJsonObject command;
+	command["command"] = QString("system");
+	command["subcommand"] = QString("restart");
+
+	QJsonObject reply = sendMessage(command);
+
+	parseReply(reply);
 }
 
 void JsonConnection::clear(int priority)
@@ -339,12 +417,12 @@ QString JsonConnection::getConfig(std::string type)
 	// parse reply message
 	if (parseReply(reply))
 	{
-		if (!reply.contains("result") || !reply["result"].isObject())
+		if (!reply.contains("info") || !reply["info"].isObject())
 		{
-			throw std::runtime_error("No configuration file available in result");
+			throw std::runtime_error("No configuration file available in reply");
 		}
 
-		QJsonDocument doc(reply["result"].toObject());
+		QJsonDocument doc(reply["info"].toObject());
 		QString result(doc.toJson(QJsonDocument::Indented));
 		return result;
 	}
@@ -364,7 +442,7 @@ void JsonConnection::setConfig(const QString &jsonString)
 		QJsonObject configObj;
 		if(!JsonUtils::parse("hyperion-remote-args", jsonString, configObj, _log))
 		{
-			throw std::runtime_error("Error in configset arguments, abort");
+			throw std::runtime_error("Error in configSet arguments, abort");
 		}
 
 		command["config"] = configObj;

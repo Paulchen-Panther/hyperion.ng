@@ -47,6 +47,22 @@ signals:
 	///
 	void setV4lImage(const QString& name, const Image<ColorRgb>& image);
 
+#if defined(ENABLE_FLATBUF_SERVER) || defined(ENABLE_PROTOBUF_SERVER)	
+	///
+	/// @brief PIPE Flat-/Proto- buffer images to Hyperion class
+	/// @param name   The name of the buffer capture that is currently active
+	/// @param image  The prepared image
+	///
+	void setBufferImage(const QString& name, const Image<ColorRgb>&  image);
+#endif
+
+	///
+	/// @brief PIPE audioCapture images from audioCapture over HyperionDaemon to Hyperion class
+	/// @param name   The name of the audio capture (path) that is currently active
+	/// @param image  The prepared image
+	///
+	void setAudioImage(const QString& name, const Image<ColorRgb>& image);
+
 	///
 	/// @brief PIPE the register command for a new global input over HyperionDaemon to Hyperion class
 	/// @param[in] priority    The priority of the channel

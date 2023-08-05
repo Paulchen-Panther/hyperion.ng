@@ -30,8 +30,12 @@ libsrc/flatbufserver/hyperion_request_generated.h
 # Ignore
 .vs/*
 CMakeSettings.json
+/out
 # Allow
 !.vs/launch.vs.json
 
 # LedDevice 'File' output
 NULL
+
+# Docker deploy folder
+deploy/*

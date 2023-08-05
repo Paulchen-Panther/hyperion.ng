@@ -4,21 +4,58 @@ name: Nightly build
 on:
  schedule:
    - cron: '0 0 * * *'
+ repository_dispatch:
+   types: [hyperion_nightly_push]
 
 jobs:
-  check:
-    name: Compare local <-> nightly
+  update:
+    name: Update Submodule rpi_ws281x
     if: github.repository_owner == 'hyperion-project'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Update Submodule rpi_ws281x
+        id: update
+        run: git submodule update --remote --recursive dependencies/external/rpi_ws281x
+
+      - name: Check git status
+        id: status
+        run: echo "status=$(git status -s)" >> $GITHUB_OUTPUT
+
+      - name: Add and commit changes
+        if: ${{ steps.status.outputs.status }}
+        run: |
+          git config --local user.email "20935312+Hyperion-Bot@users.noreply.github.com"
+          git config --local user.name "Hyperion-Bot"
+          git config --local diff.ignoreSubmodules dirty
+          git commit -am "Update submodule rpi_ws281x"
+
+      - name: Push changes
+        if: ${{ steps.status.outputs.status }}
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.HYPERION_BOT_TOKEN }}
+          branch: ${{ github.ref }}
+
+  check:
+    name: Compare local <-> nightly
+    needs: [update]
+    if: github.repository_owner == 'hyperion-project'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
       - name: Check if commit has changed
         id: build-necessary
         run: |
           if wget --spider "https://nightly.apt.hyperion-project.org/$(git rev-parse --short HEAD)" 2>/dev/null; then
-              echo "::set-output name=commit-has-changed::false"
+              echo "commit-has-changed=false" >> $GITHUB_OUTPUT
           else
-              echo "::set-output name=commit-has-changed::true"
+              echo "commit-has-changed=true" >> $GITHUB_OUTPUT
           fi
     outputs:
       build-nightly: ${{ steps.build-necessary.outputs.commit-has-changed }}
@@ -29,12 +66,13 @@ jobs:
     if: ${{ needs.check.outputs.build-nightly == 'true' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Set nightly matrix
         id: nightly-ppa
         run: |
-          NIGHTLY=$(jq -n '.include |= [inputs[]]' .github/workflows/apt/*.json --compact-output)
-          echo "::set-output name=nightly::$NIGHTLY"
+          NIGHTLY=$(jq -n '.include |= [ inputs[] | select(.["exclude"] != true)]' .github/workflows/apt/*.json --compact-output)
+          echo "nightly=$NIGHTLY" >> $GITHUB_OUTPUT
+
     outputs:
       nightly-matrix: ${{ steps.nightly-ppa.outputs.nightly }}
 
@@ -46,9 +84,9 @@ jobs:
       matrix: ${{ fromJson(needs.setup.outputs.nightly-matrix) }}
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
-          submodules: true
+          submodules: recursive
 
       - name: Generate environment variables
         run: |
@@ -82,10 +120,10 @@ jobs:
             sed 's/@CMAKE_ENVIRONMENT@/${{ matrix.cmake-environment }}/g' debian/rules.in > debian/rules && \
             tar -cJf ../hyperion_${{ env.TARBALL_VERSION }}.orig.tar.xz . && \
             debuild --no-lintian -uc -us && \
-            cp ../hyperion_* /deploy"
+            cp ../hyperion_*.deb /deploy"
 
       - name: Upload package artifact
-        uses: actions/upload-artifact@v2.2.4
+        uses: actions/upload-artifact@v3
         with:
           path: deploy
           retention-days: 1
@@ -93,15 +131,16 @@ jobs:
   publish:
     name: Publish nightly packages
     needs: [setup, build]
+    if: github.repository_owner == 'hyperion-project'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Import GPG key
-        uses: crazy-max/ghaction-import-gpg@v3.1.0
+        uses: crazy-max/ghaction-import-gpg@v5.3.0
         with:
-          gpg-private-key: ${{ secrets.APT_GPG }}
+          gpg_private_key: ${{ secrets.APT_GPG }}
 
       - name: Install reprepro
         run: sudo apt -y install reprepro
@@ -119,7 +158,7 @@ jobs:
           reprepro -Vb nightly export
 
       - name: Download artifacts
-        uses: actions/download-artifact@v2.0.10
+        uses: actions/download-artifact@v3.0.2
 
       - name: Include artifacts into the package source
         run: |
@@ -132,7 +171,7 @@ jobs:
           done
 
       - name: Upload packages to nightly server
-        uses: SamKirkland/FTP-Deploy-Action@4.1.0
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
           server: nightly.apt.hyperion-project.org
           username: ${{ secrets.NIGHTLY_USER }}
@@ -142,7 +181,7 @@ jobs:
           dangerous-clean-slate: true
 
       - name: Remove intermediate artifacts
-        uses: geekyeggo/delete-artifact@v1
+        uses: geekyeggo/delete-artifact@v2
         with:
           name: artifact
           failOnError: false

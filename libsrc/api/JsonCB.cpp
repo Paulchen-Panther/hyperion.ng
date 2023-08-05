@@ -9,10 +9,6 @@
 // components
 
 #include <hyperion/ComponentRegister.h>
-// bonjour wrapper
-#ifdef ENABLE_AVAHI
-#include <bonjour/bonjourbrowserwrapper.h>
-#endif
 // priorityMuxer
 
 #include <hyperion/PriorityMuxer.h>
@@ -33,13 +29,16 @@ JsonCB::JsonCB(QObject* parent)
 	: QObject(parent)
 	, _hyperion(nullptr)
 	, _componentRegister(nullptr)
-	#ifdef ENABLE_AVAHI
-	, _bonjour(BonjourBrowserWrapper::getInstance())
-	#endif
 	, _prioMuxer(nullptr)
 {
-	_availableCommands << "components-update" << "sessions-update" << "priorities-update" << "imageToLedMapping-update"
-	<< "adjustment-update" << "videomode-update" << "effects-update" << "settings-update" << "leds-update" << "instance-update" << "token-update";
+	_availableCommands << "components-update" << "priorities-update" << "imageToLedMapping-update"
+	<< "adjustment-update" << "videomode-update" << "settings-update" << "leds-update" << "instance-update" << "token-update";
+
+	#if defined(ENABLE_EFFECTENGINE)
+	_availableCommands << "effects-update";
+	#endif
+
+	qRegisterMetaType<PriorityMuxer::InputsMap>("InputsMap");
 }
 
 bool JsonCB::subscribeFor(const QString& type, bool unsubscribe)
@@ -58,16 +57,6 @@ bool JsonCB::subscribeFor(const QString& type, bool unsubscribe)
 			disconnect(_componentRegister, &ComponentRegister::updatedComponentState, this, &JsonCB::handleComponentState);
 		else
 			connect(_componentRegister, &ComponentRegister::updatedComponentState, this, &JsonCB::handleComponentState, Qt::UniqueConnection);
-	}
-
-	if(type == "sessions-update")
-	{
-#ifdef ENABLE_AVAHI
-		if(unsubscribe)
-			disconnect(_bonjour, &BonjourBrowserWrapper::browserChange, this, &JsonCB::handleBonjourChange);
-		else
-			connect(_bonjour, &BonjourBrowserWrapper::browserChange, this, &JsonCB::handleBonjourChange, Qt::UniqueConnection);
-#endif
 	}
 
 	if(type == "priorities-update")
@@ -102,6 +91,7 @@ bool JsonCB::subscribeFor(const QString& type, bool unsubscribe)
 			connect(_hyperion, &Hyperion::newVideoMode, this, &JsonCB::handleVideoModeChange, Qt::UniqueConnection);
 	}
 
+#if defined(ENABLE_EFFECTENGINE)
 	if(type == "effects-update")
 	{
 		if(unsubscribe)
@@ -109,6 +99,7 @@ bool JsonCB::subscribeFor(const QString& type, bool unsubscribe)
 		else
 			connect(_hyperion, &Hyperion::effectListUpdated, this, &JsonCB::handleEffectListChange, Qt::UniqueConnection);
 	}
+#endif
 
 	if(type == "settings-update")
 	{
@@ -156,7 +147,7 @@ void JsonCB::resetSubscriptions()
 
 void JsonCB::setSubscriptionsTo(Hyperion* hyperion)
 {
-	//std::cout << "JsonCB::setSubscriptions for instance [" << static_cast<int>(hyperion->getInstanceIndex()) << "] " << std::endl;
+	assert(hyperion);
 
 	// get current subs
 	QStringList currSubs(getSubscribedCommands());
@@ -166,7 +157,7 @@ void JsonCB::setSubscriptionsTo(Hyperion* hyperion)
 
 	// update pointer
 	_hyperion = hyperion;
-	_componentRegister = &_hyperion->getComponentRegister();
+	_componentRegister = _hyperion->getComponentRegister();
 	_prioMuxer = _hyperion->getMuxerInstance();
 
 	// re-apply subs
@@ -179,14 +170,13 @@ void JsonCB::setSubscriptionsTo(Hyperion* hyperion)
 void JsonCB::doCallback(const QString& cmd, const QVariant& data)
 {
 	QJsonObject obj;
+	obj["instance"] = _hyperion->getInstanceIndex();
 	obj["command"] = cmd;
 
 	if (data.userType() == QMetaType::QJsonArray)
 		obj["data"] = data.toJsonArray();
 	else
 		obj["data"] = data.toJsonObject();
-
-	//std::cout << "JsonCB::doCallback | [" << static_cast<int>(_hyperion->getInstanceIndex()) << "] Send: [" << QJsonDocument(obj).toJson(QJsonDocument::Compact).toStdString() << "]" << std::endl;
 
 	emit newCallback(obj);
 }
@@ -199,45 +189,33 @@ void JsonCB::handleComponentState(hyperion::Components comp, bool state)
 
 	doCallback("components-update", QVariant(data));
 }
-#ifdef ENABLE_AVAHI
-void JsonCB::handleBonjourChange(const QMap<QString,BonjourRecord>& bRegisters)
-{
-	QJsonArray data;
-	for (const auto & session: bRegisters)
-	{
-		if (session.port<0) continue;
-		QJsonObject item;
-		item["name"]   = session.serviceName;
-		item["type"]   = session.registeredType;
-		item["domain"] = session.replyDomain;
-		item["host"]   = session.hostName;
-		item["address"]= session.address;
-		item["port"]   = session.port;
-		data.append(item);
-	}
 
-	doCallback("sessions-update", QVariant(data));
-}
-#endif
-void JsonCB::handlePriorityUpdate()
+void JsonCB::handlePriorityUpdate(int currentPriority, const PriorityMuxer::InputsMap& activeInputs)
 {
 	QJsonObject data;
 	QJsonArray priorities;
 	uint64_t now = QDateTime::currentMSecsSinceEpoch();
-	QList<int> activePriorities = _prioMuxer->getPriorities();
-	activePriorities.removeAll(255);
-	int currentPriority = _prioMuxer->getCurrentPriority();
+	QList<int> activePriorities = activeInputs.keys();
 
-	for (int priority : activePriorities) {
-		const Hyperion::InputInfo priorityInfo = _prioMuxer->getInputInfo(priority);
+	activePriorities.removeAll(PriorityMuxer::LOWEST_PRIORITY);
+
+	for (int priority : qAsConst(activePriorities)) {
+
+		const Hyperion::InputInfo& priorityInfo = activeInputs[priority];
+
 		QJsonObject item;
 		item["priority"] = priority;
+
 		if (priorityInfo.timeoutTime_ms > 0 )
+		{
 			item["duration_ms"] = int(priorityInfo.timeoutTime_ms - now);
+		}
 
 		// owner has optional informations to the component
 		if(!priorityInfo.owner.isEmpty())
+		{
 			item["owner"] = priorityInfo.owner;
+		}
 
 		item["componentId"] = QString(hyperion::componentToIdString(priorityInfo.componentId));
 		item["origin"] = priorityInfo.origin;
@@ -256,7 +234,8 @@ void JsonCB::handlePriorityUpdate()
 			LEDcolor.insert("RGB", RGBValue);
 
 			uint16_t Hue;
-			float Saturation, Luminace;
+			float Saturation;
+			float Luminace;
 
 			// add HSL Value to Array
 			QJsonArray HSLValue;
@@ -366,6 +345,7 @@ void JsonCB::handleVideoModeChange(VideoMode mode)
 	doCallback("videomode-update", QVariant(data));
 }
 
+#if defined(ENABLE_EFFECTENGINE)
 void JsonCB::handleEffectListChange()
 {
 	QJsonArray effectList;
@@ -383,6 +363,7 @@ void JsonCB::handleEffectListChange()
 	effects["effects"] = effectList;
 	doCallback("effects-update", QVariant(effects));
 }
+#endif
 
 void JsonCB::handleSettingsChange(settings::type type, const QJsonDocument& data)
 {
@@ -414,7 +395,6 @@ void JsonCB::handleInstanceChange()
 		QJsonObject obj;
 		obj.insert("friendly_name", entry["friendly_name"].toString());
 		obj.insert("instance", entry["instance"].toInt());
-		//obj.insert("last_use", entry["last_use"].toString());
 		obj.insert("running", entry["running"].toBool());
 		arr.append(obj);
 	}

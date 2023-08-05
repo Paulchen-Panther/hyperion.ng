@@ -9,12 +9,36 @@
 			"type" : "string",
 			"required" : true,
 			"title" : "edt_conf_color_imageToLedMappingType_title",
-			"enum" : ["multicolor_mean", "unicolor_mean"],
+			"enum" : ["multicolor_mean", "unicolor_mean", "multicolor_mean_squared", "dominant_color", "dominant_color_advanced"],
 			"default" : "multicolor_mean",
 			"options" : {
-				"enum_titles" : ["edt_conf_enum_multicolor_mean", "edt_conf_enum_unicolor_mean"]
+				"enum_titles" : ["edt_conf_enum_multicolor_mean", "edt_conf_enum_unicolor_mean", "edt_conf_enum_multicolor_mean_squared", "edt_conf_enum_dominant_color", "edt_conf_enum_dominant_color_advanced"]
 			},
 			"propertyOrder" : 1
+		},
+	    "accuracyLevel": {
+		    "type": "integer",
+		    "title": "edt_conf_color_accuracyLevel_title",
+		    "minimum": 1,
+		    "maximum": 4,
+		    "default": 2,
+		    "propertyOrder": 2,
+		    "options": {
+		        "dependencies": {
+		            "imageToLedMappingType": "dominant_color_advanced"
+		        }
+		    }
+		},
+	    "reducedPixelSetFactorFactor": {
+		    "type": "string",
+		    "title": "edt_conf_color_reducedPixelSetFactorFactor_title",
+		    "default": 0,
+			"enum" : ["0", "1", "2", "3"],
+			"default" : "0",
+			"options" : {
+				"enum_titles" : ["edt_conf_enum_disabled", "edt_conf_enum_low", "edt_conf_enum_medium", "edt_conf_enum_high"]
+			},
+		    "propertyOrder": 3
 		},
 		"channelAdjustment" :
 		{
@@ -22,7 +46,7 @@
 			"title" : "edt_conf_color_channelAdjustment_header_title",
 			"minItems": 1,
 			"required" : true,
-			"propertyOrder" : 3,
+			"propertyOrder" : 4,
 			"items" :
 			{
 				"type" : "object",
@@ -158,6 +182,17 @@
 						"maxItems" : 3,
 						"propertyOrder" : 10
 					},
+					"saturationGain" :
+					{
+						"type" : "number",
+						"title" : "edt_conf_color_saturationGain_title",
+						"required" : true,
+						"minimum" : 0.0,
+						"maximum": 10.0,
+						"default" : 1.0,
+						"step" : 0.1,
+						"propertyOrder" : 11
+					},
 					"backlightThreshold" :
 					{
 						"type" : "integer",
@@ -167,7 +202,7 @@
 						"maximum": 100,
 						"default" : 0,
 						"append" : "edt_append_percent",
-						"propertyOrder" : 11
+						"propertyOrder" : 12
 					},
 					"backlightColored" :
 					{
@@ -175,7 +210,7 @@
 						"title" : "edt_conf_color_backlightColored_title",
 						"required" : true,
 						"default" : false,
-						"propertyOrder" : 12
+						"propertyOrder" : 13
 					},
 					"brightness" :
 					{
@@ -186,7 +221,7 @@
 						"maximum": 100,
 						"default" : 100,
 						"append" : "edt_append_percent",
-						"propertyOrder" : 13
+						"propertyOrder" : 14
 					},
 					"brightnessCompensation" :
 					{
@@ -197,7 +232,18 @@
 						"maximum": 100,
 						"default" : 0,
 						"append" : "edt_append_percent",
-						"propertyOrder" : 14
+						"propertyOrder" : 15
+					},
+					"brightnessGain" :
+					{
+						"type" : "number",
+						"title" : "edt_conf_color_brightnessGain_title",
+						"required" : true,
+						"minimum" : 0.1,
+						"maximum": 10.0,
+						"default" : 1.0,
+						"step" : 0.1,
+						"propertyOrder" : 16
 					},
 					"gammaRed" :
 					{
@@ -208,7 +254,7 @@
 						"maximum": 100.0,
 						"default" : 2.2,
 						"step" : 0.1,
-						"propertyOrder" : 15
+						"propertyOrder" : 17
 					},
 					"gammaGreen" :
 					{
@@ -219,7 +265,7 @@
 						"maximum": 100.0,
 						"default" : 2.2,
 						"step" : 0.1,
-						"propertyOrder" : 16
+						"propertyOrder" : 18
 					},
 					"gammaBlue" :
 					{
@@ -230,7 +276,7 @@
 						"maximum": 100.0,
 						"default" : 2.2,
 						"step" : 0.1,
-						"propertyOrder" : 17
+						"propertyOrder" : 19
 					}
 				},
 				"additionalProperties" : false

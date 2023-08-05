@@ -56,6 +56,10 @@ void LedDeviceWrapper::createLedDevice(const QJsonObject& config)
 	QThread* thread = new QThread(this);
 	thread->setObjectName("LedDeviceThread");
 	_ledDevice = LedDeviceFactory::construct(config);
+
+	QString subComponent = parent()->property("instance").toString();
+	_ledDevice->setLogger(Logger::getInstance("LEDDEVICE", subComponent));
+
 	_ledDevice->moveToThread(thread);
 	// setup thread management
 	connect(thread, &QThread::started, _ledDevice, &LedDevice::start);
@@ -63,11 +67,8 @@ void LedDeviceWrapper::createLedDevice(const QJsonObject& config)
 	// further signals
 	connect(this, &LedDeviceWrapper::updateLeds, _ledDevice, &LedDevice::updateLeds, Qt::QueuedConnection);
 
-	connect(this, &LedDeviceWrapper::enable, _ledDevice, &LedDevice::enable);
-	connect(this, &LedDeviceWrapper::disable, _ledDevice, &LedDevice::disable);
-
-	connect(this, &LedDeviceWrapper::switchOn, _ledDevice, &LedDevice::switchOn);
-	connect(this, &LedDeviceWrapper::switchOff, _ledDevice, &LedDevice::switchOff);
+	connect(this, &LedDeviceWrapper::switchOn, _ledDevice, &LedDevice::switchOn, Qt::BlockingQueuedConnection);
+	connect(this, &LedDeviceWrapper::switchOff, _ledDevice, &LedDevice::switchOff, Qt::BlockingQueuedConnection);
 
 	connect(this, &LedDeviceWrapper::stopLedDevice, _ledDevice, &LedDevice::stop, Qt::BlockingQueuedConnection);
 
@@ -77,108 +78,20 @@ void LedDeviceWrapper::createLedDevice(const QJsonObject& config)
 	thread->start();
 }
 
-QJsonObject LedDeviceWrapper::getLedDeviceSchemas()
-{
-	// make sure the resources are loaded (they may be left out after static linking)
-	Q_INIT_RESOURCE(LedDeviceSchemas);
-
-	// read the JSON schema from the resource
-	QDir dir(":/leddevices/");
-	QJsonObject result, schemaJson;
-
-	for(QString &item : dir.entryList())
-	{
-		QString schemaPath(QString(":/leddevices/")+item);
-		QString devName = item.remove("schema-");
-
-		QString data;
-		if(!FileUtils::readFile(schemaPath, data, Logger::getInstance("LedDevice")))
-		{
-			throw std::runtime_error("ERROR: Schema not found: " + item.toStdString());
-		}
-
-		QJsonObject schema;
-		if(!JsonUtils::parse(schemaPath, data, schema, Logger::getInstance("LedDevice")))
-		{
-			throw std::runtime_error("ERROR: JSON schema wrong of file: " + item.toStdString());
-		}
-
-		schemaJson = schema;
-		schemaJson["title"] = QString("edt_dev_spec_header_title");
-
-		result[devName] = schemaJson;
-	}
-
-	return result;
-}
-
-int LedDeviceWrapper::addToDeviceMap(QString name, LedDeviceCreateFuncType funcPtr)
-{
-	QMutexLocker lock(&_ledDeviceMapLock);
-
-	_ledDeviceMap.emplace(name,funcPtr);
-
-	return 0;
-}
-
-const LedDeviceRegistry& LedDeviceWrapper::getDeviceMap()
-{
-	QMutexLocker lock(&_ledDeviceMapLock);
-
-	return _ledDeviceMap;
-}
-
-int LedDeviceWrapper::getLatchTime() const
-{
-	int value = 0;
-	QMetaObject::invokeMethod(_ledDevice, "getLatchTime", Qt::BlockingQueuedConnection, Q_RETURN_ARG(int, value));
-	return value;
-}
-
-QString LedDeviceWrapper::getActiveDeviceType() const
-{
-	QString value = 0;
-	QMetaObject::invokeMethod(_ledDevice, "getActiveDeviceType", Qt::BlockingQueuedConnection, Q_RETURN_ARG(QString, value));
-	return value;
-}
-
-QString LedDeviceWrapper::getColorOrder() const
-{
-	QString value;
-	QMetaObject::invokeMethod(_ledDevice, "getColorOrder", Qt::BlockingQueuedConnection, Q_RETURN_ARG(QString, value));
-	return value;
-}
-
-unsigned int LedDeviceWrapper::getLedCount() const
-{
-	int value = 0;
-	QMetaObject::invokeMethod(_ledDevice, "getLedCount", Qt::BlockingQueuedConnection, Q_RETURN_ARG(int, value));
-	return value;
-}
-
-bool LedDeviceWrapper::enabled() const
-{
-	return _enabled;
-}
-
 void LedDeviceWrapper::handleComponentState(hyperion::Components component, bool state)
 {
-	if(component == hyperion::COMP_LEDDEVICE)
+	if (component == hyperion::COMP_LEDDEVICE)
 	{
-		if ( state )
+		if (state)
 		{
-			emit enable();
+			QMetaObject::invokeMethod(_ledDevice, "enable", Qt::BlockingQueuedConnection);
 		}
 		else
 		{
-			emit disable();
+			QMetaObject::invokeMethod(_ledDevice, "disable", Qt::BlockingQueuedConnection);
 		}
 
-		//Get device's state, considering situations where it is not ready
-		bool deviceState = false;
-		QMetaObject::invokeMethod(_ledDevice, "componentState", Qt::BlockingQueuedConnection, Q_RETURN_ARG(bool, deviceState));
-		_hyperion->setNewComponentState(hyperion::COMP_LEDDEVICE, deviceState);
-		_enabled = deviceState;
+		QMetaObject::invokeMethod(_ledDevice, "componentState", Qt::BlockingQueuedConnection, Q_RETURN_ARG(bool, _enabled));
 	}
 }
 
@@ -208,4 +121,88 @@ void LedDeviceWrapper::stopDeviceThread()
 	disconnect(_ledDevice, nullptr, nullptr, nullptr);
 	delete _ledDevice;
 	_ledDevice = nullptr;
+}
+
+QString LedDeviceWrapper::getActiveDeviceType() const
+{
+	QString value = 0;
+	QMetaObject::invokeMethod(_ledDevice, "getActiveDeviceType", Qt::BlockingQueuedConnection, Q_RETURN_ARG(QString, value));
+	return value;
+}
+
+unsigned int LedDeviceWrapper::getLedCount() const
+{
+	int value = 0;
+	QMetaObject::invokeMethod(_ledDevice, "getLedCount", Qt::BlockingQueuedConnection, Q_RETURN_ARG(int, value));
+	return value;
+}
+
+QString LedDeviceWrapper::getColorOrder() const
+{
+	QString value;
+	QMetaObject::invokeMethod(_ledDevice, "getColorOrder", Qt::BlockingQueuedConnection, Q_RETURN_ARG(QString, value));
+	return value;
+}
+
+int LedDeviceWrapper::getLatchTime() const
+{
+	int value = 0;
+	QMetaObject::invokeMethod(_ledDevice, "getLatchTime", Qt::BlockingQueuedConnection, Q_RETURN_ARG(int, value));
+	return value;
+}
+
+bool LedDeviceWrapper::enabled() const
+{
+	return _enabled;
+}
+
+int LedDeviceWrapper::addToDeviceMap(QString name, LedDeviceCreateFuncType funcPtr)
+{
+	QMutexLocker lock(&_ledDeviceMapLock);
+
+	_ledDeviceMap.emplace(name,funcPtr);
+
+	return 0;
+}
+
+const LedDeviceRegistry& LedDeviceWrapper::getDeviceMap()
+{
+	QMutexLocker lock(&_ledDeviceMapLock);
+
+	return _ledDeviceMap;
+}
+
+QJsonObject LedDeviceWrapper::getLedDeviceSchemas()
+{
+	// make sure the resources are loaded (they may be left out after static linking)
+	Q_INIT_RESOURCE(LedDeviceSchemas);
+
+	// read the JSON schema from the resource
+	QDir dir(":/leddevices/");
+	QJsonObject result, schemaJson;
+
+	for(QString &item : dir.entryList())
+	{
+		QString schemaPath(QString(":/leddevices/")+item);
+		QString devName = item.remove("schema-");
+
+		QString data;
+		if(!FileUtils::readFile(schemaPath, data, Logger::getInstance("LEDDEVICE")))
+		{
+			throw std::runtime_error("ERROR: Schema not found: " + item.toStdString());
+		}
+
+		QJsonObject schema;
+		if(!JsonUtils::parse(schemaPath, data, schema, Logger::getInstance("LEDDEVICE")))
+		{
+			throw std::runtime_error("ERROR: JSON schema wrong of file: " + item.toStdString());
+		}
+
+		schemaJson = schema;
+		schemaJson["title"] = QString("edt_dev_spec_header_title");
+
+		result[devName] = schemaJson;
+	}
+
+	return result;
 }

@@ -42,6 +42,14 @@
                         <a class="fa fa-cog fa-fw" onclick="SwitchToMenuItem('MenuItemGrabber', 'editor_container_videograbber')" style="text-decoration: none; cursor: pointer"></a>
                       </td>
                     </tr>
+                    <tr id="dash_audio_grabber_row">
+                      <td></td>
+                      <td data-i18n="edt_conf_audio_heading_title">Audio-Grabber</td>
+                      <td style="text-align: right; padding-right: 0">
+                        <span id="dash_audio_grabber">disabled</span>
+                        <a class="fa fa-cog fa-fw" onclick="SwitchToMenuItem('MenuItemGrabber', 'editor_container_audiograbber')" style="text-decoration: none; cursor: pointer"></a>
+                      </td>
+                    </tr>
                   </tbody>
                 </table>
                 <table id="dash_ports" class="table borderless">
@@ -68,6 +76,14 @@
                       <td style="text-align: right; padding-right: 0">
                         <span id="dash_pbPort">unknown</span>
                         <a class="fa fa-cog fa-fw" onclick="SwitchToMenuItem('MenuItemNetwork', 'editor_container_protoserver')" style="text-decoration: none; cursor: pointer"></a>
+                      </td>
+                    </tr>
+                    <tr id="dash_ports_boblight_row">
+                      <td></td>
+                      <td data-i18n="dashboard_infobox_label_port_boblight">proto</td>
+                      <td style="text-align: right; padding-right: 0">
+                        <span id="dash_boblightPort">unknown</span>
+                        <a class="fa fa-cog fa-fw" onclick="SwitchToMenuItem('MenuItemInstCapture', 'editor_container_boblightserver')" style="text-decoration: none; cursor: pointer"></a>
                       </td>
                     </tr>
                     <tr>
@@ -127,6 +143,7 @@
     </div>
     <!-- /.row -->
   </div>
+</div>
   <!-- /.container-fluid -->
 
   <script src="/js/content_dashboard.js"></script>

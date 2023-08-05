@@ -99,6 +99,26 @@ signals:
 	///
 	void forwardJsonMessage(QJsonObject);
 
+	///
+	/// Signal emits whenever a suspend/resume request for all instances should be forwarded
+	///
+	void suspendAll(bool isSuspend);
+
+	///
+	/// Signal emits whenever a toggle suspend/resume request for all instances should be forwarded
+	///
+	void toggleSuspendAll();
+
+	///
+	/// Signal emits whenever a idle mode request for all instances should be forwarded
+	///
+	void idleAll(bool isIdle);
+
+	///
+	/// Signal emits whenever a toggle idle/working mode request for all instances should be forwarded
+	///
+	void toggleIdleAll();
+
 private:
 	// true if further callbacks are forbidden (http)
 	bool _noListener;
@@ -148,6 +168,7 @@ private:
 	///
 	void handleImageCommand(const QJsonObject &message, const QString &command, int tan);
 
+#if defined(ENABLE_EFFECTENGINE)
 	///
 	/// Handle an incoming JSON Effect message
 	///
@@ -168,6 +189,7 @@ private:
 	/// @param message the incoming message
 	///
 	void handleDeleteEffectCommand(const QJsonObject &message, const QString &command, int tan);
+#endif
 
 	///
 	/// Handle an incoming JSON System info message
@@ -289,6 +311,18 @@ private:
 	/// @param message the incoming message
 	///
 	void handleInputSourceCommand(const QJsonObject& message, const QString& command, int tan);
+
+	/// Handle an incoming JSON message to request remote hyperion servers providing a given hyperion service
+	///
+	/// @param message the incoming message
+	///
+	void handleServiceCommand(const QJsonObject &message, const QString &command, int tan);
+
+	/// Handle an incoming JSON message for actions related to the overall Hyperion system
+	///
+	/// @param message the incoming message
+	///
+	void handleSystemCommand(const QJsonObject &message, const QString &command, int tan);
 
 	///
 	/// Handle an incoming JSON message of unknown type

@@ -18,7 +18,7 @@ namespace {
 	constexpr std::chrono::milliseconds WRITE_TIMEOUT{ 1000 };	// device write timeout in ms
 	constexpr std::chrono::milliseconds OPEN_TIMEOUT{ 5000 };		// device open timeout in ms
 	const int MAX_WRITE_TIMEOUTS = 5;	// Maximum number of allowed timeouts
-	const int NUM_POWEROFF_WRITE_BLACK = 2;	// Number of write "BLACK" during powering off
+	const int NUM_POWEROFF_WRITE_BLACK = 5;	// Number of write "BLACK" during powering off
 
 	constexpr std::chrono::milliseconds DEFAULT_IDENTIFY_TIME{ 500 };
 
@@ -44,13 +44,6 @@ bool ProviderRs232::init(const QJsonObject &deviceConfig)
 	// Initialise sub-class
 	if ( LedDevice::init(deviceConfig) )
 	{
-
-		Debug(_log, "DeviceType   : %s", QSTRING_CSTR( this->getActiveDeviceType() ));
-		Debug(_log, "LedCount     : %d", this->getLedCount());
-		Debug(_log, "ColorOrder   : %s", QSTRING_CSTR( this->getColorOrder() ));
-		Debug(_log, "RefreshTime  : %d", _refreshTimerInterval_ms);
-		Debug(_log, "LatchTime    : %d", this->getLatchTime());
-
 		_deviceName           = deviceConfig["output"].toString("auto");
 		_isAutoDeviceName     = _deviceName.toLower() == "auto";
 
@@ -67,7 +60,7 @@ bool ProviderRs232::init(const QJsonObject &deviceConfig)
 			_deviceName = _deviceName.mid(5);
 		}
 
-		_baudRate_Hz          = deviceConfig["rate"].toInt();
+		_baudRate_Hz = deviceConfig["rate"].toInt();
 		_delayAfterConnect_ms = deviceConfig["delayAfterConnect"].toInt(1500);
 
 		Debug(_log, "DeviceName   : %s", QSTRING_CSTR(_deviceName));
@@ -89,11 +82,12 @@ int ProviderRs232::open()
 {
 	int retval = -1;
 	_isDeviceReady = false;
-	_isInSwitchOff = false;
 
 	// open device physically
 	if ( tryOpen(_delayAfterConnect_ms) )
 	{
+		connect(&_rs232Port, &QSerialPort::readyRead, this, &ProviderRs232::readFeedback);
+
 		// Everything is OK, device is ready
 		_isDeviceReady = true;
 		retval = 0;
@@ -114,6 +108,9 @@ int ProviderRs232::close()
 		{
 			Debug(_log,"Flush was successful");
 		}
+
+		disconnect(&_rs232Port, &QSerialPort::readyRead, this, &ProviderRs232::readFeedback);
+
 		Debug(_log,"Close UART: %s", QSTRING_CSTR(_deviceName) );
 		_rs232Port.close();
 		// Everything is OK -> device is closed
@@ -190,18 +187,6 @@ bool ProviderRs232::tryOpen(int delayAfterConnect_ms)
 		{
 			QString errortext = QString("Invalid serial device name: %1 %2!").arg(_deviceName, _location);
 			this->setInError( errortext );
-
-			// List available device
-			for (auto &port : QSerialPortInfo::availablePorts() ) {
-				Debug(_log, "Avail. serial device: [%s]-(%s|%s), Manufacturer: %s, Description: %s",
-					  QSTRING_CSTR(port.portName()),
-					  QSTRING_CSTR(QString("0x%1").arg(port.vendorIdentifier(), 0, 16)),
-					  QSTRING_CSTR(QString("0x%1").arg(port.productIdentifier(), 0, 16)),
-					  QSTRING_CSTR(port.manufacturer()),
-					  QSTRING_CSTR(port.description())
-					  );
-			}
-
 			return false;
 		}
 	}
@@ -222,12 +207,12 @@ bool ProviderRs232::tryOpen(int delayAfterConnect_ms)
 	return _rs232Port.isOpen();
 }
 
-void ProviderRs232::setInError(const QString& errorMsg)
+void ProviderRs232::setInError(const QString& errorMsg, bool isRecoverable)
 {
 	_rs232Port.clearError();
 	this->close();
 
-	LedDevice::setInError( errorMsg );
+	LedDevice::setInError( errorMsg, isRecoverable );
 }
 
 int ProviderRs232::writeBytes(const qint64 size, const uint8_t *data)
@@ -281,6 +266,16 @@ int ProviderRs232::writeBytes(const qint64 size, const uint8_t *data)
 	return rc;
 }
 
+void ProviderRs232::readFeedback()
+{
+	QByteArray readData = _rs232Port.readAll();
+	if (!readData.isEmpty())
+	{
+		//Output as received
+		std::cout << readData.toStdString();
+	}
+}
+
 QString ProviderRs232::discoverFirst()
 {
 	// take first available USB serial port - currently no probing!
@@ -295,17 +290,21 @@ QString ProviderRs232::discoverFirst()
 	return "";
 }
 
-QJsonObject ProviderRs232::discover(const QJsonObject& /*params*/)
+QJsonObject ProviderRs232::discover(const QJsonObject& params)
 {
+	DebugIf(verbose,_log, "params: [%s]", QString(QJsonDocument(params).toJson(QJsonDocument::Compact)).toUtf8().constData());
+
 	QJsonObject devicesDiscovered;
 	devicesDiscovered.insert("ledDeviceType", _activeDeviceType );
 
 	QJsonArray deviceList;
 
+	bool showAll = params["discoverAll"].toBool(false);
+
 	// Discover serial Devices
 	for (auto &port : QSerialPortInfo::availablePorts() )
 	{
-		if ( !port.isNull() && port.vendorIdentifier() != 0)
+		if ( !port.isNull() && (showAll || port.vendorIdentifier() != 0) )
 		{
 			QJsonObject portInfo;
 			portInfo.insert("description", port.description());
@@ -364,6 +363,8 @@ void ProviderRs232::identify(const QJsonObject& params)
 	QString deviceName = params["output"].toString("");
 	if (!deviceName.isEmpty())
 	{
+		Info(_log, "Identify %s, device: %s", QSTRING_CSTR(_activeDeviceType), QSTRING_CSTR(deviceName) );
+
 		_devConfig = params;
 		init(_devConfig);
 		{

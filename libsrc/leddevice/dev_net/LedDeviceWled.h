@@ -4,12 +4,14 @@
 // LedDevice includes
 #include <leddevice/LedDevice.h>
 #include "ProviderRestApi.h"
-#include "ProviderUdp.h"
+#include "LedDeviceUdpDdp.h"
+#include "LedDeviceUdpRaw.h"
 
+#include <utils/version.hpp>
 ///
 /// Implementation of a WLED-device
 ///
-class LedDeviceWled : public ProviderUdp
+class LedDeviceWled : public LedDeviceUdpDdp, LedDeviceUdpRaw
 {
 
 public:
@@ -82,6 +84,20 @@ protected:
 	bool init(const QJsonObject &deviceConfig) override;
 
 	///
+	/// @brief Opens the output device.
+	///
+	/// @return Zero on success (i.e. device is ready), else negative
+	///
+	int open() override;
+
+	///
+	/// @brief Closes the UDP device.
+	///
+	/// @return Zero on success (i.e. device is closed), else negative
+	///
+	int close() override;
+
+	///
 	/// @brief Writes the RGB-Color values to the LEDs.
 	///
 	/// @param[in] ledValues The RGB-color per LED
@@ -127,34 +143,30 @@ private:
 	///
 	/// @brief Initialise the access to the REST-API wrapper
 	///
-	/// @param[in] host
-	/// @param[in] port
 	/// @return True, if success
 	///
-	bool initRestAPI(const QString &hostname, int port );
+	bool openRestAPI();
 
-	///
-	/// @brief Get command to power WLED-device on or off
-	///
-	/// @param isOn True, if to switch on device
-	/// @return Command to switch device on/off
-	///
-	QString getOnOffRequest (bool isOn ) const;
+	QJsonObject getUdpnObject(bool send, bool recv) const;
+	QJsonObject getSegmentObject(int segmentId, bool isOn, int brightness=-1) const;
 
-	QString getBrightnessRequest (int bri ) const;
-	QString getEffectRequest(int effect, int speed=128) const;
-	QString getLorRequest(int lor) const;
-	QString getUdpnRequest(bool send, bool recv) const;
+	bool sendStateUpdateRequest(const QJsonObject &request, const QString requestType = "");
 
-	bool sendStateUpdateRequest(const QString &request);
+	bool isReadyForSegmentStreaming(semver::version& version) const;
+	bool isReadyForDDPStreaming(semver::version& version) const;
+
+	QString resolveAddress (const QString& hostName);
 
 	///REST-API wrapper
 	ProviderRestApi* _restApi;
 
-	QString _hostname;
+	QString _hostAddress;
 	int		_apiPort;
 
+	QJsonObject _wledInfo;
 	QJsonObject _originalStateProperties;
+
+	semver::version _currentVersion;
 
 	bool _isBrightnessOverwrite;
 	int _brightness;
@@ -162,6 +174,12 @@ private:
 	bool _isSyncOverwrite;
 	bool _originalStateUdpnSend;
 	bool _originalStateUdpnRecv;
+
+	bool _isStreamDDP;
+
+	int _streamSegmentId;
+	bool _isSwitchOffOtherSegments;
+	bool _isStreamToSegment;
 };
 
 #endif // LEDDEVICEWLED_H

@@ -4,7 +4,9 @@
 #include <cstdint>
 #include <iostream>
 
+#include <QString>
 #include <QTextStream>
+#include <QRgb>
 
 ///
 /// Plain-Old-Data structure containing the red-green-blue color specification. Size of the
@@ -31,6 +33,42 @@ struct ColorRgb
 	static const ColorRgb YELLOW;
 	/// 'White' RgbColor (255, 255, 255)
 	static const ColorRgb WHITE;
+
+	ColorRgb() = default;
+
+	ColorRgb(uint8_t _red, uint8_t _green,uint8_t _blue):
+		  red(_red),
+		  green(_green),
+		  blue(_blue)
+	{
+
+	}
+
+	ColorRgb operator-(const ColorRgb& b) const
+	{
+		ColorRgb a(*this);
+		a.red -= b.red;
+		a.green -= b.green;
+		a.blue -= b.blue;
+		return a;
+	}
+
+	QRgb rgb() const
+	{
+		return qRgb(red,green,blue);
+	}
+
+	void setRgb(QRgb rgb)
+	{
+		red = static_cast<uint8_t>(qRed(rgb));
+		green = static_cast<uint8_t>(qGreen(rgb));
+		blue = static_cast<uint8_t>(qBlue(rgb));
+	}
+
+	QString toQString() const
+	{
+		return QString("(%1,%2,%3)").arg(red).arg(green).arg(blue);
+	}
 };
 
 /// Assert to ensure that the size of the structure is 'only' 3 bytes
