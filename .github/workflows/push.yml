@@ -14,7 +14,7 @@ jobs:
 
   macOS:
     name: macOS
-    runs-on: macos-latest
+    runs-on: macos-11
     env:
       VCPKG_DEFAULT_TRIPLET: arm64-osx
       VCPKG_DEFAULT_HOST_TRIPLET: x64-osx
@@ -34,7 +34,10 @@ jobs:
 
       - name: Install x64 build dependencies (Homebrew)
         if: ${{ steps.cache-homebrew.output.cache-hit != 'true' }}
-        run: brew update && brew install cmake automake ninja
+        run: |
+          brew update && brew install cmake automake ninja
+          /bin/bash -c "sudo xcode-select --switch /Applications/Xcode_12.4.app/Contents/Developer"
+          xcrun --show-sdk-version
 
       - name: Bootstrap vcpkg
         run: |
