@@ -41,29 +41,29 @@ jobs:
 
       - name: Install qt5, libusb, libusb, openssl
         run: |
-          arch -x86_64 vcpkg install --host-triplet=x64-osx-release --triplet=x64-osx-release --x-install-root=installed-x64-osx qt5-base libusb openssl python3
-          arch -arm64 vcpkg install --host-triplet=arm64-osx-release --triplet=arm64-osx-release --x-install-root=installed-arm64-osx qt5-base libusb openssl
+          vcpkg install --triplet=x64-osx-release --x-install-root=installed-x64-osx qt5-base libusb python3
+          vcpkg install --triplet=arm64-osx-release --x-install-root=installed-arm64-osx qt5-base libusb openssl
 
       - name: Set up gcc/clang problem matcher
         uses: ammaraskar/gcc-problem-matcher@master
 
-      - name: Configure
-        run: |
-          mkdir build && cd build
-          cmake -B build \
-            -DPLATFORM=osx \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 \
-            -DCMAKE_OSX_ARCHITECTURES=arm64 \
-            -DCMAKE_SYSTEM_PROCESSOR=arm64 \
-            -DCMAKE_SYSTEM_NAME=Darwin \
-            -DVCPKG_TARGET_TRIPLET=arm64-osx-release \
-            -DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake \
-            -DCMAKE_INSTALL_PREFIX:PATH=/usr/local ../
+      # - name: Configure
+      #   run: |
+      #     mkdir build && cd build
+      #     cmake -B build \
+      #       -DPLATFORM=osx \
+      #       -DCMAKE_BUILD_TYPE=Release \
+      #       -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 \
+      #       -DCMAKE_OSX_ARCHITECTURES=arm64 \
+      #       -DCMAKE_SYSTEM_PROCESSOR=arm64 \
+      #       -DCMAKE_SYSTEM_NAME=Darwin \
+      #       -DVCPKG_TARGET_TRIPLET=arm64-osx-release \
+      #       -DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake \
+      #       -DCMAKE_INSTALL_PREFIX:PATH=/usr/local ../
 
-      - name: Build
-        run: |
-          cmake --build build -j $(sysctl -n hw.logicalcpu) package
+      # - name: Build
+      #   run: |
+      #     cmake --build build -j $(sysctl -n hw.logicalcpu) package
 
       # Upload artifacts (only on tagged commit)
       - name: Upload artifacts
