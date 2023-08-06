@@ -40,6 +40,10 @@ jobs:
         if: ${{ steps.cache-vcpkg.output.cache-hit != 'true' }}
         run: vcpkg remove --outdated --recurse && vcpkg install --recurse qt5 libusb
 
+      - name: Display error log
+        if: always()
+        run: /usr/local/share/vcpkg/buildtrees/libusb/autoconf-arm64-osx-err.log
+
       - name: Setup/Restore Homebrew cache
         uses: actions/cache@v3
         id: cache-homebrew
