@@ -15,34 +15,39 @@ jobs:
   macOS:
     name: macOS
     runs-on: macos-latest
+    env:
+      VCPKG_PACKAGES: qt5-base libusb python3
+      VCPKG_DEFAULT_TRIPLET: arm64-osx
+      VCPKG_DEFAULT_HOST_TRIPLET: x64-osx
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v3
         with:
           submodules: recursive
 
-      - name: Install dependencies
+      - name: Bootstrap vcpkg
         run: |
-          brew install ccache cmake automake ninja
+          brew update & brew install cmake automake ninja
+          $VCPKG_INSTALLATION_ROOT/vcpkg integrate install
 
-      - name: Vcpkg Integration
-        run: $VCPKG_INSTALLATION_ROOT/vcpkg integrate install
-
-      - name: Restore vcpkg cache for x64
+      - name: Set up cache
         uses: actions/cache@v3
         with:
-          path: $VCPKG_INSTALLATION_ROOT/installed-x64-osx
-          key: vcpkg-installed-x64-osx
-
-      - name: Restore vcpkg cache for arm64
-        uses: actions/cache@v3
-        with:
-          path: $VCPKG_INSTALLATION_ROOT/installed-arm64-osx
+          path: $VCPKG_INSTALLATION_ROOT/installed
           key: vcpkg-installed-arm64-osx
 
-      - name: Install qt5, libusb, libusb, openssl
-        run: |
-          vcpkg install --triplet=x64-osx-release --x-install-root=installed-x64-osx qt5-base libusb python3
-          vcpkg install --triplet=arm64-osx-release --x-install-root=installed-arm64-osx qt5-base libusb openssl
+      - name: Remove outdated packages from cache
+        run: vcpkg remove --outdated --recurse
+
+      - name: Build dependencies
+        run: vcpkg install --clean-after-build --recurse ${{ env.VCPKG_PACKAGES }}
+
+      - name: Upload build logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: vcpkg-logs
+          path: $VCPKG_INSTALLATION_ROOT/buildtrees/**/*.log
 
       - name: Set up gcc/clang problem matcher
         uses: ammaraskar/gcc-problem-matcher@master
