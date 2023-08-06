@@ -16,8 +16,8 @@ jobs:
     name: macOS
     runs-on: macos-11
     env:
-      VCPKG_DEFAULT_TRIPLET: arm64-osx
-      VCPKG_DEFAULT_HOST_TRIPLET: x64-osx
+      VCPKG_DEFAULT_TRIPLET: arm64-osx-min1100
+      VCPKG_DEFAULT_HOST_TRIPLET: x64-osx-min1012
       PYTHON_VERSION: "3.11.4"
     steps:
       - name: Checkout
@@ -52,7 +52,7 @@ jobs:
 
       - name: Install arm64 build dependencies (vcpkg)
         if: ${{ steps.cache-vcpkg.output.cache-hit != 'true' }}
-        run: vcpkg remove --outdated --recurse && vcpkg install --recurse qt5 libusb
+        run: vcpkg remove --outdated --recurse && vcpkg install --clean-after-build --recurse qt5-base libusb
 
       - name: Upload vcpkg build logs
         if: failure()
@@ -61,8 +61,8 @@ jobs:
           path: "/usr/local/share/vcpkg/buildtrees/**/*.log"
 
       - name: Setup/Restore Python download
-        id: cache-python-pkg
         uses: actions/cache@v3
+        id: cache-python-pkg
         with:
           path: ~/python.pkg
           key: python-download-osx-${{ env.PYTHON_VERSION }}
