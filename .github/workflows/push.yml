@@ -16,9 +16,9 @@ jobs:
     name: macOS
     runs-on: macos-latest
     env:
-      VCPKG_PACKAGES: qt5-base libusb python3
       VCPKG_DEFAULT_TRIPLET: arm64-osx
       VCPKG_DEFAULT_HOST_TRIPLET: x64-osx
+      PYTHON_VERSION: "3.11.4"
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -27,30 +27,46 @@ jobs:
 
       - name: Bootstrap vcpkg
         run: |
-          brew update & brew install cmake automake ninja
           $VCPKG_INSTALLATION_ROOT/vcpkg integrate install
 
-      - name: Set up cache
+      - name: Setup/Restore vcpkg cache
         uses: actions/cache@v3
+        id: cache-vcpkg
         with:
           path: $VCPKG_INSTALLATION_ROOT/installed
-          key: vcpkg-installed-arm64-osx
+          key: vcpkg-cache-arm64-osx
 
-      - name: Remove outdated packages from cache
-        run: vcpkg remove --outdated --recurse
+      - name: Install arm64 build dependencies (vcpkg)
+        if: ${{ steps.cache-vcpkg.output.cache-hit != 'true' }}
+        run: vcpkg remove --outdated --recurse && vcpkg install --recurse qt5 libusb
 
-      - name: Build dependencies
-        run: vcpkg install --clean-after-build --recurse ${{ env.VCPKG_PACKAGES }}
-
-      - name: Upload build logs on failure
-        if: failure()
-        uses: actions/upload-artifact@v3
+      - name: Setup/Restore Homebrew cache
+        uses: actions/cache@v3
+        id: cache-homebrew
         with:
-          name: vcpkg-logs
-          path: $VCPKG_INSTALLATION_ROOT/buildtrees/**/*.log
+          path: "$(brew --cache)"
+          key: brew-cache-x64-osx
 
-      - name: Set up gcc/clang problem matcher
-        uses: ammaraskar/gcc-problem-matcher@master
+      - name: Install x64 build dependencies (Homebrew)
+        if: ${{ steps.cache-homebrew.output.cache-hit != 'true' }}
+        run: brew update && brew install cmake automake ninja
+
+      - name: Setup/Restore Python download
+        id: cache-python-pkg
+        uses: actions/cache@v3
+        with:
+          path: ~/python.pkg
+          key: python-download-osx-${{ env.PYTHON_VERSION }}
+
+      - name: Download Python
+        if: steps.cache-python-pkg.outputs.cache-hit != 'true'
+        run: curl https://www.python.org/ftp/python/${PYTHON_VERSION}/python-${PYTHON_VERSION}-macos11.pkg -o ~/python.pkg
+
+      - name: Install Python
+        run: |
+          sudo installer -pkg ~/python.pkg -target /
+          unlink /usr/local/bin/python
+          ln -s /usr/local/bin/python3 /usr/local/bin/python
 
       # - name: Configure
       #   run: |
@@ -71,7 +87,7 @@ jobs:
       #     cmake --build build -j $(sysctl -n hw.logicalcpu) package
 
       # Upload artifacts (only on tagged commit)
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          path: build/Hyperion-*
+      # - name: Upload artifacts
+      #   uses: actions/upload-artifact@v3
+      #   with:
+      #     path: build/Hyperion-*
