@@ -25,6 +25,17 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Setup/Restore Homebrew cache
+        uses: actions/cache@v3
+        id: cache-homebrew
+        with:
+          path: "$(brew --cache)"
+          key: brew-cache-x64-osx
+
+      - name: Install x64 build dependencies (Homebrew)
+        if: ${{ steps.cache-homebrew.output.cache-hit != 'true' }}
+        run: brew update && brew install cmake automake ninja
+
       - name: Bootstrap vcpkg
         run: |
           $VCPKG_INSTALLATION_ROOT/vcpkg integrate install
@@ -40,20 +51,11 @@ jobs:
         if: ${{ steps.cache-vcpkg.output.cache-hit != 'true' }}
         run: vcpkg remove --outdated --recurse && vcpkg install --recurse qt5 libusb
 
-      - name: Display error log
-        if: always()
-        run: /usr/local/share/vcpkg/buildtrees/libusb/autoconf-arm64-osx-err.log
-
-      - name: Setup/Restore Homebrew cache
-        uses: actions/cache@v3
-        id: cache-homebrew
+      - name: Upload vcpkg build logs
+        if: failure()
+        uses: actions/upload-artifact@v3
         with:
-          path: "$(brew --cache)"
-          key: brew-cache-x64-osx
-
-      - name: Install x64 build dependencies (Homebrew)
-        if: ${{ steps.cache-homebrew.output.cache-hit != 'true' }}
-        run: brew update && brew install cmake automake ninja
+          path: "/usr/local/share/vcpkg/buildtrees/**/*.log"
 
       - name: Setup/Restore Python download
         id: cache-python-pkg
