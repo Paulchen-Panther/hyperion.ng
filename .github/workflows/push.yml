@@ -18,6 +18,7 @@ jobs:
     env:
       VCPKG_DEFAULT_TRIPLET: arm64-osx-min1100
       VCPKG_DEFAULT_HOST_TRIPLET: x64-osx-min1012
+      VCPKG_OVERLAY_TRIPLETS: ${{ github.workspace }}/.github/workflows/vcpkg_overlay_triplets
       PYTHON_VERSION: "3.11.4"
     steps:
       - name: Checkout
@@ -30,14 +31,13 @@ jobs:
         id: cache-homebrew
         with:
           path: "$(brew --cache)"
-          key: brew-cache-x64-osx
+          key: cache-homebrew
 
-      - name: Install x64 build dependencies (Homebrew)
+      - name: Install build dependencies (Homebrew)
         if: ${{ steps.cache-homebrew.output.cache-hit != 'true' }}
         run: |
           brew update && brew install cmake automake ninja
           /bin/bash -c "sudo xcode-select --switch /Applications/Xcode_12.4.app/Contents/Developer"
-          xcrun --show-sdk-version
 
       - name: Bootstrap vcpkg
         run: |
