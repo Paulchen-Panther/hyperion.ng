@@ -3,12 +3,12 @@
 <svg viewBox="0 0 2000 480" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
   <style type="text/css">
     path {
-      fill: #ffffff;
+      fill: #404040;
     }
 
     @media (prefers-color-scheme: dark) {
       path {
-        fill: #404040;
+        fill: #ffffff;
       }
     }
 
