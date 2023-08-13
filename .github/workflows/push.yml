@@ -36,7 +36,7 @@ jobs:
       - name: Install build dependencies (Homebrew)
         if: ${{ steps.cache-homebrew.output.cache-hit != 'true' }}
         run: |
-          brew update && brew install cmake automake ninja
+          brew update && brew install automake
           /bin/bash -c "sudo xcode-select --switch /Applications/Xcode_12.4.app/Contents/Developer"
 
       - name: Bootstrap vcpkg
@@ -50,7 +50,7 @@ jobs:
           path: $VCPKG_INSTALLATION_ROOT/installed
           key: vcpkg-cache-arm64-osx
 
-      - name: Install arm64 build dependencies (vcpkg)
+      - name: Install build dependencies (vcpkg)
         if: ${{ steps.cache-vcpkg.output.cache-hit != 'true' }}
         run: vcpkg remove --outdated --recurse && vcpkg install --clean-after-build --recurse qt5-base libusb
 
