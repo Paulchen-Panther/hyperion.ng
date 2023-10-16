@@ -94,7 +94,7 @@ jobs:
     runs-on: windows-2022
     env:
       VCINSTALLDIR: 'C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC'
-      QT_VERSION: 5.15.2
+      QT_VERSION: 6.5.3
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -116,15 +116,10 @@ jobs:
           path: C:\Users\runneradmin\AppData\Local\Temp\chocolatey
           key: ${{ runner.os }}-chocolatey
 
-#      - name: Install Python
-#        shell: powershell
-#        run: |
-#          choco install --no-progress python -y
-
       - name: Install OpenSSL, DirectX SDK
         shell: powershell
         run: |
-          choco install --no-progress openssl --version=1.1.1.2100 -y
+          choco install --no-progress openssl -y
           choco install --no-progress directx-sdk -y
 
       - name: Install libjpeg-turbo
