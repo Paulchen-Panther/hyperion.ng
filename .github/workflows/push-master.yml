@@ -106,6 +106,7 @@ jobs:
         with:
           version: ${{env.QT_VERSION}}
           target: 'desktop'
+          modules: 'qtserialport'
           arch: 'win64_msvc2019_64'
           cache: 'true'
           cache-key-prefix: 'cache-qt-windows'
