@@ -105,22 +105,9 @@ jobs:
         shell: bash
         run: |
           echo '::group::Update/Install dependencies'
-            declare -a arr=("qt5" "python" "libusb" "cmake")
-            brew update
-            for i in "${arr[@]}";
-            do
-              list_output=`brew list --formula | grep $i`
-              outdated_output=`brew outdated | grep $i`
-              if [[ ! -z "$list_output" ]]; then
-                if [[ ! -z "$outdated_output" ]]; then
-                  brew unlink ${outdated_output}
-                  brew upgrade $i
-                  brew link --overwrite $i
-                fi
-              else
-                brew install $i
-              fi
-            done
+            brew update || true
+            brew install --overwrite qt5 libusb
+            brew link --overwrite --force qt5
           echo '::endgroup::'
 
           echo '::group::Build packages'
