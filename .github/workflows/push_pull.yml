@@ -15,7 +15,7 @@ on:
       - '*'
   pull_request:
     branches:
-      - master
+      - '**'
 
 # Cancel running actions when a new action on the same PR is started
 concurrency:
