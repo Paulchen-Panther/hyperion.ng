@@ -66,8 +66,12 @@ jobs:
               -v "${GITHUB_WORKSPACE}:/source:ro" \
               ghcr.io/hyperion-project/${{ matrix.distribution }}:${{ matrix.codename }} \
               /bin/bash -c "mkdir hyperion && cp -r source/. /hyperion && \
+              cd /hyperion && mkdir build && cd build && \
               cmake -DPLATFORM=${{ matrix.os.platform }} -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}  ../ && \
-              make -j $(nproc) package"
+              make -j $(nproc) package && \
+              cp /hyperion/build/Hyperion-* /deploy/ 2>/dev/null && \
+              cd /hyperion && source /hyperion/test/testrunner.sh"
+            sudo chown -fR $(stat -c "%U:%G" ${GITHUB_WORKSPACE}/deploy) ${GITHUB_WORKSPACE}/deploy
           echo '::endgroup::'
 
       - name: 📦 Upload
