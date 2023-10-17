@@ -1,5 +1,5 @@
 name: Hyperion CI/PR Builds
-run-name: ${{ github.event_name == 'pull_request' && '📦 Generate artifacts for PR' || '' }} ${{ github.event_name == 'pull_request' && github.event.pull_request.number || '' }} ${{ github.event_name == 'pull_request' && '-' || '' }} ${{ github.event_name == 'push' && '🚀 Push Build -' || '' }} {{ github.event.head_commit.message }}
+run-name: "${{ github.event_name == 'pull_request' && '📦 Generate artifacts for PR' || '' }} ${{ github.event_name == 'pull_request' && github.event.pull_request.number || '' }} ${{ github.event_name == 'pull_request' && '-' || '' }} ${{ github.event_name == 'push' && '🚀 Push Build -' || '' }} {{ github.event.head_commit.message }}"
 
 on:
   push:
