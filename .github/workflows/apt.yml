@@ -59,10 +59,17 @@ jobs:
           { distribution: debian, codename: trixie,   description: Debian 13.x (Trixie),           }
         ]
         architecture: [
-          [ amd64, linux/amd64 ],
-          [ arm64, linux/arm64 ],
+          [ amd64, linux/amd64  ],
+          [ arm64, linux/arm64  ],
           [ armhf, linux/arm/v7 ]
         ]
+        include:
+          - os: { codename: bullseye }
+            architecture: [ armel, linux/arm/v5 ]
+          - os: { codename: bookworm }
+            architecture: [ armel, linux/arm/v5 ]
+          - os: { codename: trixie }
+            architecture: [ armel, linux/arm/v5 ]
 
     steps:
       - name: ⬇ Checkout
