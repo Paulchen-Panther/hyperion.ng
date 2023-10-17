@@ -61,16 +61,17 @@ jobs:
         run: |
           echo '::group::Build Hyperion'
             mkdir -p "${GITHUB_WORKSPACE}/deploy"
-            docker run --rm --platform=${{ matrix.os.architecture }} \
+            docker run --rm --platform=${{ matrix.os.architecture[1] }} \
               -v "${GITHUB_WORKSPACE}/deploy:/deploy" \
               -v "${GITHUB_WORKSPACE}:/source:ro" \
-              ghcr.io/${{ env.ghcr }}/${{ matrix.distribution }}:${{ matrix.codename }} \
+              ghcr.io/hyperion-project/${{ matrix.distribution }}:${{ matrix.codename }} \
               /bin/bash -c "mkdir hyperion && cp -r source/. /hyperion && \
-              cmake -DPLATFORM=${{ matrix.os.platform }} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} ../ || exit 2 && \
-              make -j $(nproc) package || exit 3 && \
-              cp /hyperion/build/bin/h* /deploy/ 2>/dev/null || : && \
-              cp /hyperion/build/Hyperion-* /deploy/ 2>/dev/null || : && \
-              cd /hyperion && source /hyperion/test/testrunner.sh || exit 4 && exit 0; \
+              cmake -DPLATFORM=${{ matrix.os.platform }} -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}  ../ || exit 2 &&
+              make -j $(nproc) package || exit 3 &&
+              cp /hyperion/build/bin/h* /deploy/ 2>/dev/null || : &&
+              cp /hyperion/build/Hyperion-* /deploy/ 2>/dev/null || : &&
+              cd /hyperion && source /hyperion/test/testrunner.sh || exit 4 &&
+		          exit 0;
               exit 1 " || { echo "---> Hyperion compilation failed! Abort"; exit 5; }
 
             sudo chown -fR $(stat -c "%U:%G" ${GITHUB_WORKSPACE}/deploy) ${GITHUB_WORKSPACE}/deploy
@@ -80,7 +81,7 @@ jobs:
         if: ${{ startsWith(github.event.ref, 'refs/tags') || github.event_name == 'pull_request' }}
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ github.event_name == 'pull_request' && matrix.arch_short || 'artifact' }}
+          name: ${{ github.event_name == 'pull_request' && matrix.os.architecture[0] || 'artifact' }}
           path: ${{ github.event_name == 'pull_request' && 'deploy/*.tar.gz' || 'deploy/Hyperion-*' }}
 
 # ######################
