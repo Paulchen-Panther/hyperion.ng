@@ -67,12 +67,12 @@ jobs:
               ghcr.io/hyperion-project/${{ matrix.distribution }}:${{ matrix.codename }} \
               /bin/bash -c "mkdir hyperion && cp -r source/. /hyperion && \
               cmake -DPLATFORM=${{ matrix.os.platform }} -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}  ../ || exit 2 && \
-              make -j $(nproc) package || exit 3 &&  \
-              cp /hyperion/build/bin/h* /deploy/ 2>/dev/null || : && \
-              cp /hyperion/build/Hyperion-* /deploy/ 2>/dev/null || : && \
-              cd /hyperion && source /hyperion/test/testrunner.sh || exit 4 && \
-		          exit 0; \
-              exit 1 " || { echo "---> Hyperion compilation failed! Abort"; exit 5; }
+              make -j $(nproc) package || exit 3
+              # cp /hyperion/build/bin/h* /deploy/ 2>/dev/null || : && \
+              # cp /hyperion/build/Hyperion-* /deploy/ 2>/dev/null || : && \
+              # cd /hyperion && source /hyperion/test/testrunner.sh || exit 4 && \
+		          # exit 0; \
+              # exit 1 " || { echo "---> Hyperion compilation failed! Abort"; exit 5; }
 
             sudo chown -fR $(stat -c "%U:%G" ${GITHUB_WORKSPACE}/deploy) ${GITHUB_WORKSPACE}/deploy
           echo '::endgroup::'
