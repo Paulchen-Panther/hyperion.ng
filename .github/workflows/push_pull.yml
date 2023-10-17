@@ -14,7 +14,7 @@ on:
       - '*'
   pull_request:
     branches:
-      - '**'
+      - '**' #master
 
 # Cancel running actions when a new action on the same PR is started
 concurrency:
@@ -34,9 +34,9 @@ jobs:
       fail-fast: false
       matrix:
         os: [
-          { description: Debian Buster (x86_64),             platform: x11,     architecture: [ amd64,   linux/amd64  ] },
-          { description: Debian Buster (Raspberry Pi 2/3/4), platform: rpi,     architecture: [ armv7,   linux/arm/v7 ] },
-          { description: Debian Buster (Generic AARCH64),    platform: amlogic, architecture: [ aarch64, linux/arm64  ] }
+          { description: Debian Buster (x86_64),             platform: x11,     architecture: [ amd64,   linux/amd64  ] }
+          # { description: Debian Buster (Raspberry Pi 2/3/4), platform: rpi,     architecture: [ armv7,   linux/arm/v7 ] },
+          # { description: Debian Buster (Generic AARCH64),    platform: amlogic, architecture: [ aarch64, linux/arm64  ] }
         ]
         include:
           - distribution: debian
@@ -70,7 +70,6 @@ jobs:
           DOCKER_IMAGE: ${{ matrix.distribution }}
           DOCKER_TAG: ${{ matrix.codename }}
           PLATFORM: ${{ matrix.os.platform }}
-          BUILD_TYPE: ${{ github.event_name == 'pull_request' && 'Debug' || 'Release' }}
           TARGET_ARCH: ${{ matrix.os.architecture[1] }}
 
       - name: 📦 Upload
@@ -80,125 +79,115 @@ jobs:
           name: ${{ github.event_name == 'pull_request' && matrix.os.architecture[0] || 'artifact' }}
           path: ${{ github.event_name == 'pull_request' && 'deploy/*.tar.gz' || 'deploy/Hyperion-*' }}
 
-# ######################
-# ###### macOS #########
-# ######################
+######################
+###### macOS #########
+######################
 
-#   macOS:
-#     name: 🍏 macOS
-#     runs-on: macos-latest
-#     steps:
-#       - name: ⬇ Checkout
-#         uses: actions/checkout@v4
-#         with:
-#           submodules: recursive
+  macOS:
+    name: 🍏 macOS
+    runs-on: macos-latest
+    steps:
+      - name: ⬇ Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
-#       - name: 🔧 Prepare PR
-#         if: ${{ github.event_name == 'pull_request' }}
-#         shell: bash
-#         run: |
-#           echo '::group::Append PR number to version'
-#             tr -d '\n' < .version > temp && mv temp .version
-#             echo -n "+PR${{ github.event.pull_request.number }}" >> .version
-#           echo '::endgroup::'
+      - name: 🔧 Prepare PR
+        if: ${{ github.event_name == 'pull_request' }}
+        shell: bash
+        run: |
+          echo '::group::Append PR number to version'
+            tr -d '\n' < .version > temp && mv temp .version
+            echo -n "+PR${{ github.event.pull_request.number }}" >> .version
+          echo '::endgroup::'
 
-#           echo '::group::Install dependencies'
-#             brew update && brew install qt5 python libusb
-#           echo '::endgroup::'
+      - name: 👷 Build
+        shell: bash
+        run: |
+          echo '::group::Install dependencies'
+            brew update && brew install qt5 python libusb
+          echo '::endgroup::'
 
-#       - name: 👷 Build
-#         shell: bash
-#         run: |
-#           echo '::group::Build packages'
-#             ./.ci/ci_build.sh
-#           echo '::endgroup::'
+          echo '::group::Build packages'
+            ./.github/scripts/build.sh
+          echo '::endgroup::'
+        env:
+          PLATFORM: osx
 
-#           echo '::group::Collecting deployable artifacts'
-#             mkdir -p macOS
-#             mv build/*.dmg macOS
-#           echo '::endgroup::'
-#         env:
-#           PLATFORM: osx
+      - name: 📦 Upload
+        if: ${{ startsWith(github.event.ref, 'refs/tags') || github.event_name == 'pull_request' }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ github.event_name == 'pull_request' && 'macOS' || 'artifact' }}
+          path: 'build/Hyperion-*'
 
-#       - name: 📦 Upload
-#         if: ${{ startsWith(github.event.ref, 'refs/tags') || github.event_name == 'pull_request' }}
-#         uses: actions/upload-artifact@v3
-#         with:
-#           name: macOS
-#           path: macOS
+######################
+###### Windows #######
+######################
 
-# ######################
-# ###### Windows #######
-# ######################
+  windows:
+    name: 🪟 Windows
+    runs-on: windows-2022
+    env:
+      VCINSTALLDIR: 'C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC'
+      QT_VERSION: 5.15.2
+    steps:
+      - name: ⬇ Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
-#   windows:
-#     name: 🪟 Windows
-#     runs-on: windows-2022
-#     env:
-#       VCINSTALLDIR: 'C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC'
-#       QT_VERSION: 5.15.2
-#     steps:
-#       - name: ⬇ Checkout
-#         uses: actions/checkout@v4
-#         with:
-#           submodules: recursive
+      - name: 🔧 Prepare PR
+        if: ${{ github.event_name == 'pull_request' }}
+        shell: bash
+        run: |
+          echo '::group::Append PR number to version'
+            tr -d '\n' < .version > temp && mv temp .version
+            echo -n "+PR${{ github.event.pull_request.number }}" >> .version
+          echo '::endgroup::'
 
-#       - name: 🔧 Prepare PR
-#         if: ${{ github.event_name == 'pull_request' }}
-#         shell: bash
-#         run: |
-#           echo '::group::Append PR number to version'
-#             tr -d '\n' < .version > temp && mv temp .version
-#             echo -n "+PR${{ github.event.pull_request.number }}" >> .version
-#           echo '::endgroup::'
+      - name: 💾 Cache/Restore
+        uses: actions/cache@v3
+        with:
+          path: C:\Users\runneradmin\AppData\Local\Temp\chocolatey
+          key: ${{ runner.os }}-chocolatey
 
-#       - name: 💾 Cache/Restore
-#         uses: actions/cache@v3
-#         with:
-#           path: C:\Users\runneradmin\AppData\Local\Temp\chocolatey
-#           key: ${{ runner.os }}-chocolatey
+      - name: 📥 Install OpenSSL, DirectX SDK, libjpeg-turbo
+        shell: powershell
+        run: |
+          choco install --no-progress openssl --version=1.1.1.2100 -y
+          choco install --no-progress directx-sdk -y
+          Invoke-WebRequest https://netcologne.dl.sourceforge.net/project/libjpeg-turbo/2.0.6/libjpeg-turbo-2.0.6-vc64.exe -OutFile libjpeg-turbo.exe -UserAgent NativeHost
+          .\libjpeg-turbo /S
 
-#       - name: 📥 Install OpenSSL, DirectX SDK, libjpeg-turbo
-#         shell: powershell
-#         run: |
-#           choco install --no-progress openssl --version=1.1.1.2100 -y
-#           choco install --no-progress directx-sdk -y
-#           Invoke-WebRequest https://netcologne.dl.sourceforge.net/project/libjpeg-turbo/2.0.6/libjpeg-turbo-2.0.6-vc64.exe -OutFile libjpeg-turbo.exe -UserAgent NativeHost
-#           .\libjpeg-turbo /S
+      - name: 📥 Install Qt
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: ${{env.QT_VERSION}}
+          target: 'desktop'
+          arch: 'win64_msvc2019_64'
+          cache: 'true'
+          cache-key-prefix: 'cache-qt-windows'
 
-#       - name: 📥 Install Qt
-#         uses: jurplel/install-qt-action@v3
-#         with:
-#           version: ${{env.QT_VERSION}}
-#           target: 'desktop'
-#           arch: 'win64_msvc2019_64'
-#           cache: 'true'
-#           cache-key-prefix: 'cache-qt-windows'
+      - name: 🛠️ Setup MSVC
+        shell: cmd
+        run: call "${{env.VCINSTALLDIR}}\Auxiliary\Build\vcvars64.bat"
 
-#       - name: 🛠️ Setup MSVC
-#         shell: cmd
-#         run: call "${{env.VCINSTALLDIR}}\Auxiliary\Build\vcvars64.bat"
+      - name: 👷 Build
+        shell: bash
+        run: |
+          echo '::group::Build packages'
+            ./.github/scripts/build.sh
+          echo '::endgroup::'
+        env:
+          PLATFORM: windows
 
-#       - name: 👷 Build
-#         shell: bash
-#         run: |
-#           echo '::group::Build packages'
-#             ./.ci/ci_build.sh
-#           echo '::endgroup::'
-
-#           echo '::group::Collecting deployable artifacts'
-#             mkdir -p windows
-#             mv build/*.exe windows
-#           echo '::endgroup::'
-#         env:
-#           PLATFORM: windows
-
-#       - name: 📦 Upload
-#         if: ${{ startsWith(github.event.ref, 'refs/tags') || github.event_name == 'pull_request' }}
-#         uses: actions/upload-artifact@v3
-#         with:
-#           name: windows
-#           path: windows
+      - name: 📦 Upload
+        if: ${{ startsWith(github.event.ref, 'refs/tags') || github.event_name == 'pull_request' }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ github.event_name == 'pull_request' && 'windows' || 'artifact' }}
+          path: ${{ github.event_name == 'pull_request' && 'build/*.exe' || 'deploy/Hyperion-*' }}
 
 #####################################
 ###### Publish GitHub Releases ######
@@ -207,8 +196,7 @@ jobs:
   github_publish:
     name: 🚀 Publish GitHub Releases
     if: startsWith(github.event.ref, 'refs/tags')
-    needs: [Linux]
-    # needs: [Linux, macOS, windows]
+    needs: [Linux, macOS, windows]
     runs-on: ubuntu-latest
     steps:
       - name: ⬇ Checkout
@@ -236,30 +224,30 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-# ###################################
-# ###### APT reusable workflow ######
-# ###################################
+###################################
+###### APT reusable workflow ######
+###################################
 
-#   apt_build:
-#     name: APT Build
-#     if: startsWith(github.event.ref, 'refs/tags')
-#     needs: [Linux, macOS, windows]
-#     uses: ./.github/workflows/apt.yml
-#     secrets: inherit
-#     with:
-#       nightly: false
-#       publish: true
+  apt_build:
+    name: APT Build
+    if: startsWith(github.event.ref, 'refs/tags')
+    needs: [Linux, macOS, windows]
+    uses: ./.github/workflows/apt.yml
+    secrets: inherit
+    with:
+      nightly: false
+      publish: true
 
-# ###################################
-# ###### DNF reusable workflow ######
-# ###################################
+###################################
+###### DNF reusable workflow ######
+###################################
 
-#   dnf_build:
-#     name: DNF Build
-#     if: startsWith(github.event.ref, 'refs/tags')
-#     needs: [Linux, macOS, windows]
-#     uses: ./.github/workflows/dnf.yml
-#     secrets: inherit
-#     with:
-#       nightly: false
-#       publish: true
+  dnf_build:
+    name: DNF Build
+    if: startsWith(github.event.ref, 'refs/tags')
+    needs: [Linux, macOS, windows]
+    uses: ./.github/workflows/dnf.yml
+    secrets: inherit
+    with:
+      nightly: false
+      publish: true
