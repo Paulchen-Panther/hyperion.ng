@@ -80,7 +80,7 @@ jobs:
         if: ${{ startsWith(github.event.ref, 'refs/tags') || github.event_name == 'pull_request' }}
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ github.event_name == 'pull_request' && ${{ matrix.arch_short }} || 'artifact' }}
+          name: ${{ github.event_name == 'pull_request' && matrix.arch_short || 'artifact' }}
           path: ${{ github.event_name == 'pull_request' && 'deploy/*.tar.gz' || 'deploy/Hyperion-*' }}
 
 # ######################
