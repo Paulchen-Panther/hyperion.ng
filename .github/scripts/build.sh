@@ -13,6 +13,7 @@ fi
 
 # set environment variables if not exists
 [ -z "${BUILD_TYPE}" ] && BUILD_TYPE="Debug"
+[ -z "${TARGET_ARCH}" ] && TARGET_ARCH="linux/amd64"
 
 # Determine cmake build type; tag builds are Release, else Debug (-dev appends to platform)
 if [[ $BUILD_SOURCEBRANCH == *"refs/tags"* || $GITHUB_REF == *"refs/tags"* ]]; then
@@ -45,14 +46,14 @@ elif [[ $CI_NAME == *"mingw64_nt"* || "$CI_NAME" == 'windows_nt' ]]; then
 	exit 0;
 	exit 1 || { echo "---> Hyperion compilation failed! Abort"; exit 5; }
 elif [[ "$CI_NAME" == 'linux' ]]; then
-	echo "Compile Hyperion with DOCKER_IMAGE = ${DOCKER_IMAGE}, DOCKER_TAG = ${DOCKER_TAG}, ARCHITECTURE = ${ARCHITECTURE} and friendly name DOCKER_NAME = ${DOCKER_NAME}"
+	echo "Compile Hyperion with DOCKER_IMAGE = ${DOCKER_IMAGE}, DOCKER_TAG = ${DOCKER_TAG}, TARGET_ARCH = ${TARGET_ARCH} and friendly name DOCKER_NAME = ${DOCKER_NAME}"
 	# set GitHub Container Registry url
 	REGISTRY_URL="ghcr.io/hyperion-project/${DOCKER_IMAGE}"
 	# take ownership of deploy dir
 	mkdir ${CI_BUILD_DIR}/deploy
 
 	# run docker
-	docker run --rm --platform=${ARCHITECTURE} \
+	docker run --rm --platform=${TARGET_ARCH} \
 		-v "${CI_BUILD_DIR}/deploy:/deploy" \
 		-v "${CI_BUILD_DIR}:/source:ro" \
 		$REGISTRY_URL:$DOCKER_TAG \
