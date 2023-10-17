@@ -1,4 +1,10 @@
 name: Hyperion CI/PR Builds
+run-name: |
+  ${{ github.event_name == 'pull_request' && '📦 Generate artifacts for PR' || '' }}
+  ${{ github.event_name == 'pull_request' && github.event.pull_request.number || '' }}
+  ${{ github.event_name == 'pull_request' && '-' || '' }}
+  ${{ github.event_name == 'push' && '🚀 Push Build -' || '' }}
+  ${{ github.event_name == 'pull_request' && github.event.pull_request.title || github.event.head_commit.message }}
 
 on:
   push:
@@ -8,7 +14,7 @@ on:
       - '*'
   pull_request:
     branches:
-      - master
+      - '**'
 
 # Cancel running actions when a new action on the same PR is started
 concurrency:
@@ -55,32 +61,23 @@ jobs:
         uses: docker/setup-qemu-action@v3
 
       - name: 👷 Build
-        env:
-          BUILD_TYPE: ${{ github.event_name == 'pull_request' && 'Debug' || 'Release' }}
         shell: bash
         run: |
           echo '::group::Build Hyperion'
-            mkdir -p "${GITHUB_WORKSPACE}/deploy"
-            docker run --rm --platform=${{ matrix.os.architecture }} \
-              -v "${GITHUB_WORKSPACE}/deploy:/deploy" \
-              -v "${GITHUB_WORKSPACE}:/source:ro" \
-              ghcr.io/${{ env.ghcr }}/${{ matrix.distribution }}:${{ matrix.codename }} \
-              /bin/bash -c "mkdir hyperion && cp -r source/. /hyperion && \
-              cmake -DPLATFORM=${{ matrix.os.platform }} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} ../ || exit 2 && \
-              make -j $(nproc) package || exit 3 && \
-              cp /hyperion/build/bin/h* /deploy/ 2>/dev/null || : && \
-              cp /hyperion/build/Hyperion-* /deploy/ 2>/dev/null || : && \
-              cd /hyperion && source /hyperion/test/testrunner.sh || exit 4 && exit 0; \
-              exit 1 " || { echo "---> Hyperion compilation failed! Abort"; exit 5; }
-
-            sudo chown -fR $(stat -c "%U:%G" ${GITHUB_WORKSPACE}/deploy) ${GITHUB_WORKSPACE}/deploy
+            ./.github/scripts/build.sh
           echo '::endgroup::'
+        env:
+          DOCKER_IMAGE: ${{ matrix.distribution }}
+          DOCKER_TAG: ${{ matrix.codename }}
+          PLATFORM: ${{ matrix.os.platform }}
+          BUILD_TYPE: ${{ github.event_name == 'pull_request' && 'Debug' || 'Release' }}
+          TARGET_ARCH: ${{ matrix.os.architecture[1] }}
 
       - name: 📦 Upload
         if: ${{ startsWith(github.event.ref, 'refs/tags') || github.event_name == 'pull_request' }}
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ github.event_name == 'pull_request' && ${{ matrix.arch_short }} || 'artifact' }}
+          name: ${{ github.event_name == 'pull_request' && matrix.os.architecture[0] || 'artifact' }}
           path: ${{ github.event_name == 'pull_request' && 'deploy/*.tar.gz' || 'deploy/Hyperion-*' }}
 
 # ######################
@@ -106,12 +103,10 @@ jobs:
 #           echo '::endgroup::'
 
 #           echo '::group::Install dependencies'
-#             ./.ci/ci_install.sh
+#             brew update && brew install qt5 python libusb
 #           echo '::endgroup::'
 
 #       - name: 👷 Build
-#         env:
-#           PLATFORM: osx
 #         shell: bash
 #         run: |
 #           echo '::group::Build packages'
@@ -122,6 +117,8 @@ jobs:
 #             mkdir -p macOS
 #             mv build/*.dmg macOS
 #           echo '::endgroup::'
+#         env:
+#           PLATFORM: osx
 
 #       - name: 📦 Upload
 #         if: ${{ startsWith(github.event.ref, 'refs/tags') || github.event_name == 'pull_request' }}
@@ -183,8 +180,6 @@ jobs:
 #         run: call "${{env.VCINSTALLDIR}}\Auxiliary\Build\vcvars64.bat"
 
 #       - name: 👷 Build
-#         env:
-#           PLATFORM: windows
 #         shell: bash
 #         run: |
 #           echo '::group::Build packages'
@@ -195,6 +190,8 @@ jobs:
 #             mkdir -p windows
 #             mv build/*.exe windows
 #           echo '::endgroup::'
+#         env:
+#           PLATFORM: windows
 
 #       - name: 📦 Upload
 #         if: ${{ startsWith(github.event.ref, 'refs/tags') || github.event_name == 'pull_request' }}
