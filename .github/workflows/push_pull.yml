@@ -3,7 +3,7 @@ run-name: |
   ${{ github.event_name == 'pull_request' && '📦 Generate artifacts for PR' || '' }}
   ${{ github.event_name == 'pull_request' && github.event.pull_request.number || '' }}
   ${{ github.event_name == 'pull_request' && '-' || '' }}
-  ${{ github.event_name == 'push' && '🚀 Push Build -' || '' }}
+  ${{ github.event_name == 'push' && '🌱 Push Build -' || '' }}
   ${{ github.event_name == 'pull_request' && github.event.pull_request.title || github.event.head_commit.message }}
 
 on:
@@ -104,8 +104,23 @@ jobs:
       - name: 👷 Build
         shell: bash
         run: |
-          echo '::group::Install dependencies'
-            brew update && brew install qt5 python libusb
+          echo '::group::Update/Install dependencies'
+            declare -a arr=("qt5" "python" "libusb" "cmake")
+            brew update
+            for i in "${arr[@]}";
+            do
+              list_output=`brew list --formula | grep $i`
+              outdated_output=`brew outdated | grep $i`
+              if [[ ! -z "$list_output" ]]; then
+                if [[ ! -z "$outdated_output" ]]; then
+                  brew unlink ${outdated_output}
+                  brew upgrade $i
+                  brew link --overwrite $i
+                fi
+              else
+                brew install $i
+              fi
+            done
           echo '::endgroup::'
 
           echo '::group::Build packages'
