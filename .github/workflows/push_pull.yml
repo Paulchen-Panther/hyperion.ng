@@ -1,11 +1,5 @@
 name: Hyperion CI/PR Builds
-run-name: ${{ github.event_name == 'pull_request' && '📦 Generate artifacts for PR' || '' }} ${{ github.event_name == 'pull_request' && github.event.pull_request.number || (github.event_name == 'push' && '🌱 Push Build' || github.event.head_commit.message) }}
-# ${{ github.event_name == 'push' && 'Push Build' }}
-# (github.event_name == 'release' && 'Release 🏷' || '🌱') }}      [${{ github.event_name }}]         ${{ github.event.head_commit.message }}
-#   ${{ github.event_name == 'pull_request' && 'PR ' || (github.event_name == 'release' && '🏷' || '🌱') github.event.head_commit.message }}
-#   ${{ github.event_name == 'pull_request' && github.event.number
-#   ${{ github.event_name == 'issue_comment' && 'PR' || (github.event_name == 'release' && '🏷' || '🌱') }}
-#   📦 Generate artifacts for ${{ github.event_name == 'pull_request' && 'PR' || (github.event_name == 'release' && '🏷' || '🌱') }} ${{github.event_name == 'issue_comment' && github.event.issue.number || github.ref_name}}
+run-name: ${{ github.event_name == 'pull_request' && '📦 Generate artifacts for PR' || '' }} ${{ github.event_name == 'pull_request' && github.event.pull_request.number || (github.event_name == 'push' && '🚀 Push Build' || github.event.head_commit.message) }}
 
 on:
   push:
