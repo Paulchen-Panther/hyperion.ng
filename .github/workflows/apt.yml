@@ -65,11 +65,11 @@ jobs:
         ]
         include:
           - os: { codename: bullseye }
-            architecture: [ armel, linux/arm/v5 ]
+            architecture: [ armel, linux/arm/v6 ]
           - os: { codename: bookworm }
-            architecture: [ armel, linux/arm/v5 ]
+            architecture: [ armel, linux/arm/v6 ]
           - os: { codename: trixie }
-            architecture: [ armel, linux/arm/v5 ]
+            architecture: [ armel, linux/arm/v6 ]
 
     steps:
       - name: ⬇ Checkout
