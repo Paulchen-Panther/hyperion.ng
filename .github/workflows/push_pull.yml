@@ -14,7 +14,7 @@ on:
       - '*'
   pull_request:
     branches:
-      - '**' #master TODO change this back to master after PR and tag test <--------------------------------------------
+      - 'master'
 
 # Cancel running actions when a new action on the same PR is started
 concurrency:
@@ -34,9 +34,10 @@ jobs:
       fail-fast: false
       matrix:
         os: [
-          { description: Debian Buster (x86_64),             platform: x11,     architecture: [ amd64,   linux/amd64  ] }
-          # { description: Debian Buster (Raspberry Pi 2/3/4), platform: rpi,     architecture: [ armv7,   linux/arm/v7 ] }, uncomment this <-------------
-          # { description: Debian Buster (Generic AARCH64),    platform: amlogic, architecture: [ aarch64, linux/arm64  ] }
+          { description: Debian Buster (x86_64),                 platform: x11,     architecture: [ amd64,   linux/amd64  ] },
+          { description: Debian Buster (Raspberry Pi v1 & ZERO), platform: rpi,     architecture: [ armv6,   linux/arm/v5 ] },
+          { description: Debian Buster (Raspberry Pi 2/3/4),     platform: rpi,     architecture: [ armv7,   linux/arm/v7 ] },
+          { description: Debian Buster (Generic AARCH64),        platform: amlogic, architecture: [ aarch64, linux/arm64  ] }
         ]
         include:
           - distribution: debian
@@ -58,6 +59,7 @@ jobs:
           echo '::endgroup::'
 
       - name: 🛠️ Setup QEMU
+        if: ${{ matrix.os.architecture[0] != 'amd64' }}
         uses: docker/setup-qemu-action@v3
 
       - name: 👷 Build
@@ -189,7 +191,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: ${{ github.event_name == 'pull_request' && 'windows' || 'artifact' }}
-          path: ${{ github.event_name == 'pull_request' && 'build/*.exe' || 'deploy/Hyperion-*' }}
+          path: ${{ github.event_name == 'pull_request' && 'build/*.exe' || 'build/Hyperion-*' }}
 
 #####################################
 ###### Publish GitHub Releases ######
@@ -230,26 +232,26 @@ jobs:
 ###### APT reusable workflow ######
 ###################################
 
-  # apt_build:
-  #   name: APT Build
-  #   if: startsWith(github.event.ref, 'refs/tags')
-  #   needs: [Linux, macOS, windows]
-  #   uses: ./.github/workflows/apt.yml
-  #   secrets: inherit
-  #   with:
-  #     nightly: false
-  #     publish: true
+  apt_build:
+    name: APT Build
+    if: startsWith(github.event.ref, 'refs/tags')
+    needs: [Linux, macOS, windows]
+    uses: ./.github/workflows/apt.yml
+    secrets: inherit
+    with:
+      nightly: false
+      publish: true
 
 ###################################
 ###### DNF reusable workflow ######
 ###################################
 
-  # dnf_build:
-  #   name: DNF Build
-  #   if: startsWith(github.event.ref, 'refs/tags')
-  #   needs: [Linux, macOS, windows]
-  #   uses: ./.github/workflows/dnf.yml
-  #   secrets: inherit
-  #   with:
-  #     nightly: false
-  #     publish: true
+  dnf_build:
+    name: DNF Build
+    if: startsWith(github.event.ref, 'refs/tags')
+    needs: [Linux, macOS, windows]
+    uses: ./.github/workflows/dnf.yml
+    secrets: inherit
+    with:
+      nightly: false
+      publish: true
