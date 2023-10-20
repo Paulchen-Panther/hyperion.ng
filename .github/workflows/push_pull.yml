@@ -34,7 +34,7 @@ jobs:
     with:
       event_name: ${{ github.event_name }}
       pull_request_number: ${{ github.event.pull_request.number }}
-      publish: startsWith(github.event.ref, 'refs/tags')
+      publish: ${{ startsWith(github.event.ref, 'refs/tags') }}
 
 ####################################
 ###### Qt 6 reusable workflow ######
