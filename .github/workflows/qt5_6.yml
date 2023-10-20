@@ -1,4 +1,4 @@
-name: Qt ${{ inputs.qt_version }}
+name: Qt Builds
 
 on:
   workflow_call:
