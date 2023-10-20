@@ -23,55 +23,53 @@ concurrency:
 
 jobs:
 
-####################################
-###### Qt 5 reusable workflow ######
-####################################
+#################################################
+###### GitHub PR/Release reusable workflow ######
+#################################################
 
-  qt5_build:
-    name: Qt 5 Build
-    uses: ./.github/workflows/qt5.yml
+  github_build:
+    name: Qt ${{ matrix.qt_version }} Build ${{ matrix.qt_version == '6' && '(Testing))' || '' }}
+    strategy:
+      matrix:
+        qt_version: ['5', '6']
+    uses: ./.github/workflows/qt5_6.yml
     secrets: inherit
     with:
+      qt_version: ${{ matrix.qt_version }}
       event_name: ${{ github.event_name }}
       pull_request_number: ${{ github.event.pull_request.number }}
       publish: ${{ startsWith(github.event.ref, 'refs/tags') }}
-
-####################################
-###### Qt 6 reusable workflow ######
-####################################
-
-  qt6_build:
-    name: Qt 6 Build (Testing)
-    uses: ./.github/workflows/qt6.yml
-    secrets: inherit
-    with:
-      event_name: ${{ github.event_name }}
-      pull_request_number: ${{ github.event.pull_request.number }}
 
 ###################################
 ###### APT reusable workflow ######
 ###################################
 
-  apt_build:
-    name: APT Build
-    if: startsWith(github.event.ref, 'refs/tags')
-    needs: [qt5_build, qt6_build]
-    uses: ./.github/workflows/apt.yml
-    secrets: inherit
-    with:
-      nightly: false
-      publish: true
+  # apt_build:
+  #   name: APT Build Qt ${{ matrix.qt_version }}
+  #   # if: startsWith(github.event.ref, 'refs/tags')
+  #   # needs: [ github_build ]
+  #   strategy:
+  #     matrix:
+  #       qt_version: [5, 6]
+  #   uses: ./.github/workflows/apt.yml
+  #   secrets: inherit
+  #   with:
+  #     qt_version: ${{ matrix.target }}
+  #     publish: ${{ startsWith(github.event.ref, 'refs/tags') }}
 
 ###################################
 ###### DNF reusable workflow ######
 ###################################
 
-  dnf_build:
-    name: DNF Build
-    if: startsWith(github.event.ref, 'refs/tags')
-    needs: [qt5_build, qt6_build]
-    uses: ./.github/workflows/dnf.yml
-    secrets: inherit
-    with:
-      nightly: false
-      publish: true
+  # dnf_build:
+  #   name: DNF Build Qt ${{ matrix.qt_version }}
+  #   # if: startsWith(github.event.ref, 'refs/tags')
+  #   # needs: [ github_build ]
+  #   strategy:
+  #     matrix:
+  #       qt_version: [5, 6]
+  #   uses: ./.github/workflows/dnf.yml
+  #   secrets: inherit
+  #   with:
+  #     qt_version: ${{ matrix.target }}
+  #     publish: ${{ startsWith(github.event.ref, 'refs/tags') }}

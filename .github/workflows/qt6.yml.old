@@ -183,5 +183,5 @@ jobs:
         if: ${{ inputs.event_name == 'pull_request' }}
         uses: actions/upload-artifact@v3
         with:
-          name: 'windows'
+          name: 'windows-qt6'
           path: 'build/*.exe'
