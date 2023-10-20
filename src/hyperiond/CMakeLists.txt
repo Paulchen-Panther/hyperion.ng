@@ -216,13 +216,24 @@ if (WIN32)
 		add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${WINDEPLOYQT_EXECUTABLE} ${WINDEPLOYQT_PARAMS_RUNTIME} "$<TARGET_FILE:${PROJECT_NAME}>")
 	endif()
 
+	# Different naming scheme for the matching .dll as of SSL 1.1
+	# OpenSSL 3.x Look for libcrypto-3-x64.dll or libcrypto-3.dll
+	# OpenSSL 1.1 Look for libcrypto-1_1-x64.dll or libcrypto-1_1.dll
 	find_package(OpenSSL REQUIRED)
 	if (OPENSSL_FOUND)
 		string(REGEX MATCHALL "[0-9]+" openssl_versions "${OPENSSL_VERSION}")
 		list(GET openssl_versions 0 openssl_version_major)
 		list(GET openssl_versions 1 openssl_version_minor)
 
-		set(library_suffix "-${openssl_version_major}_${openssl_version_minor}")
+		set(open_ssl_version_suffix)
+		if (openssl_version_major VERSION_EQUAL 1 AND openssl_version_minor VERSION_EQUAL 1)
+			set(open_ssl_version_suffix "-1_1")
+		elseif(openssl_version_major VERSION_EQUAL 3)
+			set(open_ssl_version_suffix "-3")
+		endif()
+
+		set(library_suffix "-${open_ssl_version_suffix}")
+
 		if (CMAKE_SIZEOF_VOID_P EQUAL 8)
 			string(APPEND library_suffix "-x64")
 		endif()

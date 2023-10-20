@@ -73,6 +73,8 @@ jobs:
           [ arm64, linux/arm64  ],
           [ armhf, linux/arm/v7 ]
         ]
+        isQt6:
+          - ${{ inputs.qt_version == '6' }}
         include:
           - os: { distribution: debian, codename: bullseye, description: Debian 11.x (Bullseye) }
             architecture: [ armel, linux/arm/v6 ]
@@ -80,6 +82,11 @@ jobs:
             architecture: [ armel, linux/arm/v6 ]
           - os: { distribution: debian, codename: trixie, description: Debian 13.x (Trixie) }
             architecture: [ armel, linux/arm/v6 ]
+        exclude:
+          - isQt6: true
+            os: { distribution: ubuntu, codename: focal }
+          - isQt6: true
+            os: { distribution: debian, codename: buster }
 
     steps:
       - name: ⬇ Checkout
@@ -128,6 +135,7 @@ jobs:
             sed 's/@ARCHITECTURE@/${{ matrix.architecture[0] }}/g; s/@STANDARDS_VERSION@/${{ env.STANDARDS_VERSION }}/g' debian/control.in > debian/control && \
             debuild -b -uc -us && \
             cp ../hyperion_*.deb /deploy"
+        env:
 
       - name: 📦 Upload
         if: ${{ inputs.publish }}
