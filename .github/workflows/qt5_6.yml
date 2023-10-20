@@ -195,6 +195,7 @@ jobs:
         with:
           version: ${{ inputs.qt_version == '6' && '6.5.2' || '5.15.2' }}
           target: 'desktop'
+          modules: ${{ inputs.qt_version == '6' && 'qtserialport' || '' }}
           arch: 'win64_msvc2019_64'
           cache: 'true'
           cache-key-prefix: 'cache-qt-windows'
