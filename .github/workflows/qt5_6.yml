@@ -89,8 +89,8 @@ jobs:
             ./.github/scripts/build.sh
           echo '::endgroup::'
         env:
-          DOCKER_IMAGE: ${{ matrix.distribution }}
-          DOCKER_TAG: ${{ matrix.codename }}${{ inputs.qt_version == '6' && '-qt6' || '' }}
+          DOCKER_IMAGE: ${{ matrix.os.distribution }}
+          DOCKER_TAG: ${{ matrix.os.codename }}${{ inputs.qt_version == '6' && '-qt6' || '' }}
           PLATFORM: ${{ matrix.os.platform }}
           TARGET_ARCH: ${{ matrix.os.architecture[1] }}
 
@@ -182,7 +182,7 @@ jobs:
       - name: 📥 Install DirectX SDK, Vulkan-SDK, OpenSSL and libjpeg-turbo
         shell: powershell
         run: |
-          choco install --no-progres -y directx-sdk vulkan-sdk ${{env.OPENSSL}}
+          choco install --no-progress directx-sdk vulkan-sdk ${{env.OPENSSL}} -y
           Invoke-WebRequest https://netcologne.dl.sourceforge.net/project/libjpeg-turbo/3.0.1/libjpeg-turbo-3.0.1-vc64.exe -OutFile libjpeg-turbo.exe -UserAgent NativeHost
           .\libjpeg-turbo /S
         env:
