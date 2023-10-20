@@ -4,6 +4,11 @@ on:
   # Reusable from nightly.yml and push_pull.yml
   workflow_call:
     inputs:
+      qt_version:
+        type: string
+        description: Build with this Qt version
+        default: '5'
+        required: false
       head_sha:
         type: string
         description: The branch, tag or SHA to checkout
@@ -22,6 +27,11 @@ on:
   # For running the workflow manually via GitHub Actions tab
   workflow_dispatch:
     inputs:
+      qt_version:
+        type: string
+        description: Build with this Qt version
+        default: '5'
+        required: false
       head_sha:
         type: string
         description: The branch, tag or SHA to checkout
