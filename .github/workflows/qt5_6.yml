@@ -46,6 +46,8 @@ jobs:
           { distribution: debian, codename: buster,   description: Debian Buster (Generic AARCH64),          architecture: [ aarch64, linux/arm64  ] },
           { distribution: debian, codename: bullseye, description: Debian Bullseye (Generic AARCH64),        architecture: [ aarch64, linux/arm64  ] }
         ]
+        isQt5:
+          - ${{ inputs.qt_version == '5' }}
         include:
           - os.architecture[0]: amd64
             platform: x11
@@ -55,7 +57,6 @@ jobs:
             platform: rpi
           - os.architecture[0]: aarch64
             platform: amlogic
-        isQt5: ${{ inputs.qt_version == '5' }}
         exclude:
           - isQt5: true
             os: { distribution: debian, codename: bullseye }
