@@ -1,7 +1,7 @@
-name: Hyperion DNF Build
+name: DNF Repository Build
 
 on:
-  # Reusable from nightly and push
+  # Reusable from nightly.yml and push_pull.yml
   workflow_call:
     inputs:
       head_sha:
@@ -110,7 +110,7 @@ jobs:
 
   publish:
     name: 🚀 Publish RPM packages
-    if: ${{ github.repository == 'hyperion-project' && inputs.publish }}
+    if: ${{ startsWith(github.repository, 'hyperion-project') && inputs.publish }}
     needs: [build]
     runs-on: ubuntu-latest
     container:
