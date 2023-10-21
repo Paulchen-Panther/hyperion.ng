@@ -14,7 +14,7 @@ macro(DeployMacOS TARGET)
 		install(CODE "set(PLUGIN_DIR \"${QT_PLUGIN_DIR}\")" 	 			COMPONENT "Hyperion")
 		install(CODE "set(BUILD_DIR \"${CMAKE_BINARY_DIR}\")"	 			COMPONENT "Hyperion")
 		install(CODE "set(ENABLE_EFFECTENGINE \"${ENABLE_EFFECTENGINE}\")"	COMPONENT "Hyperion")
-	
+
 		install(CODE [[
 
 				file(GET_RUNTIME_DEPENDENCIES
@@ -76,7 +76,7 @@ macro(DeployMacOS TARGET)
 					endif()
 				endforeach()
 
-				include(BundleUtilities)							
+				include(BundleUtilities)
 				fixup_bundle("${CMAKE_INSTALL_PREFIX}/${TARGET_BUNDLE_NAME}" "${QT_PLUGINS}" "${CMAKE_INSTALL_PREFIX}/${TARGET_BUNDLE_NAME}/Contents/lib" IGNORE_ITEM "python;python3;Python;Python3;.Python;.Python3")
 
 				if(ENABLE_EFFECTENGINE)
@@ -167,9 +167,9 @@ macro(DeployLinux TARGET)
 
 		# Extract dependencies ignoring the system ones
 		get_prerequisites(${TARGET_FILE} DEPENDENCIES 0 1 "" "")
-		
+
 		message(STATUS "Dependencies for target file: ${DEPENDENCIES}")
-		
+
 		# Append symlink and non-symlink dependencies to the list
 		set(PREREQUISITE_LIBS "")
 		foreach(DEPENDENCY ${DEPENDENCIES})
@@ -381,19 +381,25 @@ macro(DeployWindows TARGET)
 			list(GET openssl_versions 0 openssl_version_major)
 			list(GET openssl_versions 1 openssl_version_minor)
 
-			set(library_suffix "-${openssl_version_major}_${openssl_version_minor}")
+			set(open_ssl_version_suffix)
+			if (openssl_version_major VERSION_EQUAL 1 AND openssl_version_minor VERSION_EQUAL 1)
+				set(open_ssl_version_suffix "-1_1")
+			else()
+				set(open_ssl_version_suffix "-3")
+			endif()
+
 			if (CMAKE_SIZEOF_VOID_P EQUAL 8)
-			  string(APPEND library_suffix "-x64")
+				string(APPEND open_ssl_version_suffix "-x64")
 			endif()
 
 			find_file(OPENSSL_SSL
-				NAMES "libssl${library_suffix}.dll"
+				NAMES "libssl${open_ssl_version_suffix}.dll"
 				PATHS ${OPENSSL_INCLUDE_DIR}/.. ${OPENSSL_INCLUDE_DIR}/../bin
 				NO_DEFAULT_PATH
 			)
 
 			find_file(OPENSSL_CRYPTO
-				NAMES "libcrypto${library_suffix}.dll"
+				NAMES "libcrypto${open_ssl_version_suffix}.dll"
 				PATHS ${OPENSSL_INCLUDE_DIR}/.. ${OPENSSL_INCLUDE_DIR}/../bin
 				NO_DEFAULT_PATH
 			)

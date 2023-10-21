@@ -216,36 +216,37 @@ if (WIN32)
 		add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${WINDEPLOYQT_EXECUTABLE} ${WINDEPLOYQT_PARAMS_RUNTIME} "$<TARGET_FILE:${PROJECT_NAME}>")
 	endif()
 
-	# Different naming scheme for the matching .dll as of SSL 1.1
-	# OpenSSL 3.x Look for libcrypto-3-x64.dll or libcrypto-3.dll
-	# OpenSSL 1.1 Look for libcrypto-1_1-x64.dll or libcrypto-1_1.dll
 	find_package(OpenSSL REQUIRED)
 	if (OPENSSL_FOUND)
 		string(REGEX MATCHALL "[0-9]+" openssl_versions "${OPENSSL_VERSION}")
 		list(GET openssl_versions 0 openssl_version_major)
 		list(GET openssl_versions 1 openssl_version_minor)
 
+		message(STATUS "openssl_version_major: ${openssl_version_major}")
+		message(STATUS "openssl_version_minor: ${openssl_version_minor}")
+
 		set(open_ssl_version_suffix)
 		if (openssl_version_major VERSION_EQUAL 1 AND openssl_version_minor VERSION_EQUAL 1)
 			set(open_ssl_version_suffix "-1_1")
-		elseif(openssl_version_major VERSION_EQUAL 3)
+		else()
 			set(open_ssl_version_suffix "-3")
 		endif()
 
-		set(library_suffix "-${open_ssl_version_suffix}")
-
 		if (CMAKE_SIZEOF_VOID_P EQUAL 8)
-			string(APPEND library_suffix "-x64")
+			string(APPEND open_ssl_version_suffix "-x64")
 		endif()
 
+		message(STATUS "libssl_result: libssl${open_ssl_version_suffix}.dll")
+		message(STATUS "libcrypto_result: libcrypto${open_ssl_version_suffix}.dll")
+
 		find_file(OPENSSL_SSL
-			NAMES "libssl${library_suffix}.dll"
+			NAMES "libssl${open_ssl_version_suffix}.dll"
 			PATHS ${OPENSSL_INCLUDE_DIR}/.. ${OPENSSL_INCLUDE_DIR}/../bin
 			NO_DEFAULT_PATH
 		)
 
 		find_file(OPENSSL_CRYPTO
-			NAMES "libcrypto${library_suffix}.dll"
+			NAMES "libcrypto${open_ssl_version_suffix}.dll"
 			PATHS ${OPENSSL_INCLUDE_DIR}/.. ${OPENSSL_INCLUDE_DIR}/../bin
 			NO_DEFAULT_PATH
 		)
