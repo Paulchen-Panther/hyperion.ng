@@ -78,13 +78,18 @@ jobs:
             echo -n "+PR${{ inputs.pull_request_number }}" >> .version
           echo '::endgroup::'
 
-      - name: 🛠️ Setup QEMU
-        if: ${{ matrix.os.architecture[0] != 'amd64' }}
-        uses: docker/setup-qemu-action@v3
+      # - name: 🛠️ Setup QEMU
+      #   if: ${{ matrix.os.architecture[0] != 'amd64' }}
+      #   uses: docker/setup-qemu-action@v3
 
       - name: 👷 Build
         shell: bash
         run: |
+          echo '::group::Install QEMU'
+            apt-get update && apt-get install binfmt-support qemu-user-static
+            update-binfmts --display
+          echo '::endgroup::'
+
           echo '::group::Build Hyperion'
             ./.github/scripts/build.sh
           echo '::endgroup::'
