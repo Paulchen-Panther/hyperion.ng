@@ -41,14 +41,14 @@ elif [[ "$RUNNER_OS" == 'Linux' ]]; then
 	# run docker
 	docker run --rm --platform=${TARGET_ARCH} \
 		-v "${GITHUB_WORKSPACE}/deploy:/deploy" \
-		-v "${GITHUB_WORKSPACE}:/source:ro" \
+		-v "${GITHUB_WORKSPACE}:/source:rw" \
 		$REGISTRY_URL:$DOCKER_TAG \
-		/bin/bash -c "mkdir -p hyperion/{build} && cp -r source/. /hyperion &&
+		/bin/bash -c "mkdir -p /source/build && cd /source/build &&
 		cmake -DPLATFORM=${PLATFORM} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} ../ || exit 2 &&
-		cmake --build /hyperion/build --target package -- -j $(nproc) || exit 3 &&
-		cp /hyperion/build/bin/h* /deploy/ 2>/dev/null || : &&
-		cp /hyperion/build/Hyperion-* /deploy/ 2>/dev/null || : &&
-		cd /hyperion && source /hyperion/test/testrunner.sh || exit 4 &&
+		cmake --build /source/build --target package -- -j $(nproc) || exit 3 &&
+		cp /source/build/bin/h* /deploy/ 2>/dev/null || : &&
+		cp /source/build/Hyperion-* /deploy/ 2>/dev/null || : &&
+		cd /source && source /source/test/testrunner.sh || exit 4 &&
 		exit 0;
 		exit 1 " || { echo "---> Hyperion compilation failed! Abort"; exit 5; }
 
