@@ -47,7 +47,10 @@ if (ENABLE_MDNS)
 
 			configure_file(${CMAKE_SOURCE_DIR}/dependencies/CMakeLists-qmdnsengine.txt.in ${QMDNS_WORK_DIR}/CMakeLists.txt @ONLY)
 			execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" . WORKING_DIRECTORY ${QMDNS_WORK_DIR})
-			execute_process(COMMAND ${CMAKE_COMMAND} --build . --config "${CMAKE_BUILD_TYPE}" WORKING_DIRECTORY ${QMDNS_WORK_DIR})
+
+			include(ProcessorCount)
+			ProcessorCount(NCORES)
+			execute_process(COMMAND ${CMAKE_COMMAND} --build . --config "${CMAKE_BUILD_TYPE}" -j ${NCORES} WORKING_DIRECTORY ${QMDNS_WORK_DIR})
 		endif()
 
 		set(QMDNS_INCLUDE_DIR "${CMAKE_BINARY_DIR}/include")
@@ -143,9 +146,9 @@ endif()
 
 if(ENABLE_PROTOBUF_SERVER)
 	set(USE_SYSTEM_PROTO_LIBS ${DEFAULT_USE_SYSTEM_PROTO_LIBS} CACHE BOOL "use protobuf library from system")
-	
+
 	# defines for 3rd party sub-modules
-	set(ABSL_PROPAGATE_CXX_STD ON CACHE BOOL "Build abseil-cpp with C++ version requirements propagated")	
+	set(ABSL_PROPAGATE_CXX_STD ON CACHE BOOL "Build abseil-cpp with C++ version requirements propagated")
 
 	if (USE_SYSTEM_PROTO_LIBS)
 		find_package(Protobuf REQUIRED)
@@ -173,7 +176,7 @@ if(ENABLE_PROTOBUF_SERVER)
 
 		# define the protobuf library
 		set(PROTOBUF_LIBRARIES protobuf::libprotobuf)
-		
+
 	endif()
 
 	# redefine at parent scope

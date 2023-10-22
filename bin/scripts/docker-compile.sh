@@ -85,10 +85,10 @@ function log () {
 }
 
 function check_distribution () {
-	url=${REGISTRY_URL}/$1:${CODENAME} 
+	url=${REGISTRY_URL}/$1:${CODENAME}
 
 	log "Check for distribution at: $url"
-	if $($DOCKER buildx imagetools inspect "$url" 2>&1 | grep -q $2) ; then 
+	if $($DOCKER buildx imagetools inspect "$url" 2>&1 | grep -q $2) ; then
 		rc=0
 	else
 		rc=1
@@ -103,41 +103,41 @@ eval set -- "$options"
 while true
 do
     case $1 in
-        -a|--architecture) 
+        -a|--architecture)
             shift
-            ARCHITECTURE=`echo $1 | tr '[:upper:]' '[:lower:]'` 
+            ARCHITECTURE=`echo $1 | tr '[:upper:]' '[:lower:]'`
             ;;
-        -n|--name) 
+        -n|--name)
             shift
-            CODENAME=`echo $1 | tr '[:upper:]' '[:lower:]'` 
+            CODENAME=`echo $1 | tr '[:upper:]' '[:lower:]'`
             ;;
-        -b|--type) 
+        -b|--type)
             shift
             BUILD_TYPE=$1
             ;;
-        -p|--packages) 
+        -p|--packages)
             shift
             BUILD_PACKAGES=$1
             ;;
-        -f|--platform) 
+        -f|--platform)
             shift
             BUILD_PLATFORM=$1
             ;;
-        -l|--local) 
+        -l|--local)
             BUILD_LOCAL=true
             ;;
-        -i|--incremental) 
+        -i|--incremental)
             BUILD_INCREMENTAL=true
             ;;
-        -v|--verbose) 
+        -v|--verbose)
             _VERBOSE=1
             ;;
-        -h|--help) 
+        -h|--help)
             printHelp
             exit 0
             ;;
         --)
-            shift        
+            shift
             break;;
     esac
     shift
@@ -147,7 +147,7 @@ BUILD_ARGS=$@
 
 # determine package creation
 if [ ${BUILD_PACKAGES} == "true" ]; then
-	PACKAGES="package"
+	PACKAGES="--target package"
 fi
 
 # determine platform cmake parameter
@@ -159,11 +159,11 @@ PLATFORM_ARCHITECTURE="linux/"${ARCHITECTURE}
 
 echo "---> Evaluate distribution for codename:${CODENAME} on platform architecture ${PLATFORM_ARCHITECTURE}"
 DISTRIBUTION="debian"
-if ! check_distribution ${DISTRIBUTION} ${PLATFORM_ARCHITECTURE} ; then 
+if ! check_distribution ${DISTRIBUTION} ${PLATFORM_ARCHITECTURE} ; then
 	DISTRIBUTION="ubuntu"
 	if ! check_distribution ${DISTRIBUTION} ${PLATFORM_ARCHITECTURE} ; then
 		DISTRIBUTION="fedora"
-		if ! check_distribution ${DISTRIBUTION} ${PLATFORM_ARCHITECTURE} ; then	
+		if ! check_distribution ${DISTRIBUTION} ${PLATFORM_ARCHITECTURE} ; then
 			echo "No docker image found for a distribution with codename: ${CODENAME} on platform architecture ${PLATFORM_ARCHITECTURE}"
 			exit 1
 		fi
@@ -182,18 +182,18 @@ if [ ${CURRENT_ARCHITECTURE} == "aarch64" ]; then
 	IS_V7L=`cat /proc/$$/maps |grep -m1 -c v7l`
 	if [ $IS_V7L -ne 0 ]; then
 		USER_ARCHITECTURE="arm/v7"
-	else 
+	else
 	   IS_V6L=`cat /proc/$$/maps |grep -m1 -c v6l`
 	   if [ $IS_V6L -ne 0 ]; then
 		   USER_ARCHITECTURE="arm/v6"
 	   fi
 	fi
-    if [ $ARCHITECTURE != $USER_ARCHITECTURE ]; then	
+    if [ $ARCHITECTURE != $USER_ARCHITECTURE ]; then
         log "Identified user space current architecture: $USER_ARCHITECTURE"
         CURRENT_ARCHITECTURE=$USER_ARCHITECTURE
     fi
 else
-	CURRENT_ARCHITECTURE=${CURRENT_ARCHITECTURE//x86_/amd}	
+	CURRENT_ARCHITECTURE=${CURRENT_ARCHITECTURE//x86_/amd}
 fi
 
 log "Identified kernel current architecture: $CURRENT_ARCHITECTURE"
@@ -201,7 +201,7 @@ if [ $ARCHITECTURE != $CURRENT_ARCHITECTURE ]; then
 	echo "---> Build is not for the same architecturem, install emulation environment for ${PLATFORM_ARCHITECTURE}"
 	$DOCKER run --privileged --rm tonistiigi/binfmt --install "${PLATFORM_ARCHITECTURE}"
 	DOCKERRC=${?}
-	
+
 	if [ ${DOCKERRC} == 0 ]; then
 		echo "---> Emulation environment installed sucessfully"
 		echo "---> You can uninstall it via following command: "docker run --privileged --rm tonistiigi/binfmt --uninstall ${PLATFORM_ARCHITECTURE}""
@@ -263,7 +263,7 @@ $DOCKER run --rm --platform=${PLATFORM_ARCHITECTURE}\
 	${REGISTRY_URL}/${DISTRIBUTION}:${CODENAME} \
 	/bin/bash -c "mkdir -p /source/${BUILD_DIR} && cd /source/${BUILD_DIR} &&
 	cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} ${PLATFORM} ${BUILD_ARGS} .. || exit 2 &&
-	make -j $(nproc) ${PACKAGES} || exit 3 || : &&
+	cmake --build /source/${BUILD_DIR} ${PACKAGES} -- -j $(nproc) || exit 3 || : &&
 	exit 0;
 	exit 1 " || { echo "---> Hyperion compilation failed! Abort"; exit 4; }
 

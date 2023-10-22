@@ -7,7 +7,13 @@ TARGET := debian/tmp
 
 # libcec currently not linked in hyperion therefore not recognizable but hardcoded in FIND_DEPENDS
 REQUIRED_DEPS := libusb libasound libmbedtls libturbojpeg libcec
-QT5_DEPS := libqt5widgets5,libqt5x11extras5,libqt5sql5,libqt5serialport5,libqt5sql5-sqlite,
+
+# if qt major version 5 or 6
+ifeq ($(shell qmake -query QT_VERSION | tr '.' ' ' | cut -f1 -d' '),5)
+	QT_DEPS := libqt5widgets5,libqt5x11extras5,libqt5sql5,libqt5serialport5,libqt5sql5-sqlite,
+else
+	QT_DEPS := libqt6widgets6,libqt6sql6,libqt6serialport6,libqt6sql6-sqlite,
+endif
 
 FIND_DEPENDS = $(shell \
 	PACKAGES=(); \
@@ -42,14 +48,14 @@ build:
 	cd $(BUILDDIR); cmake $(CMAKE_ENVIRONMENT) -DCMAKE_INSTALL_PREFIX=../$(TARGET)/usr ..
 	make -j$(shell nproc) -C $(BUILDDIR)
 
-binary: 
+binary:
 	$(eval DETERMINED_DEPS=$(FIND_DEPENDS))
 	cd $(BUILDDIR); cmake -P cmake_install.cmake
 	rm -rf $(TARGET)/usr/include $(TARGET)/usr/lib $(TARGET)/usr/bin/flatc
 	[ -d $(TARGET)/DEBIAN ] || mkdir -p $(TARGET)/DEBIAN
 	cp -rf cmake/package-scripts/* $(TARGET)/DEBIAN/
 	chmod 0775 $(TARGET)/DEBIAN/*
-	dpkg-gencontrol -phyperion "-Vdist:Depends=$(QT5_DEPS)$(DETERMINED_DEPS)"
+	dpkg-gencontrol -phyperion "-Vdist:Depends=$(QT_DEPS)$(DETERMINED_DEPS)"
 	dpkg-deb --build $(TARGET) ..
 
 clean:

@@ -222,9 +222,6 @@ if (WIN32)
 		list(GET openssl_versions 0 openssl_version_major)
 		list(GET openssl_versions 1 openssl_version_minor)
 
-		message(STATUS "openssl_version_major: ${openssl_version_major}")
-		message(STATUS "openssl_version_minor: ${openssl_version_minor}")
-
 		set(open_ssl_version_suffix)
 		if (openssl_version_major VERSION_EQUAL 1 AND openssl_version_minor VERSION_EQUAL 1)
 			set(open_ssl_version_suffix "-1_1")
@@ -235,9 +232,6 @@ if (WIN32)
 		if (CMAKE_SIZEOF_VOID_P EQUAL 8)
 			string(APPEND open_ssl_version_suffix "-x64")
 		endif()
-
-		message(STATUS "libssl_result: libssl${open_ssl_version_suffix}.dll")
-		message(STATUS "libcrypto_result: libcrypto${open_ssl_version_suffix}.dll")
 
 		find_file(OPENSSL_SSL
 			NAMES "libssl${open_ssl_version_suffix}.dll"

@@ -31,6 +31,13 @@ set(CMAKE_AUTOMOC ON)
 # auto prepare .qrc files
 set(CMAKE_AUTORCC ON)
 
+# multicore compiling
+include(ProcessorCount)
+ProcessorCount(NCORES)
+if(NOT NCORES EQUAL 0)
+	set(CMAKE_BUILD_PARALLEL_LEVEL NCORES)
+endif()
+
 # Configure CCache if available
 find_program(CCACHE_FOUND ccache)
 if ( CCACHE_FOUND )

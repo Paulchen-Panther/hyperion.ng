@@ -43,10 +43,9 @@ elif [[ "$RUNNER_OS" == 'Linux' ]]; then
 		-v "${GITHUB_WORKSPACE}/deploy:/deploy" \
 		-v "${GITHUB_WORKSPACE}:/source:ro" \
 		$REGISTRY_URL:$DOCKER_TAG \
-		/bin/bash -c "mkdir hyperion && cp -r source/. /hyperion &&
-		cd /hyperion && mkdir build && cd build &&
+		/bin/bash -c "mkdir -p hyperion/{build} && cp -r source/. /hyperion &&
 		cmake -DPLATFORM=${PLATFORM} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} ../ || exit 2 &&
-		make -j $(nproc) package || exit 3 &&
+		cmake --build /hyperion/build --target package -- -j $(nproc) || exit 3 &&
 		cp /hyperion/build/bin/h* /deploy/ 2>/dev/null || : &&
 		cp /hyperion/build/Hyperion-* /deploy/ 2>/dev/null || : &&
 		cd /hyperion && source /hyperion/test/testrunner.sh || exit 4 &&

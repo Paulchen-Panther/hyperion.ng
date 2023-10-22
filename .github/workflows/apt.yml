@@ -141,6 +141,7 @@ jobs:
         if: ${{ inputs.publish }}
         uses: actions/upload-artifact@v3
         with:
+          name: ${{ inputs.qt_version == '6' && 'artifact-qt6' || 'artifact' }}
           path: deploy
           retention-days: 1
 
@@ -189,6 +190,14 @@ jobs:
                 dist=${file#*~}
                 dist=${dist%_*}
                 reprepro -Vb deb/ includedeb "$dist" "$file"
+              fi
+            done
+
+            for file in artifact-qt6/hyperion_*.deb; do
+              if [ -f "$file" ]; then
+                dist=${file#*~}
+                dist=${dist%_*}
+                reprepro -C qt6 -Vb deb/ includedeb "$dist" "$file"
               fi
             done
           echo '::endgroup::'

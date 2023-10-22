@@ -37,17 +37,16 @@ jobs:
       fail-fast: false
       matrix:
         os: [
-          { distribution: debian, codename: buster,   description: Debian Buster (x86_64),                   architecture: [ amd64,   linux/amd64  ] },
-          { distribution: debian, codename: bullseye, description: Debian Bullseye (x86_64),                 architecture: [ amd64,   linux/amd64  ] },
-          { distribution: debian, codename: buster,   description: Debian Buster (Raspberry Pi v1 & ZERO),   architecture: [ armv6,   linux/arm/v5 ] },
-          { distribution: debian, codename: bullseye, description: Debian Bullseye (Raspberry Pi v1 & ZERO), architecture: [ armv6,   linux/arm/v5 ] },
-          { distribution: debian, codename: buster,   description: Debian Buster (Raspberry Pi 2/3/4),       architecture: [ armv7,   linux/arm/v7 ] },
-          { distribution: debian, codename: bullseye, description: Debian Bullseye (Raspberry Pi 2/3/4),     architecture: [ armv7,   linux/arm/v7 ] },
-          { distribution: debian, codename: buster,   description: Debian Buster (Generic AARCH64),          architecture: [ aarch64, linux/arm64  ] },
-          { distribution: debian, codename: bullseye, description: Debian Bullseye (Generic AARCH64),        architecture: [ aarch64, linux/arm64  ] }
+          { distribution: debian, codename: buster,   description: Debian Buster (x86_64),                architecture: [ amd64,   linux/amd64  ] },
+          { distribution: debian, codename: bullseye, description: Debian Bullseye (x86_64),              architecture: [ amd64,   linux/amd64  ] },
+          { distribution: debian, codename: buster,   description: Debian Buster (Raspberry Pi 1/ZERO),   architecture: [ armv6,   linux/arm/v5 ] },
+          { distribution: debian, codename: bullseye, description: Debian Bullseye (Raspberry Pi 1/ZERO), architecture: [ armv6,   linux/arm/v5 ] },
+          { distribution: debian, codename: buster,   description: Debian Buster (Raspberry Pi 2/3/4),    architecture: [ armv7,   linux/arm/v7 ] },
+          { distribution: debian, codename: bullseye, description: Debian Bullseye (Raspberry Pi 2/3/4),  architecture: [ armv7,   linux/arm/v7 ] },
+          { distribution: debian, codename: buster,   description: Debian Buster (Generic AARCH64),       architecture: [ aarch64, linux/arm64  ] },
+          { distribution: debian, codename: bullseye, description: Debian Bullseye (Generic AARCH64),     architecture: [ aarch64, linux/arm64  ] }
         ]
-        isQt5:
-          - ${{ inputs.qt_version == '5' }}
+        isQt5: ${{ inputs.qt_version == '5' }}
         include:
           - os.architecture[0]: amd64
             platform: x11
@@ -78,16 +77,11 @@ jobs:
             echo -n "+PR${{ inputs.pull_request_number }}" >> .version
           echo '::endgroup::'
 
-      # - name: 🛠️ Setup QEMU
-      #   if: ${{ matrix.os.architecture[0] != 'amd64' }}
-      #   uses: docker/setup-qemu-action@v3
-
       - name: 👷 Build
         shell: bash
         run: |
           echo '::group::Install QEMU'
             sudo apt-get update && sudo apt-get install -y binfmt-support qemu-user-static
-            update-binfmts --display
           echo '::endgroup::'
 
           echo '::group::Build Hyperion'
@@ -106,14 +100,14 @@ jobs:
           name: ${{ inputs.event_name == 'pull_request' && env.NAME || 'artifact' }}
           path: ${{ inputs.event_name == 'pull_request' && 'deploy/*.tar.gz' || 'deploy/Hyperion-*' }}
         env:
-          NAME: ${{ matrix.os.architecture[0] }}${{ inputs.qt_version == '6' && '-qt6' || '' }}
+          NAME: format('{0}_{1}_{2}{3}', matrix.os.distribution, matrix.os.codename, matrix.os.architecture[0], inputs.qt_version == '6' && '_qt6' || '')
 
 ######################
 ###### macOS #########
 ######################
 
   macOS:
-    name: 🍏 macOS
+    name: 🍏 macOS x64
     runs-on: macos-latest
     steps:
       - name: ⬇ Checkout
@@ -152,14 +146,14 @@ jobs:
           name: ${{ inputs.event_name == 'pull_request' && env.NAME || 'artifact' }}
           path: 'build/Hyperion-*'
         env:
-          NAME: ${{ inputs.qt_version == '6' && 'macOS-qt6' || 'macOS' }}
+          NAME: ${{ inputs.qt_version == '6' && 'macOS_x64_qt6' || 'macOS_x64' }}
 
 ######################
 ###### Windows #######
 ######################
 
   windows:
-    name: 🪟 Windows
+    name: 🪟 Windows x64
     runs-on: windows-2022
     env:
       VCINSTALLDIR: 'C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC'
@@ -225,7 +219,7 @@ jobs:
           name: ${{ inputs.event_name == 'pull_request' && env.NAME || 'artifact' }}
           path: ${{ inputs.event_name == 'pull_request' && 'build/*.exe' || 'build/Hyperion-*' }}
         env:
-          NAME: ${{ inputs.qt_version == '6' && 'windows-qt6' || 'windows' }}
+          NAME: ${{ inputs.qt_version == '6' && 'windows_x64_qt6' || 'windows_x64' }}
 
 #####################################
 ###### Publish GitHub Releases ######
