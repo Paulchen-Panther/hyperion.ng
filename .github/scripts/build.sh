@@ -38,20 +38,12 @@ elif [[ "$RUNNER_OS" == 'Linux' ]]; then
 	# take ownership of deploy dir
 	mkdir ${GITHUB_WORKSPACE}/deploy
 
-	if [ "$TARGET_ARCH" == 'linux/arm64' ]; then
-		QEMU_BASH_CMD = "/usr/bin/qemu-aarch64-static"
-	elif [ "$TARGET_ARCH" == 'linux/arm/v5' ] || [ "$TARGET_ARCH" == 'linux/arm/v7' ]; then
-		QEMU_BASH_CMD = "/usr/bin/qemu-arm-static"
-	fi
-
 	# run docker
 	docker run --rm --platform=${TARGET_ARCH} \
-		-v "/usr/bin/qemu-arm-static:/usr/bin/qemu-arm-static" \
-		-v "/usr/bin/qemu-aarch64-static:/usr/bin/qemu-aarch64-static" \
 		-v "${GITHUB_WORKSPACE}/deploy:/deploy" \
 		-v "${GITHUB_WORKSPACE}:/source:rw" \
 		$REGISTRY_URL:$DOCKER_TAG \
-		${QEMU_BASH_CMD} /bin/bash -c "mkdir -p /source/build && cd /source/build &&
+		/bin/bash -c "mkdir -p /source/build && cd /source/build &&
 		cmake -DPLATFORM=${PLATFORM} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} ../ || exit 2 &&
 		cmake --build /source/build -- -j $(nproc) || exit 3 &&
 		cpack --debug --verbose || exit 4 &&
