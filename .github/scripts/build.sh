@@ -34,7 +34,7 @@ elif [[ $RUNNER_OS == "Windows" ]]; then
 elif [[ "$RUNNER_OS" == 'Linux' ]]; then
 	echo "Docker arguments used: DOCKER_IMAGE=${DOCKER_IMAGE}, DOCKER_TAG=${DOCKER_TAG}, TARGET_ARCH=${TARGET_ARCH}"
 	# set GitHub Container Registry url
-	REGISTRY_URL="ghcr.io/hyperion-project/${DOCKER_IMAGE}"
+	REGISTRY_URL="ghcr.io/paulchen-panther/${DOCKER_IMAGE}"
 	# take ownership of deploy dir
 	mkdir ${GITHUB_WORKSPACE}/deploy
 
