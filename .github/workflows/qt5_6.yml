@@ -81,9 +81,9 @@ jobs:
       - name: 👷 Build
         shell: bash
         run: |
-          echo '::group::Install QEMU'
-            sudo apt-get update && sudo apt-get install -y binfmt-support qemu-user-static
-          echo '::endgroup::'
+          # echo '::group::Install QEMU'
+          #   sudo apt-get update && sudo apt-get install -y binfmt-support qemu-user-static
+          # echo '::endgroup::'
 
           echo '::group::Build Hyperion'
             ./.github/scripts/build.sh
