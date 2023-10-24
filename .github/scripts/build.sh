@@ -33,6 +33,8 @@ elif [[ $RUNNER_OS == "Windows" ]]; then
 	exit 1 || { echo "---> Hyperion compilation failed! Abort"; exit 5; }
 elif [[ "$RUNNER_OS" == 'Linux' ]]; then
 	echo "Docker arguments used: DOCKER_IMAGE=${DOCKER_IMAGE}, DOCKER_TAG=${DOCKER_TAG}, TARGET_ARCH=${TARGET_ARCH}"
+	# verification bypass of external dependencies
+	git config --global --add safe.directory "*"
 	# set GitHub Container Registry url
 	REGISTRY_URL="ghcr.io/paulchen-panther/${DOCKER_IMAGE}"
 	# take ownership of deploy dir

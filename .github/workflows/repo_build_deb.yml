@@ -93,6 +93,7 @@ jobs:
               echo STANDARDS_VERSION=$(echo ${VERSION%+*}) >> $GITHUB_ENV
               echo DEBIAN_FORMAT='3.0 (native)' >> $GITHUB_ENV
             fi
+            git config --global --add safe.directory "*"
           echo '::endgroup::'
 
       - name: 👷 Build
