@@ -1,4 +1,4 @@
-name: Qt Builds
+name: GitHub Qt5/6 Builds
 
 on:
   # Reusable from push_pull.yml

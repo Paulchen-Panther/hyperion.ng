@@ -15,10 +15,11 @@ on:
 
 jobs:
 
-#################################################
-###### GitHub PR/Release reusable workflow ######
-#################################################
+########################################################
+######  The following jobs are reusable workflows ######
+########################################################
 
+  # # GitHub Push/PR/Release
   # github_build:
   #   name: Qt ${{ matrix.qt_version }} Build ${{ matrix.qt_version == '6' && '(Testing))' || '' }}
   #   strategy:
@@ -33,38 +34,55 @@ jobs:
   #     pull_request_number: ${{ github.event.pull_request.number }}
   #     publish: ${{ startsWith(github.event.ref, 'refs/tags') }}
 
-###################################
-###### APT reusable workflow ######
-###################################
-
+  # Build DEB Packages for APT Repository (runs only on tagged commits)
   apt_build:
-    name: APT Build Qt ${{ matrix.qt_version }}
+    name: 👷 APT Build Qt ${{ matrix.qt_version }}
     # if: startsWith(github.event.ref, 'refs/tags')
     # needs: [ github_build ]
     strategy:
       fail-fast: false
       matrix:
-        qt_version: [5, 6]
-    uses: ./.github/workflows/apt.yml
+        qt_version: ['5', '6']
+    uses: ./.github/workflows/repo_build_deb.yml
     secrets: inherit
     with:
-      qt_version: ${{ matrix.target }}
-      publish: ${{ startsWith(github.event.ref, 'refs/tags') }}
+      qt_version: ${{ matrix.qt_version }}
+      upload: true
 
-###################################
-###### DNF reusable workflow ######
-###################################
+  # Publish DEB Packages to APT Repository (runs only on tagged commits)
+  apt_publish:
+    name: 🚀 Publish APT Packages
+    # if: startsWith(github.event.ref, 'refs/tags')
+    needs: [ apt_build ]
+    uses: ./.github/workflows/repo_publish.yml
+    secrets: inherit
+    with:
+      publish: true
+      container: 'ubuntu'
 
+  # # Build RPM Packages for DNF Repository (runs only on tagged commits)
   # dnf_build:
-  #   name: DNF Build Qt ${{ matrix.qt_version }}
-  #   # if: startsWith(github.event.ref, 'refs/tags')
-  #   # needs: [ github_build ]
+  #   name: 👷 DNF Build Qt ${{ matrix.qt_version }}
+  #   if: startsWith(github.event.ref, 'refs/tags')
+  #   needs: [ github_build ]
   #   strategy:
   #     fail-fast: false
   #     matrix:
-  #       qt_version: [5, 6]
-  #   uses: ./.github/workflows/dnf.yml
+  #       qt_version: ['5', '6']
+  #   uses: ./.github/workflows/repo_build_rpm.yml
   #   secrets: inherit
   #   with:
-  #     qt_version: ${{ matrix.target }}
+  #     qt_version: ${{ matrix.qt_version }}
   #     publish: ${{ startsWith(github.event.ref, 'refs/tags') }}
+
+  # # Publish RPM Packages to DNF Repository (runs only on tagged commits)
+  # dnf_publish:
+  #   name: 🚀 Publish RPM Packages
+  #   if: startsWith(github.event.ref, 'refs/tags')
+  #   needs: [ dnf_build ]
+  #   uses: ./.github/workflows/repo_publish.yml
+  #   secrets: inherit
+  #   with:
+  #     publish: true
+  #     container: 'fedora'
+

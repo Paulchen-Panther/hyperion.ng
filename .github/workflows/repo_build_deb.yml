@@ -1,4 +1,4 @@
-name: APT Repository build
+name: DEB Packages build for APT Repository
 
 on:
   # Reusable from nightly.yml and push_pull.yml
@@ -19,37 +19,14 @@ on:
         description: Nightly build
         default: false
         required: false
-      publish:
+      upload:
         type: boolean
-        description: Publish packages
-        default: false
-        required: false
-  # For running the workflow manually via GitHub Actions tab
-  workflow_dispatch:
-    inputs:
-      qt_version:
-        type: string
-        description: Build with this Qt version
-        default: '5'
-        required: false
-      head_sha:
-        type: string
-        description: The branch, tag or SHA to checkout
-        default: "master"
-        required: false
-      nightly:
-        type: boolean
-        description: Nightly build
-        default: false
-        required: false
-      publish:
-        type: boolean
-        description: Publish packages
+        description: Upload Artifacts
         default: false
         required: false
 
 env:
-  ghcr: hyperion-project
+  ghcr: paulchen-panther #hyperion-project
 
 jobs:
   build:
@@ -58,6 +35,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        qt_version: [ '5', '6'  ]
         os: [
           { distribution: ubuntu, codename: focal,    description: Ubuntu 20.04 (Focal Fossa)     },
           { distribution: ubuntu, codename: jammy,    description: Ubuntu 22.04 (Jammy Jellyfish) },
@@ -134,97 +112,9 @@ jobs:
             cp ../hyperion_*.deb /deploy"
 
       - name: 📦 Upload
-        # if: ${{ inputs.publish }}
+        # if: ${{ inputs.upload }}
         uses: actions/upload-artifact@v3
         with:
           name: ${{ inputs.qt_version == '6' && 'artifact-qt6' || 'artifact' }}
           path: deploy
           retention-days: 1
-
-  publish:
-    name: 🚀 Publish DEB packages
-    # if: ${{ startsWith(github.repository, 'hyperion-project') && inputs.publish }}
-    needs: [build]
-    runs-on: ubuntu-latest
-    steps:
-      - name: ⬇ Checkout
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.inputs.head_sha || github.event.client_payload.head_sha }}
-
-      - name: 🔑 GPG Import
-        if: ${{ env.SECRET_GPG_KEY != null }}
-        uses: crazy-max/ghaction-import-gpg@v5
-        with:
-          gpg_private_key: ${{ secrets.GPG_KEY }}
-        env:
-          SECRET_GPG_KEY: ${{ secrets.GPG_KEY }}
-
-      - name: 💾 Artifact download
-        uses: actions/download-artifact@v3
-
-      - name: 🔧 Prepare
-        if: ${{ env.SECRET_APT_REPO_NIGHTLY != null && env.SECRET_APT_REPO != null }}
-        run: |
-          echo '::group::Install reprepro'
-            sudo apt -y install reprepro
-          echo '::endgroup::'
-
-          echo '::group::Create initial structure'
-            mkdir -p deb/{conf,dists,db}
-            cp debian/distributions deb/conf/distributions
-            if [[ "${{ inputs.nightly }}" = true ]]; then
-              touch "deb/$(git rev-parse --short HEAD)"
-            fi
-            reprepro -Vb deb createsymlinks
-            reprepro -Vb deb export
-          echo '::endgroup::'
-
-          echo '::group::Include artifacts into the package source'
-            for file in artifact/hyperion_*.deb; do
-              if [ -f "$file" ]; then
-                dist=${file#*~}
-                dist=${dist%_*}
-                reprepro -Vb deb/ includedeb "$dist" "$file"
-              fi
-            done
-
-            for file in artifact-qt6/hyperion_*.deb; do
-              if [ -f "$file" ]; then
-                dist=${file#*~}
-                dist=${dist%_*}
-                reprepro -C qt6 -Vb deb/ includedeb "$dist" "$file"
-              fi
-            done
-          echo '::endgroup::'
-
-          echo '::group::Set server directory'
-            if [[ "${{ inputs.nightly }}" = true ]]; then
-              echo "SERVER_DIR=${{ secrets.APT_REPO_NIGHTLY }}" >> $GITHUB_ENV
-            else
-              echo "SERVER_DIR=${{ secrets.APT_REPO }}" >> $GITHUB_ENV
-            fi
-          echo '::endgroup::'
-        env:
-          SECRET_APT_REPO_NIGHTLY: ${{ secrets.APT_REPO_NIGHTLY }}
-          SECRET_APT_REPO: ${{ secrets.APT_REPO }}
-
-      - name: 📦 Upload
-        if: ${{ env.SECRET_REPO_USER != null && env.SECRET_REPO_PASSWORD != null && env.SERVER_DIR != null }}
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
-        with:
-          server: releases.hyperion-project.org
-          username: ${{ secrets.REPO_USER }}
-          password: ${{ secrets.REPO_PASSWORD }}
-          server-dir: ${{ env.SERVER_DIR }}
-          local-dir: "./deb/"
-          dangerous-clean-slate: true
-        env:
-          SECRET_REPO_USER: ${{ secrets.REPO_USER }}
-          SECRET_REPO_PASSWORD: ${{ secrets.REPO_PASSWORD }}
-
-      - name: 🧹 Cleanup
-        uses: geekyeggo/delete-artifact@v2
-        with:
-          name: artifact
-          failOnError: false

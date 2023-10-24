@@ -1,4 +1,4 @@
-name: 🌑️ Nightly builds for Repository
+name: 🌑️ Nightly builds for APT/DNF Repository
 
 # Create nightly builds at the end of every day
 on:
@@ -82,30 +82,62 @@ jobs:
       build-apt-nightly: ${{ steps.apt-build-necessary.outputs.commit-has-changed }}
       build-dnf-nightly: ${{ steps.dnf-build-necessary.outputs.commit-has-changed }}
 
-###################################
-###### APT reusable workflow ######
-###################################
+########################################################
+######  The following jobs are reusable workflows ######
+########################################################
 
+  # Build DEB Packages for APT Repository
   apt_build:
-    name: 👷 APT Build
-    needs: [check]
+    name: 👷 Build DEB Packages
     if: ${{ needs.check.outputs.build-apt-nightly == 'true' }}
-    uses: ./.github/workflows/apt.yml
-    secrets: inherit
-    with:
-      nightly: true
-      publish: true
-
-###################################
-###### DNF reusable workflow ######
-###################################
-
-  dnf_build:
-    name: 👷 DNF Build
     needs: [check]
-    if: ${{ needs.check.outputs.build-dnf-nightly == 'true' }}
-    uses: ./.github/workflows/dnf.yml
+    strategy:
+      fail-fast: false
+      matrix:
+        qt_version: ['5', '6']
+    uses: ./.github/workflows/repo_build_deb.yml
+    secrets: inherit
+    with:
+      qt_version: ${{ matrix.qt_version }}
+      nightly: true
+      upload: true
+
+  # Publish DEB Packages to APT Repository
+  apt_publish:
+    name: 🚀 Publish DEB Packages
+    if: ${{ needs.check.outputs.build-apt-nightly == 'true' }}
+    needs: [ apt_build ]
+    uses: ./.github/workflows/repo_publish.yml
     secrets: inherit
     with:
       nightly: true
       publish: true
+      container: 'ubuntu'
+
+  # Build RPM Packages for DNF Repository
+  dnf_build:
+    name: 👷 Build RPM Packages
+    if: ${{ needs.check.outputs.build-dnf-nightly == 'true' }}
+    needs: [check]
+    strategy:
+      fail-fast: false
+      matrix:
+        qt_version: ['5', '6']
+    uses: ./.github/workflows/repo_build_rpm.yml
+    secrets: inherit
+    with:
+      qt_version: ${{ matrix.qt_version }}
+      nightly: true
+      upload: true
+
+  # Publish RPM Packages to DNF Repository
+  dnf_publish:
+    name: 🚀 Publish RPM Packages
+    if: ${{ needs.check.outputs.build-dnf-nightly == 'true' }}
+    needs: [ dnf_build ]
+    uses: ./.github/workflows/repo_publish.yml
+    secrets: inherit
+    with:
+      nightly: true
+      publish: true
+      container: 'fedora'
