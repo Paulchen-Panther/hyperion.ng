@@ -73,7 +73,7 @@ jobs:
               -w "/root" \
               -v "${GITHUB_WORKSPACE}/deploy:/deploy" \
               -v "${GITHUB_WORKSPACE}:/root/hyperion.ng:rw" \
-              ghcr.io/${{ env.ghcr }}/${DISTRIBUTION}:${{ matrix.os.version }} \
+              ghcr.io/${{ env.ghcr }}/${DISTRIBUTION}:${{ env.DOCKER_IMAGE }} \
               /bin/bash -c "tar -czf rpmbuild/SOURCES/hyperion.ng.tar.gz hyperion.ng/ && \
               cp -f hyperion.ng/rpmbuild/hyperion.spec.in rpmbuild/SPECS/hyperion.spec && \
               rpmbuild -ba --define '_version ${{ env.VERSION }}' rpmbuild/SPECS/hyperion.spec --clean && \
@@ -82,6 +82,7 @@ jobs:
         env:
           ACTOR: "Hyperion Project <admin@hyperion-project.org>"
           COMMIT_MESSAGE: ${{ github.event.commits[0].message }}
+          DOCKER_IMAGE: ${{ inputs.qt_version == '6' && format('{0}-qt6', matrix.os.version) || matrix.os.version }}
 
       - name: 📦 Upload
         # if: ${{ inputs.publish }}

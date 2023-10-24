@@ -102,7 +102,7 @@ jobs:
           docker run --rm --platform=${{ matrix.architecture[1] }} \
             -v "${GITHUB_WORKSPACE}/deploy:/deploy" \
             -v "${GITHUB_WORKSPACE}:/source:rw" \
-            ghcr.io/${{ env.ghcr }}/${{ matrix.os.distribution }}:${{ matrix.os.codename }} \
+            ghcr.io/${{ env.ghcr }}/${{ matrix.os.distribution }}:${{ env.DOCKER_IMAGE }} \
             /bin/bash -c "cd /source && \
             mkdir -p debian/source && echo '${{ env.DEBIAN_FORMAT }}' > debian/source/format && echo 10 > debian/compat && \
             dch --create --distribution ${{ matrix.os.codename }} --package 'hyperion' -v '${{ env.VERSION }}~${{ matrix.os.codename }}' '${{ github.event.commits[0].message }}' && \
@@ -110,6 +110,8 @@ jobs:
             sed 's/@ARCHITECTURE@/${{ matrix.architecture[0] }}/g; s/@STANDARDS_VERSION@/${{ env.STANDARDS_VERSION }}/g' debian/control.in > debian/control && \
             debuild -b -uc -us && \
             cp ../hyperion_*.deb /deploy"
+        env:
+          DOCKER_IMAGE: ${{ inputs.qt_version == '6' && format('{0}-qt6', matrix.os.codename) || matrix.os.codename }}
 
       - name: 📦 Upload
         # if: ${{ inputs.upload }}
