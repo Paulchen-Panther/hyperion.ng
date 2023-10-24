@@ -1,4 +1,4 @@
-name: 🌑️ Nightly builds
+name: 🌑️ Nightly builds for Repository
 
 # Create nightly builds at the end of every day
 on:

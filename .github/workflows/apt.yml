@@ -1,4 +1,4 @@
-name: APT Repository Build
+name: APT Repository build
 
 on:
   # Reusable from nightly.yml and push_pull.yml
@@ -117,9 +117,6 @@ jobs:
             fi
           echo '::endgroup::'
 
-      - name: 🛠️ Setup QEMU
-        uses: docker/setup-qemu-action@v3
-
       - name: 👷 Build
         shell: bash
         run: |
@@ -138,7 +135,7 @@ jobs:
         env:
 
       - name: 📦 Upload
-        if: ${{ inputs.publish }}
+        # if: ${{ inputs.publish }}
         uses: actions/upload-artifact@v3
         with:
           name: ${{ inputs.qt_version == '6' && 'artifact-qt6' || 'artifact' }}
@@ -147,7 +144,7 @@ jobs:
 
   publish:
     name: 🚀 Publish DEB packages
-    if: ${{ startsWith(github.repository, 'hyperion-project') && inputs.publish }}
+    # if: ${{ startsWith(github.repository, 'hyperion-project') && inputs.publish }}
     needs: [build]
     runs-on: ubuntu-latest
     steps:

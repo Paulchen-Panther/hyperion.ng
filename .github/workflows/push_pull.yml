@@ -1,7 +1,7 @@
 name: Hyperion CI/PR Builds
 run-name: |
-  ${{ github.event_name == 'push' && '🌱 Push Build -' || '' }}
-  ${{ github.event_name == 'pull_request' && format('📦 Generate artifacts for PR {0} - {1}', github.event.pull_request.number, github.event.pull_request.title) || github.event.head_commit.message }}
+  ${{ github.event_name == 'push' && '🌱 Push build -' || '' }}
+  ${{ github.event_name == 'pull_request' && format('📦 Artifacts build for PR {0} - {1}', github.event.pull_request.number, github.event.pull_request.title) || github.event.head_commit.message }}
 
 on:
   push:
@@ -13,48 +13,43 @@ on:
     branches:
       - 'master'
 
-# Cancel running actions when a new action on the same PR is started
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
-
 jobs:
 
 #################################################
 ###### GitHub PR/Release reusable workflow ######
 #################################################
 
-  github_build:
-    name: Qt ${{ matrix.qt_version }} Build ${{ matrix.qt_version == '6' && '(Testing))' || '' }}
-    strategy:
-      fail-fast: false
-      matrix:
-        qt_version: ['5', '6']
-    uses: ./.github/workflows/qt5_6.yml
-    secrets: inherit
-    with:
-      qt_version: ${{ matrix.qt_version }}
-      event_name: ${{ github.event_name }}
-      pull_request_number: ${{ github.event.pull_request.number }}
-      publish: ${{ startsWith(github.event.ref, 'refs/tags') }}
+  # github_build:
+  #   name: Qt ${{ matrix.qt_version }} Build ${{ matrix.qt_version == '6' && '(Testing))' || '' }}
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       qt_version: ['5', '6']
+  #   uses: ./.github/workflows/qt5_6.yml
+  #   secrets: inherit
+  #   with:
+  #     qt_version: ${{ matrix.qt_version }}
+  #     event_name: ${{ github.event_name }}
+  #     pull_request_number: ${{ github.event.pull_request.number }}
+  #     publish: ${{ startsWith(github.event.ref, 'refs/tags') }}
 
 ###################################
 ###### APT reusable workflow ######
 ###################################
 
-  # apt_build:
-  #   name: APT Build Qt ${{ matrix.qt_version }}
-  #   # if: startsWith(github.event.ref, 'refs/tags')
-  #   # needs: [ github_build ]
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       qt_version: [5, 6]
-  #   uses: ./.github/workflows/apt.yml
-  #   secrets: inherit
-  #   with:
-  #     qt_version: ${{ matrix.target }}
-  #     publish: ${{ startsWith(github.event.ref, 'refs/tags') }}
+  apt_build:
+    name: APT Build Qt ${{ matrix.qt_version }}
+    # if: startsWith(github.event.ref, 'refs/tags')
+    # needs: [ github_build ]
+    strategy:
+      fail-fast: false
+      matrix:
+        qt_version: [5, 6]
+    uses: ./.github/workflows/apt.yml
+    secrets: inherit
+    with:
+      qt_version: ${{ matrix.target }}
+      publish: ${{ startsWith(github.event.ref, 'refs/tags') }}
 
 ###################################
 ###### DNF reusable workflow ######

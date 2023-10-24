@@ -1,4 +1,4 @@
-name: DNF Repository Build
+name: DNF Repository build
 
 on:
   # Reusable from nightly.yml and push_pull.yml
