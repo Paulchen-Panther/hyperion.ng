@@ -132,7 +132,6 @@ jobs:
             sed 's/@ARCHITECTURE@/${{ matrix.architecture[0] }}/g; s/@STANDARDS_VERSION@/${{ env.STANDARDS_VERSION }}/g' debian/control.in > debian/control && \
             debuild -b -uc -us && \
             cp ../hyperion_*.deb /deploy"
-        env:
 
       - name: 📦 Upload
         # if: ${{ inputs.publish }}
