@@ -45,8 +45,7 @@ elif [[ "$RUNNER_OS" == 'Linux' ]]; then
 		$REGISTRY_URL:$DOCKER_TAG \
 		/bin/bash -c "mkdir -p /source/build && cd /source/build &&
 		cmake -DPLATFORM=${PLATFORM} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} ../ || exit 2 &&
-		cmake --build /source/build -- -j $(nproc) || exit 3 &&
-		cpack --debug --verbose || exit 4 &&
+		cmake --build /source/build --target package -- -j $(nproc) || exit 3 &&
 		cp /source/build/bin/h* /deploy/ 2>/dev/null || : &&
 		cp /source/build/Hyperion-* /deploy/ 2>/dev/null || : &&
 		cd /source && source /source/test/testrunner.sh || exit 5 &&

@@ -147,7 +147,7 @@ BUILD_ARGS=$@
 
 # determine package creation
 if [ ${BUILD_PACKAGES} == "true" ]; then
-	PACKAGES="--target package"
+	PACKAGES="package"
 fi
 
 # determine platform cmake parameter
@@ -263,7 +263,7 @@ $DOCKER run --rm --platform=${PLATFORM_ARCHITECTURE}\
 	${REGISTRY_URL}/${DISTRIBUTION}:${CODENAME} \
 	/bin/bash -c "mkdir -p /source/${BUILD_DIR} && cd /source/${BUILD_DIR} &&
 	cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} ${PLATFORM} ${BUILD_ARGS} .. || exit 2 &&
-	cmake --build /source/${BUILD_DIR} ${PACKAGES} -- -j $(nproc) || exit 3 || : &&
+	make -j $(nproc) ${PACKAGES} || exit 3 || : &&
 	exit 0;
 	exit 1 " || { echo "---> Hyperion compilation failed! Abort"; exit 4; }
 

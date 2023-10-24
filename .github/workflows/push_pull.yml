@@ -27,6 +27,7 @@ jobs:
   github_build:
     name: Qt ${{ matrix.qt_version }} Build ${{ matrix.qt_version == '6' && '(Testing))' || '' }}
     strategy:
+      fail-fast: false
       matrix:
         qt_version: ['5', '6']
     uses: ./.github/workflows/qt5_6.yml
@@ -46,6 +47,7 @@ jobs:
   #   # if: startsWith(github.event.ref, 'refs/tags')
   #   # needs: [ github_build ]
   #   strategy:
+  #     fail-fast: false
   #     matrix:
   #       qt_version: [5, 6]
   #   uses: ./.github/workflows/apt.yml
@@ -63,6 +65,7 @@ jobs:
   #   # if: startsWith(github.event.ref, 'refs/tags')
   #   # needs: [ github_build ]
   #   strategy:
+  #     fail-fast: false
   #     matrix:
   #       qt_version: [5, 6]
   #   uses: ./.github/workflows/dnf.yml
