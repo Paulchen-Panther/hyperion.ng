@@ -104,7 +104,7 @@ jobs:
             -v "${GITHUB_WORKSPACE}:/source:rw" \
             ghcr.io/${{ env.ghcr }}/${{ matrix.os.distribution }}:${{ env.DOCKER_IMAGE }} \
             /bin/bash -c "cd /source && \
-            git config --global --add safe.directory /source/dependencies/external/* && \
+            git config --global --add safe.directory '*' && \
             mkdir -p debian/source && echo '${{ env.DEBIAN_FORMAT }}' > debian/source/format && echo 10 > debian/compat && \
             dch --create --distribution ${{ matrix.os.codename }} --package 'hyperion' -v '${{ env.VERSION }}~${{ matrix.os.codename }}' '${{ github.event.commits[0].message }}' && \
             cp -fr LICENSE debian/copyright && \
