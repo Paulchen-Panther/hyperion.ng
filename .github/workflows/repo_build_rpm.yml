@@ -55,7 +55,6 @@ jobs:
             else
               echo VERSION=$(tr -d '\n' < .version | sed s/-/_/g) >> $GITHUB_ENV
             fi
-            git config --global --add safe.directory "*"
           echo '::endgroup::'
 
       - name: 🛠️ Setup QEMU
