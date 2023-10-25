@@ -25,6 +25,9 @@ on:
         default: false
         required: false
 
+env:
+  ghcr: paulchen-panther #hyperion-project
+
 jobs:
 
 ######################
@@ -70,26 +73,50 @@ jobs:
         with:
           submodules: recursive
 
-      - name: 🔧 Prepare PR
+      - name: 🔧 Prepare
         if: ${{ inputs.event_name == 'pull_request' }}
         shell: bash
         run: |
-          echo '::group::Append PR number to version'
-            tr -d '\n' < .version > temp && mv temp .version
-            echo -n "+PR${{ inputs.pull_request_number }}" >> .version
+          echo '::group::Append PR number to version (PR  only)'
+            if [[ "${{ inputs.event_name }}" = "pull_request" ]]; then
+              tr -d '\n' < .version > temp && mv temp .version
+              echo -n "+PR${{ inputs.pull_request_number }}" >> .version
+            fi
+          echo '::endgroup::'
+
+          echo '::group::Take ownership of deploy dir'
+            mkdir ${GITHUB_WORKSPACE}/deploy
           echo '::endgroup::'
 
       - name: 👷 Build
-        shell: bash
-        run: |
-          echo '::group::Build Hyperion'
-            ./.github/scripts/build.sh
-          echo '::endgroup::'
-        env:
-          DOCKER_IMAGE: ${{ matrix.os.distribution }}
-          DOCKER_TAG: ${{ matrix.os.codename }}${{ inputs.qt_version == '6' && '-qt6' || '' }}
-          PLATFORM: ${{ matrix.platform }}
-          TARGET_ARCH: ${{ matrix.os.architecture[1] }}
+        uses: addnab/docker-run-action@v3
+        with:
+          registry: ghcr.io
+          image: ${{ env.ghcr }}/${{ matrix.os.distribution }}:${{ matrix.os.codename }}${{ inputs.qt_version == '6' && '-qt6' || '' }}
+          options: |
+            --platform ${{ matrix.os.architecture[1] }}
+            --volume ${{ github.workspace }}:/deploy:/deploy
+            --volume ${{ github.workspace }}:/source:rw
+          shell: bash
+          run: |
+            mkdir -p /source/build && cd /source/build
+            cmake -DPLATFORM=${{ matrix.platform }} -DCMAKE_BUILD_TYPE=Debug ..
+            cmake --build /source/build --target package -- -j $(nproc)
+            cp /source/build/bin/h* /deploy/ 2>/dev/null
+            cp /source/build/Hyperion-* /deploy/ 2>/dev/null
+            cd /source && source /source/test/testrunner.sh
+
+      # - name: 👷 Build
+      #   shell: bash
+      #   run: |
+      #     echo '::group::Build Hyperion'
+      #       ./.github/scripts/build.sh
+      #     echo '::endgroup::'
+      #   env:
+      #     DOCKER_IMAGE: ${{ matrix.os.distribution }}
+      #     DOCKER_TAG: ${{ matrix.os.codename }}${{ inputs.qt_version == '6' && '-qt6' || '' }}
+      #     PLATFORM: ${{ matrix.platform }}
+      #     TARGET_ARCH: ${{ matrix.os.architecture[1] }}
 
       - name: 📦 Upload
         if: ${{ inputs.publish || inputs.event_name == 'pull_request' }}
