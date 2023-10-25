@@ -8,11 +8,13 @@ TARGET := debian/tmp
 # libcec currently not linked in hyperion therefore not recognizable but hardcoded in FIND_DEPENDS
 REQUIRED_DEPS := libusb libasound libmbedtls libturbojpeg libcec
 
-# if qt major version 5 or 6
-ifeq ($(shell qmake -query QT_VERSION | tr '.' ' ' | cut -f1 -d' '),5)
-	QT_DEPS := libqt5widgets5,libqt5x11extras5,libqt5sql5,libqt5serialport5,libqt5sql5-sqlite,
-else
+# get qt version and set qt deps depending on version
+QT6_PACKAGE_VERSION := $(shell dpkg-query -W -f '$${Version}' libqt6widgets6)
+USE_QT6 ?= $(shell if dpkg --compare-versions $(QT6_PACKAGE_VERSION) ">=" 6.0 ; then echo yes ; fi)
+ifeq ($(USE_QT6),yes)
 	QT_DEPS := libqt6widgets6,libqt6sql6,libqt6serialport6,libqt6sql6-sqlite,
+else
+	QT_DEPS := libqt5widgets5,libqt5x11extras5,libqt5sql5,libqt5serialport5,libqt5sql5-sqlite,
 endif
 
 FIND_DEPENDS = $(shell \
