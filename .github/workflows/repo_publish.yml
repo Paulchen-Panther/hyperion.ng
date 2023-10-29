@@ -35,7 +35,7 @@ jobs:
 
       - name: 🔧 Install GPG
         if: ${{ inputs.container == 'ubuntu' }}
-        run: sudo apt-get update && sudo apt-get -y install gnupg2
+        run: apt-get update && apt-get -y install gnupg2
 
       - name: 🔑 GPG Import
         if: ${{ env.SECRET_GPG_KEY != null }}
@@ -52,7 +52,7 @@ jobs:
         if: ${{ inputs.container == 'ubuntu' && env.SECRET_APT_REPO_NIGHTLY != null && env.SECRET_APT_REPO != null }}
         run: |
           echo '::group::Install reprepro'
-            sudo apt-get update && sudo apt-get -y install reprepro
+            apt-get update && apt-get -y install reprepro
           echo '::endgroup::'
 
           echo '::group::Create initial structure'
