@@ -33,6 +33,10 @@ jobs:
         with:
           ref: ${{ github.event.inputs.head_sha || github.event.client_payload.head_sha }}
 
+      - name: 🔧 Install GPG
+        if: ${{ inputs.container == 'ubuntu' }}
+        run: sudo apt-get update && sudo apt-get -y install gnupg2
+
       - name: 🔑 GPG Import
         if: ${{ env.SECRET_GPG_KEY != null }}
         uses: crazy-max/ghaction-import-gpg@v5
@@ -48,7 +52,7 @@ jobs:
         if: ${{ inputs.container == 'ubuntu' && env.SECRET_APT_REPO_NIGHTLY != null && env.SECRET_APT_REPO != null }}
         run: |
           echo '::group::Install reprepro'
-            sudo apt -y install reprepro
+            sudo apt-get update && sudo apt-get -y install reprepro
           echo '::endgroup::'
 
           echo '::group::Create initial structure'

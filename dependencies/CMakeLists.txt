@@ -66,7 +66,6 @@ if (ENABLE_MDNS)
 
 	set(QMDNS_INCLUDE_DIR ${QMDNS_INCLUDE_DIR} PARENT_SCOPE)
 	set(QMDNS_LIBRARIES ${QMDNS_LIBRARIES} PARENT_SCOPE)
-	include_directories(${QMDNS_INCLUDE_DIR})
 endif()
 
 #=============================================================================

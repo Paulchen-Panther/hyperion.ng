@@ -60,7 +60,6 @@ if ( ENABLE_DEV_USB_HID )
 endif()
 
 if ( ENABLE_DEV_WS281XPWM )
-	include_directories(../../dependencies/external/rpi_ws281x)
 	FILE ( GLOB Leddevice_PWM_SOURCES "${CURRENT_SOURCE_DIR}/dev_rpi_pwm/*.h" "${CURRENT_SOURCE_DIR}/dev_rpi_pwm/*.cpp")
 endif()
 
@@ -71,7 +70,7 @@ SET( Leddevice_SOURCES
 	${LedDevice_RESOURCES}
 	${Leddevice_NETWORK_SOURCES}
 	${Leddevice_PWM_SOURCES}
-	${Leddevice_SERIAL_SOURCES}		
+	${Leddevice_SERIAL_SOURCES}
 	${Leddevice_SPI_SOURCES}
 	${Leddevice_TINKER_SOURCES}
 	${Leddevice_USB_HID_SOURCES}
@@ -106,7 +105,7 @@ endif()
 
 if(ENABLE_DEV_NETWORK)
 	target_link_libraries(leddevice Qt${QT_VERSION_MAJOR}::Network ssdp)
-	
+
 	if (NOT DEFAULT_USE_SYSTEM_MBEDTLS_LIBS)
 		if (MBEDTLS_LIBRARIES)
 			include_directories(${MBEDTLS_INCLUDE_DIR})
@@ -133,6 +132,7 @@ if(ENABLE_DEV_TINKERFORGE)
 endif()
 
 if(ENABLE_DEV_WS281XPWM)
+	target_include_directories(leddevice PUBLIC "${CMAKE_SOURCE_DIR}/dependencies/external/rpi_ws281x")
 	target_link_libraries(leddevice ws281x)
 endif()
 
@@ -161,6 +161,7 @@ if (ENABLE_DEV_USB_HID)
 endif()
 
 if(ENABLE_MDNS)
-        target_link_libraries(leddevice mdns)
+
+ 	target_link_libraries(leddevice mdns)
 endif()
 
