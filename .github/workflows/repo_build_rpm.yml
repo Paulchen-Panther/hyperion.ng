@@ -57,9 +57,6 @@ jobs:
             fi
           echo '::endgroup::'
 
-      - name: 🛠️ Setup QEMU
-        uses: docker/setup-qemu-action@v3
-
       - name: 👷 Build
         shell: bash
         run: |
