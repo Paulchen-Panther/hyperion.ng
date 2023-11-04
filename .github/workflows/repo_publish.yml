@@ -29,11 +29,10 @@ jobs:
       image: ${{ inputs.container }}
     steps:
       - name: 🔧 Install Dependencies
-        if: ${{ inputs.container == 'ubuntu' }}
         run: |
-          if [[ "${{ inputs.container }}" = ubuntu ]]; then
+          if [[ "${{ inputs.container }}" = "ubuntu" ]]; then
             apt-get update && apt-get -y install git gnupg2 reprepro
-          elif [[ "${{ inputs.container }}" = fedora ]]; then
+          elif [[ "${{ inputs.container }}" = "fedora" ]]; then
             dnf install createrepo rpm-sign -y
           fi
 
