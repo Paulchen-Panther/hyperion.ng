@@ -72,9 +72,13 @@ jobs:
               ghcr.io/${{ env.ghcr }}/$(echo '${{ matrix.os.distribution }}' | tr '[:upper:]' '[:lower:]'):${{ matrix.os.version }}-qt6 \
               /bin/bash -c "tar -czf rpmbuild/SOURCES/hyperion.ng.tar.gz hyperion.ng/ && \
               cp -f hyperion.ng/rpmbuild/hyperion.spec.in rpmbuild/SPECS/hyperion.spec && \
+              rpmdev-bumpspec --comment='${{ env.COMMIT_MESSAGE }}' --userstring='${{ env.ACTOR }}' rpmbuild/SPECS/hyperion.spec && \
               rpmbuild -ba --define '_version ${{ env.VERSION }}' rpmbuild/SPECS/hyperion.spec --clean && \
               cp -fv rpmbuild/RPMS/$(uname -m)/hyperion* /deploy"
           echo '::endgroup::'
+        env:
+          ACTOR: "Hyperion Project <admin@hyperion-project.org>"
+          COMMIT_MESSAGE: ${{ github.event.commits[0].message }}
 
       - name: 📦 Upload
         if: ${{ inputs.upload }}

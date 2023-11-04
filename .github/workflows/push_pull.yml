@@ -35,8 +35,8 @@ jobs:
   #     publish: ${{ startsWith(github.event.ref, 'refs/tags') }}
 
   # # Build DEB Packages for APT Repository (runs only on tagged commits)
-  # apt_build:
-  #   name: 👷 APT Build
+  # deb_build:
+  #   name: 👷 Build DEB Packages
   #   # if: startsWith(github.event.ref, 'refs/tags')
   #   # needs: [ github_build ]
   #   uses: ./.github/workflows/repo_build_deb.yml
@@ -45,10 +45,10 @@ jobs:
   #     upload: true
 
   # # Publish DEB Packages to APT Repository (runs only on tagged commits)
-  # apt_publish:
-  #   name: 🚀 Publish APT Packages
+  # deb_publish:
+  #   name: 🚀 Publish DEB Packages
   #   # if: startsWith(github.event.ref, 'refs/tags')
-  #   needs: [ apt_build ]
+  #   needs: [ deb_build ]
   #   uses: ./.github/workflows/repo_publish.yml
   #   secrets: inherit
   #   with:
@@ -56,8 +56,8 @@ jobs:
   #     container: 'ubuntu'
 
   # Build RPM Packages for DNF Repository (runs only on tagged commits)
-  dnf_build:
-    name: 👷 DNF Build Qt ${{ matrix.qt_version }}
+  rpm_build:
+    name: 👷 Build RPM Packages
     # if: startsWith(github.event.ref, 'refs/tags')
     # needs: [ github_build ]
     uses: ./.github/workflows/repo_build_rpm.yml
@@ -66,10 +66,10 @@ jobs:
       upload: true
 
   # Publish RPM Packages to DNF Repository (runs only on tagged commits)
-  dnf_publish:
+  rpm_publish:
     name: 🚀 Publish RPM Packages
     # if: startsWith(github.event.ref, 'refs/tags')
-    needs: [ dnf_build ]
+    needs: [ rpm_build ]
     uses: ./.github/workflows/repo_publish.yml
     secrets: inherit
     with:
