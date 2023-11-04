@@ -48,7 +48,7 @@ jobs:
   apt_publish:
     name: 🚀 Publish APT Packages
     # if: startsWith(github.event.ref, 'refs/tags')
-    needs: [ apt_build ]
+    # needs: [ apt_build ]
     uses: ./.github/workflows/repo_publish.yml
     secrets: inherit
     with:
