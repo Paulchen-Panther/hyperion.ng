@@ -28,9 +28,14 @@ jobs:
     container:
       image: ${{ inputs.container }}
     steps:
+      - name: 🔧 Install Dependencies
+        if: ${{ inputs.container == 'ubuntu' }}
+        run: apt-get update && apt-get -y install git gnupg2 reprepro
+
       - name: ⬇ Checkout
         uses: actions/checkout@v4
         with:
+          path: hyperion
           ref: ${{ github.event.inputs.head_sha || github.event.client_payload.head_sha }}
 
       - name: 🔧 Install GPG
@@ -49,12 +54,9 @@ jobs:
         uses: actions/download-artifact@v3
 
       - name: 🔧 Prepare DEB Upload
+        working-directory: hyperion/
         if: ${{ inputs.container == 'ubuntu' && env.SECRET_APT_REPO_NIGHTLY != null && env.SECRET_APT_REPO != null }}
         run: |
-          echo '::group::Install reprepro'
-            apt-get update && apt-get -y install reprepro
-          echo '::endgroup::'
-
           echo '::group::Create initial structure'
             mkdir -p deb/{conf,dists,db}
             cp debian/distributions deb/conf/distributions
@@ -73,15 +75,6 @@ jobs:
                 reprepro -Vb deb/ includedeb "$dist" "$file"
               fi
             done
-
-            for file in artifact-qt6/hyperion_*.deb; do
-              if [ -f "$file" ]; then
-                dist=${file#*~}
-                dist=${dist%_*}
-                reprepro -C qt6 -Vb deb/ includedeb "$dist" "$file"
-              fi
-            done
-          echo '::endgroup::'
 
           echo '::group::Set server directory'
             if [[ "${{ inputs.nightly }}" = true ]]; then

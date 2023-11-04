@@ -36,18 +36,12 @@ jobs:
 
   # Build DEB Packages for APT Repository (runs only on tagged commits)
   apt_build:
-    name: 👷 APT Build Qt ${{ matrix.qt_version }}
+    name: 👷 APT Build
     # if: startsWith(github.event.ref, 'refs/tags')
     # needs: [ github_build ]
-    strategy:
-      fail-fast: false
-      matrix:
-        qt_version: ['6']
-        # qt_version: ['5', '6']
     uses: ./.github/workflows/repo_build_deb.yml
     secrets: inherit
     with:
-      qt_version: ${{ matrix.qt_version }}
       upload: true
 
   # Publish DEB Packages to APT Repository (runs only on tagged commits)

@@ -4,11 +4,6 @@ on:
   # Reusable from nightly.yml and push_pull.yml
   workflow_call:
     inputs:
-      qt_version:
-        type: string
-        description: Build with this Qt version
-        default: '5'
-        required: false
       head_sha:
         type: string
         description: The branch, tag or SHA to checkout
@@ -35,36 +30,34 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        qt_version: [ '5', '6'  ]
         os: [
-          { distribution: ubuntu, codename: focal,    description: Ubuntu 20.04 (Focal Fossa)     },
-          { distribution: ubuntu, codename: jammy,    description: Ubuntu 22.04 (Jammy Jellyfish) },
-          { distribution: ubuntu, codename: lunar,    description: Ubuntu 23.04 (Lunar Lobster)   },
-          { distribution: ubuntu, codename: mantic,   description: Ubuntu 23.10 (Mantic Minotaur) },
-          { distribution: debian, codename: buster,   description: Debian 10.x (Buster)           },
-          { distribution: debian, codename: bullseye, description: Debian 11.x (Bullseye)         },
-          { distribution: debian, codename: bookworm, description: Debian 12.x (Bookworm)         },
-          { distribution: debian, codename: trixie,   description: Debian 13.x (Trixie)           }
+          { distribution: ubuntu, codename: focal,    description: Ubuntu 20.04 (Focal Fossa),     qt_version: '5' },
+          { distribution: ubuntu, codename: jammy,    description: Ubuntu 22.04 (Jammy Jellyfish), qt_version: '6' }
         ]
-        architecture: [
-          [ amd64, linux/amd64  ],
-          [ arm64, linux/arm64  ],
-          [ armhf, linux/arm/v7 ]
-        ]
-        isQt6:
-          - ${{ inputs.qt_version == '6' }}
-        include:
-          - os: { distribution: debian, codename: bullseye, description: Debian 11.x (Bullseye) }
-            architecture: [ armel, linux/arm/v6 ]
-          - os: { distribution: debian, codename: bookworm, description: Debian 12.x (Bookworm) }
-            architecture: [ armel, linux/arm/v6 ]
-          - os: { distribution: debian, codename: trixie, description: Debian 13.x (Trixie) }
-            architecture: [ armel, linux/arm/v6 ]
-        exclude:
-          - isQt6: true
-            os: { distribution: ubuntu, codename: focal }
-          - isQt6: true
-            os: { distribution: debian, codename: buster }
+        architecture: [ [ amd64, linux/amd64  ] ]
+
+        # os: [
+        #   { distribution: ubuntu, codename: focal,    description: Ubuntu 20.04 (Focal Fossa),     qt_version: '5' },
+        #   { distribution: ubuntu, codename: jammy,    description: Ubuntu 22.04 (Jammy Jellyfish), qt_version: '6' },
+        #   { distribution: ubuntu, codename: lunar,    description: Ubuntu 23.04 (Lunar Lobster),   qt_version: '6' },
+        #   { distribution: ubuntu, codename: mantic,   description: Ubuntu 23.10 (Mantic Minotaur), qt_version: '6' },
+        #   { distribution: debian, codename: buster,   description: Debian 10.x (Buster),           qt_version: '5' },
+        #   { distribution: debian, codename: bullseye, description: Debian 11.x (Bullseye),         qt_version: '6' },
+        #   { distribution: debian, codename: bookworm, description: Debian 12.x (Bookworm),         qt_version: '6' },
+        #   { distribution: debian, codename: trixie,   description: Debian 13.x (Trixie),           qt_version: '6' }
+        # ]
+        # architecture: [
+        #   [ amd64, linux/amd64  ],
+        #   [ arm64, linux/arm64  ],
+        #   [ armhf, linux/arm/v7 ]
+        # ]
+        # include:
+        #   - os: { distribution: debian, codename: bullseye, description: Debian 11.x (Bullseye) }
+        #     architecture: [ armel, linux/arm/v6 ]
+        #   - os: { distribution: debian, codename: bookworm, description: Debian 12.x (Bookworm) }
+        #     architecture: [ armel, linux/arm/v6 ]
+        #   - os: { distribution: debian, codename: trixie, description: Debian 13.x (Trixie) }
+        #     architecture: [ armel, linux/arm/v6 ]
 
     steps:
       - name: ⬇ Checkout
@@ -112,12 +105,11 @@ jobs:
             debuild -b -uc -us && \
             cp ../hyperion_*.deb /deploy"
         env:
-          DOCKER_IMAGE: ${{ inputs.qt_version == '6' && format('{0}-qt6', matrix.os.codename) || matrix.os.codename }}
+          DOCKER_IMAGE: ${{ matrix.os.qt_version == '6' && format('{0}-qt6', matrix.os.codename) || matrix.os.codename }}
 
       - name: 📦 Upload
-        # if: ${{ inputs.upload }}
+        if: ${{ inputs.upload }}
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ inputs.qt_version == '6' && 'artifact-qt6' || 'artifact' }}
           path: deploy
           retention-days: 1
