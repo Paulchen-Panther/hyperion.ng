@@ -22,7 +22,7 @@ on:
 
 jobs:
   publish:
-    name: 🚀 Publish packages
+    name: 🚀 Publish
     # if: ${{ startsWith(github.repository, 'hyperion-project') && inputs.publish }}
     runs-on: ubuntu-latest
     container:
