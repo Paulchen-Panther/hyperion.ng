@@ -23,7 +23,8 @@ Packager:       Hyperion-Project <admin@hyperion-project.org>
 # common build dependencies
 BuildRequires:  desktop-file-utils
 BuildRequires:  libappstream-glib
-BuildRequires:  qt5-qtbase-devel qt5-qtserialport-devel qt5-qtx11extras-devel
+BuildRequires:  qt6-qtbase-devel qt6-qtserialport-devel
+BuildRequires:  libxkbcommon-devel
 BuildRequires:  python3-devel
 BuildRequires:  turbojpeg-devel libjpeg-turbo-devel
 BuildRequires:  protobuf-devel protobuf-compiler
@@ -44,7 +45,8 @@ BuildRequires: systemd-rpm-macros
 %endif
 
 Requires:       desktop-file-utils
-Requires:       qt5-qtbase qt5-qtserialport qt5-qtx11extras
+Requires:       qt6-qtbase qt6-qtserialport
+Requires:       libxkbcommon
 Requires:       python3-libs
 Requires:       turbojpeg
 Requires:       libusb

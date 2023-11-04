@@ -34,50 +34,45 @@ jobs:
   #     pull_request_number: ${{ github.event.pull_request.number }}
   #     publish: ${{ startsWith(github.event.ref, 'refs/tags') }}
 
-  # Build DEB Packages for APT Repository (runs only on tagged commits)
-  apt_build:
-    name: 👷 APT Build
-    # if: startsWith(github.event.ref, 'refs/tags')
-    # needs: [ github_build ]
-    uses: ./.github/workflows/repo_build_deb.yml
-    secrets: inherit
-    with:
-      upload: true
-
-  # Publish DEB Packages to APT Repository (runs only on tagged commits)
-  apt_publish:
-    name: 🚀 Publish APT Packages
-    # if: startsWith(github.event.ref, 'refs/tags')
-    needs: [ apt_build ]
-    uses: ./.github/workflows/repo_publish.yml
-    secrets: inherit
-    with:
-      publish: true
-      container: 'ubuntu'
-
-  # # Build RPM Packages for DNF Repository (runs only on tagged commits)
-  # dnf_build:
-  #   name: 👷 DNF Build Qt ${{ matrix.qt_version }}
-  #   if: startsWith(github.event.ref, 'refs/tags')
-  #   needs: [ github_build ]
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       qt_version: ['5', '6']
-  #   uses: ./.github/workflows/repo_build_rpm.yml
+  # # Build DEB Packages for APT Repository (runs only on tagged commits)
+  # apt_build:
+  #   name: 👷 APT Build
+  #   # if: startsWith(github.event.ref, 'refs/tags')
+  #   # needs: [ github_build ]
+  #   uses: ./.github/workflows/repo_build_deb.yml
   #   secrets: inherit
   #   with:
-  #     qt_version: ${{ matrix.qt_version }}
-  #     publish: ${{ startsWith(github.event.ref, 'refs/tags') }}
+  #     upload: true
 
-  # # Publish RPM Packages to DNF Repository (runs only on tagged commits)
-  # dnf_publish:
-  #   name: 🚀 Publish RPM Packages
-  #   if: startsWith(github.event.ref, 'refs/tags')
-  #   needs: [ dnf_build ]
+  # # Publish DEB Packages to APT Repository (runs only on tagged commits)
+  # apt_publish:
+  #   name: 🚀 Publish APT Packages
+  #   # if: startsWith(github.event.ref, 'refs/tags')
+  #   needs: [ apt_build ]
   #   uses: ./.github/workflows/repo_publish.yml
   #   secrets: inherit
   #   with:
   #     publish: true
-  #     container: 'fedora'
+  #     container: 'ubuntu'
+
+  # Build RPM Packages for DNF Repository (runs only on tagged commits)
+  dnf_build:
+    name: 👷 DNF Build Qt ${{ matrix.qt_version }}
+    # if: startsWith(github.event.ref, 'refs/tags')
+    # needs: [ github_build ]
+    uses: ./.github/workflows/repo_build_rpm.yml
+    secrets: inherit
+    with:
+      publish: true
+
+  # Publish RPM Packages to DNF Repository (runs only on tagged commits)
+  dnf_publish:
+    name: 🚀 Publish RPM Packages
+    # if: startsWith(github.event.ref, 'refs/tags')
+    needs: [ dnf_build ]
+    uses: ./.github/workflows/repo_publish.yml
+    secrets: inherit
+    with:
+      publish: true
+      container: 'fedora'
 

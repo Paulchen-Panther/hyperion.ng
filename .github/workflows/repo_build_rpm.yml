@@ -21,7 +21,7 @@ on:
         required: false
 
 env:
-  ghcr: paulchen-panther #hyperion-project
+  ghcr: hyperion-project
 
 jobs:
   build:
@@ -63,29 +63,21 @@ jobs:
       - name: 👷 Build
         shell: bash
         run: |
-          echo '::group::Set distribution name to lower case'
-            DISTRIBUTION=$(echo '${{ matrix.os.distribution }}' | tr '[:upper:]' '[:lower:]')
-          echo '::endgroup::'
-
           echo '::group::Building Hyperion'
             mkdir -p "${GITHUB_WORKSPACE}/deploy"
             docker run --rm --platform=${{ matrix.architecture[1] }} \
               -w "/root" \
               -v "${GITHUB_WORKSPACE}/deploy:/deploy" \
               -v "${GITHUB_WORKSPACE}:/root/hyperion.ng:rw" \
-              ghcr.io/${{ env.ghcr }}/${DISTRIBUTION}:${{ env.DOCKER_IMAGE }} \
+              ghcr.io/${{ env.ghcr }}/$(echo '${{ matrix.os.distribution }}' | tr '[:upper:]' '[:lower:]'):${{ matrix.os.version }}-qt6 \
               /bin/bash -c "tar -czf rpmbuild/SOURCES/hyperion.ng.tar.gz hyperion.ng/ && \
               cp -f hyperion.ng/rpmbuild/hyperion.spec.in rpmbuild/SPECS/hyperion.spec && \
               rpmbuild -ba --define '_version ${{ env.VERSION }}' rpmbuild/SPECS/hyperion.spec --clean && \
               cp -fv rpmbuild/RPMS/$(uname -m)/hyperion* /deploy"
           echo '::endgroup::'
-        env:
-          ACTOR: "Hyperion Project <admin@hyperion-project.org>"
-          COMMIT_MESSAGE: ${{ github.event.commits[0].message }}
-          DOCKER_IMAGE: ${{ inputs.qt_version == '6' && format('{0}-qt6', matrix.os.version) || matrix.os.version }}
 
       - name: 📦 Upload
-        # if: ${{ inputs.publish }}
+        if: ${{ inputs.upload }}
         uses: actions/upload-artifact@v3
         with:
           path: deploy
