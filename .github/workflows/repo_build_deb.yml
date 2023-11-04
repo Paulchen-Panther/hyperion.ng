@@ -21,7 +21,7 @@ on:
         required: false
 
 env:
-  ghcr: paulchen-panther #hyperion-project
+  ghcr: hyperion-project
 
 jobs:
   build:
@@ -32,26 +32,33 @@ jobs:
       matrix:
         os: [
           { distribution: ubuntu, codename: focal,    description: Ubuntu 20.04 (Focal Fossa),     qt_version: '5' },
-          { distribution: ubuntu, codename: jammy,    description: Ubuntu 22.04 (Jammy Jellyfish), qt_version: '6' },
-          { distribution: ubuntu, codename: lunar,    description: Ubuntu 23.04 (Lunar Lobster),   qt_version: '6' },
-          { distribution: ubuntu, codename: mantic,   description: Ubuntu 23.10 (Mantic Minotaur), qt_version: '6' },
-          { distribution: debian, codename: buster,   description: Debian 10.x (Buster),           qt_version: '5' },
-          { distribution: debian, codename: bullseye, description: Debian 11.x (Bullseye),         qt_version: '6' },
-          { distribution: debian, codename: bookworm, description: Debian 12.x (Bookworm),         qt_version: '6' },
-          { distribution: debian, codename: trixie,   description: Debian 13.x (Trixie),           qt_version: '6' }
+          { distribution: ubuntu, codename: jammy,    description: Ubuntu 22.04 (Jammy Jellyfish), qt_version: '6' }
         ]
         architecture: [
-          [ amd64, linux/amd64  ],
-          [ arm64, linux/arm64  ],
-          [ armhf, linux/arm/v7 ]
+          [ amd64, linux/amd64  ]
         ]
-        include:
-          - os: { distribution: debian, codename: bullseye, description: Debian 11.x (Bullseye) }
-            architecture: [ armel, linux/arm/v6 ]
-          - os: { distribution: debian, codename: bookworm, description: Debian 12.x (Bookworm) }
-            architecture: [ armel, linux/arm/v6 ]
-          - os: { distribution: debian, codename: trixie, description: Debian 13.x (Trixie) }
-            architecture: [ armel, linux/arm/v6 ]
+        # os: [
+        #   { distribution: ubuntu, codename: focal,    description: Ubuntu 20.04 (Focal Fossa),     qt_version: '5' },
+        #   { distribution: ubuntu, codename: jammy,    description: Ubuntu 22.04 (Jammy Jellyfish), qt_version: '6' },
+        #   { distribution: ubuntu, codename: lunar,    description: Ubuntu 23.04 (Lunar Lobster),   qt_version: '6' },
+        #   { distribution: ubuntu, codename: mantic,   description: Ubuntu 23.10 (Mantic Minotaur), qt_version: '6' },
+        #   { distribution: debian, codename: buster,   description: Debian 10.x (Buster),           qt_version: '5' },
+        #   { distribution: debian, codename: bullseye, description: Debian 11.x (Bullseye),         qt_version: '6' },
+        #   { distribution: debian, codename: bookworm, description: Debian 12.x (Bookworm),         qt_version: '6' },
+        #   { distribution: debian, codename: trixie,   description: Debian 13.x (Trixie),           qt_version: '6' }
+        # ]
+        # architecture: [
+        #   [ amd64, linux/amd64  ],
+        #   [ arm64, linux/arm64  ],
+        #   [ armhf, linux/arm/v7 ]
+        # ]
+        # include:
+        #   - os: { distribution: debian, codename: bullseye, description: Debian 11.x (Bullseye) }
+        #     architecture: [ armel, linux/arm/v6 ]
+        #   - os: { distribution: debian, codename: bookworm, description: Debian 12.x (Bookworm) }
+        #     architecture: [ armel, linux/arm/v6 ]
+        #   - os: { distribution: debian, codename: trixie, description: Debian 13.x (Trixie) }
+        #     architecture: [ armel, linux/arm/v6 ]
 
     steps:
       - name: ⬇ Checkout
