@@ -63,7 +63,7 @@ jobs:
     uses: ./.github/workflows/repo_build_rpm.yml
     secrets: inherit
     with:
-      publish: true
+      upload: true
 
   # Publish RPM Packages to DNF Repository (runs only on tagged commits)
   dnf_publish:
