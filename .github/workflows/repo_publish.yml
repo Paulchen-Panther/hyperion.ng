@@ -40,7 +40,6 @@ jobs:
       - name: ⬇ Checkout
         uses: actions/checkout@v4
         with:
-          path: hyperion
           ref: ${{ github.event.inputs.head_sha || github.event.client_payload.head_sha }}
 
       - name: 🔑 GPG Import
@@ -55,7 +54,6 @@ jobs:
         uses: actions/download-artifact@v3
 
       - name: 🔧 Prepare DEB Upload
-        working-directory: hyperion/
         if: ${{ inputs.container == 'ubuntu' && env.SECRET_APT_REPO_NIGHTLY != null && env.SECRET_APT_REPO != null }}
         shell: bash
         run: |
