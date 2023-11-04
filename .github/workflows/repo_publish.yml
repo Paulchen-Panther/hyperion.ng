@@ -30,17 +30,18 @@ jobs:
     steps:
       - name: 🔧 Install Dependencies
         if: ${{ inputs.container == 'ubuntu' }}
-        run: apt-get update && apt-get -y install git gnupg2 reprepro
+        run: |
+          if [[ "${{ inputs.container }}" = ubuntu ]]; then
+            apt-get update && apt-get -y install git gnupg2 reprepro
+          elif [[ "${{ inputs.container }}" = fedora ]]; then
+            dnf install createrepo rpm-sign -y
+          fi
 
       - name: ⬇ Checkout
         uses: actions/checkout@v4
         with:
           path: hyperion
           ref: ${{ github.event.inputs.head_sha || github.event.client_payload.head_sha }}
-
-      - name: 🔧 Install GPG
-        if: ${{ inputs.container == 'ubuntu' }}
-        run: apt-get update && apt-get -y install gnupg2
 
       - name: 🔑 GPG Import
         if: ${{ env.SECRET_GPG_KEY != null }}
@@ -59,6 +60,7 @@ jobs:
         run: |
           echo '::group::Create initial structure'
             mkdir -p deb/{conf,dists,db}
+            ls
             cp debian/distributions deb/conf/distributions
             if [[ "${{ inputs.nightly }}" = true ]]; then
               touch "deb/$(git rev-parse --short HEAD)"
@@ -91,10 +93,6 @@ jobs:
       - name: 🔧 Prepare RPM Upload
         if: ${{ inputs.container == 'fedora' && env.SECRET_DNF_REPO_NIGHTLY != null && env.SECRET_DNF_REPO != null }}
         run: |
-          echo '::group::Install createrepo & rpm-sign'
-            dnf install createrepo rpm-sign -y
-          echo '::endgroup::'
-
           echo '::group::Make folders, sign/copy packages and create metadata/manifest files'
             mkdir rpm/
             gpg --armor --output hyperion.pub.key --export 'admin@hyperion-project.org'
@@ -131,19 +129,19 @@ jobs:
           SECRET_DNF_REPO_NIGHTLY: ${{ secrets.DNF_REPO_NIGHTLY }}
           SECRET_DNF_REPO: ${{ secrets.DNF_REPO }}
 
-      - name: 📦 Upload
-        if: ${{ env.SECRET_REPO_USER != null && env.SECRET_REPO_PASSWORD != null && env.SERVER_DIR != null && env.LOCAL_DIR != null }}
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
-        with:
-          server: releases.hyperion-project.org
-          username: ${{ secrets.REPO_USER }}
-          password: ${{ secrets.REPO_PASSWORD }}
-          server-dir: ${{ env.SERVER_DIR }}
-          local-dir: ${{ env.LOCAL_DIR }}
-          dangerous-clean-slate: true
-        env:
-          SECRET_REPO_USER: ${{ secrets.REPO_USER }}
-          SECRET_REPO_PASSWORD: ${{ secrets.REPO_PASSWORD }}
+      # - name: 📦 Upload
+      #   if: ${{ env.SECRET_REPO_USER != null && env.SECRET_REPO_PASSWORD != null && env.SERVER_DIR != null && env.LOCAL_DIR != null }}
+      #   uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+      #   with:
+      #     server: releases.hyperion-project.org
+      #     username: ${{ secrets.REPO_USER }}
+      #     password: ${{ secrets.REPO_PASSWORD }}
+      #     server-dir: ${{ env.SERVER_DIR }}
+      #     local-dir: ${{ env.LOCAL_DIR }}
+      #     dangerous-clean-slate: true
+      #   env:
+      #     SECRET_REPO_USER: ${{ secrets.REPO_USER }}
+      #     SECRET_REPO_PASSWORD: ${{ secrets.REPO_PASSWORD }}
 
       - name: 🧹 Cleanup
         uses: geekyeggo/delete-artifact@v2

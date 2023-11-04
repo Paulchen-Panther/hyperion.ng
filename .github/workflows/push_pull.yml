@@ -35,14 +35,14 @@ jobs:
   #     publish: ${{ startsWith(github.event.ref, 'refs/tags') }}
 
   # Build DEB Packages for APT Repository (runs only on tagged commits)
-  apt_build:
-    name: 👷 APT Build
+  # apt_build:
+  #   name: 👷 APT Build
     # if: startsWith(github.event.ref, 'refs/tags')
     # needs: [ github_build ]
-    uses: ./.github/workflows/repo_build_deb.yml
-    secrets: inherit
-    with:
-      upload: true
+    # uses: ./.github/workflows/repo_build_deb.yml
+    # secrets: inherit
+    # with:
+    #   upload: true
 
   # Publish DEB Packages to APT Repository (runs only on tagged commits)
   apt_publish:
