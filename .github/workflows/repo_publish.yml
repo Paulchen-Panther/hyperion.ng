@@ -29,6 +29,7 @@ jobs:
       image: ${{ inputs.container }}
     steps:
       - name: 🔧 Install Dependencies
+        shell: bash
         run: |
           if [[ "${{ inputs.container }}" = "ubuntu" ]]; then
             apt-get update && apt-get -y install git gnupg2 reprepro
@@ -56,6 +57,7 @@ jobs:
       - name: 🔧 Prepare DEB Upload
         working-directory: hyperion/
         if: ${{ inputs.container == 'ubuntu' && env.SECRET_APT_REPO_NIGHTLY != null && env.SECRET_APT_REPO != null }}
+        shell: bash
         run: |
           echo '::group::Create initial structure'
             mkdir -p deb/{conf,dists,db}
@@ -91,6 +93,7 @@ jobs:
 
       - name: 🔧 Prepare RPM Upload
         if: ${{ inputs.container == 'fedora' && env.SECRET_DNF_REPO_NIGHTLY != null && env.SECRET_DNF_REPO != null }}
+        shell: bash
         run: |
           echo '::group::Make folders, sign/copy packages and create metadata/manifest files'
             mkdir rpm/
