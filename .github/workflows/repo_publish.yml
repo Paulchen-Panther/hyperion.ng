@@ -53,6 +53,8 @@ jobs:
 
       - name: 💾 Artifact download
         uses: actions/download-artifact@v3
+        with:
+          name: ${{ inputs.container }}
 
       - name: 🔧 Prepare DEB Upload
         if: ${{ inputs.container == 'ubuntu' && env.SECRET_APT_REPO_NIGHTLY != null && env.SECRET_APT_REPO != null }}
@@ -147,5 +149,5 @@ jobs:
       - name: 🧹 Cleanup
         uses: geekyeggo/delete-artifact@v2
         with:
-          name: artifact
+          name: ${{ inputs.container }}
           failOnError: false

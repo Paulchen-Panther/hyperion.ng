@@ -81,5 +81,6 @@ jobs:
         if: ${{ inputs.upload }}
         uses: actions/upload-artifact@v3
         with:
+          name: fedora
           path: deploy
           retention-days: 1

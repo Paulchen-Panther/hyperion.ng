@@ -1,5 +1,5 @@
 #include "MFSourceReaderCB.h"
-#include "grabber/MFGrabber.h"
+#include "grabber/video/mediafoundation/MFGrabber.h"
 
 // Constants
 namespace { const bool verbose = false; }
