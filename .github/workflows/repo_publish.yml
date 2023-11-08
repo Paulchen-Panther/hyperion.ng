@@ -48,6 +48,7 @@ jobs:
         if: ${{ env.SECRET_APT_REPO_NIGHTLY != null && env.SECRET_APT_REPO != null && env.SECRET_DNF_REPO_NIGHTLY != null && env.SECRET_DNF_REPO != null }}
         shell: bash
         run: |
+          set -x
           echo '::group::[APT] Create initial structure and include artifacts into package source'
             DEB_PACKAGES=$(ls -1q artifact/hyperion_*.deb 2>/dev/null | wc -l)
             if [ "$DEB_PACKAGES" -gt 0 ]; then

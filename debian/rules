@@ -9,9 +9,8 @@ TARGET := debian/tmp
 REQUIRED_DEPS := libusb libasound libmbedtls libturbojpeg libcec
 
 # get qt version and set qt deps depending on version
-QT6_PACKAGE_VERSION := $(shell dpkg-query -W -f '$${Version}' libqt6widgets6)
-USE_QT6 ?= $(shell if dpkg --compare-versions $(QT6_PACKAGE_VERSION) ">=" 6.0 ; then echo yes ; fi)
-ifeq ($(USE_QT6),yes)
+QT6_PACKAGE_VERSION := $(shell dpkg-query -W -f '$${Version}' libqt6widgets6 2>/dev/null || echo 0)
+ifeq (ok,$(shell dpkg --compare-versions $(QT6_PACKAGE_VERSION) ge 6.0 && echo ok))
 	QT_DEPS := libqt6widgets6,libqt6sql6,libqt6serialport6,libqt6sql6-sqlite,
 else
 	QT_DEPS := libqt5widgets5,libqt5x11extras5,libqt5sql5,libqt5serialport5,libqt5sql5-sqlite,

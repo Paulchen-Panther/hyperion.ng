@@ -56,7 +56,7 @@ jobs:
 
   # Publish RPM Packages to DNF Repository (runs only on tagged commits)
   publish_packages:
-    name: 🚀 Publish RPM Packages
+    name: 🚀 Publish Packages
     # if: startsWith(github.event.ref, 'refs/tags')
     # needs: [ deb_build, rpm_build ]
     needs: [ rpm_build ]
