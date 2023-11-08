@@ -72,7 +72,7 @@ jobs:
           echo '::endgroup::'
 
           echo '::group::Include artifacts into the package source'
-            for file in artifact/hyperion_*.deb; do
+            for file in ubuntu/hyperion_*.deb; do
               if [ -f "$file" ]; then
                 dist=${file#*~}
                 dist=${dist%_*}
@@ -102,7 +102,7 @@ jobs:
             rpm --import hyperion.pub.key
             channel=$([ "${{ inputs.nightly }}" = true ] && echo "Nightly" || echo "Stable")
             declare -A distArray=([fc]=fedora [el]=rhel)
-            for file in artifact/hyperion-*.rpm; do
+            for file in fedora/hyperion-*.rpm; do
               if [ -f "$file" ]; then
                 dist_ver_arch=$(basename -- "$file")
                 dist_ver_arch=${dist_ver_arch%.*}
