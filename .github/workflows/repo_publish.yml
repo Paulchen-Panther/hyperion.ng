@@ -48,10 +48,10 @@ jobs:
         if: ${{ env.SECRET_APT_REPO_NIGHTLY != null && env.SECRET_APT_REPO != null && env.SECRET_DNF_REPO_NIGHTLY != null && env.SECRET_DNF_REPO != null }}
         shell: bash
         run: |
-          set -x
+          set -e
           echo '::group::[APT] Create initial structure and include artifacts into package source'
             DEB_PACKAGES=$(ls -1q artifact/hyperion_*.deb 2>/dev/null | wc -l)
-            if [ "$DEB_PACKAGES" -gt 0 ]; then
+            if [ $DEB_PACKAGES -gt 0 ]; then
               mkdir -p deb/{conf,dists,db}
               cp debian/distributions deb/conf/distributions
               if [[ "${{ inputs.nightly }}" = true ]]; then
@@ -71,7 +71,7 @@ jobs:
 
           echo '::group::[DNF] Make folders, sign/copy packages and create metadata/manifest files'
             RPM_PACKAGES=$(ls -1q artifact/hyperion-*.rpm 2>/dev/null | wc -l)
-            if [ "$RPM_PACKAGES" -gt 0 ]; then
+            if [ $RPM_PACKAGES -gt 0 ]; then
               mkdir rpm/
               gpg --armor --output hyperion.pub.key --export 'admin@hyperion-project.org'
               rpm --import hyperion.pub.key
