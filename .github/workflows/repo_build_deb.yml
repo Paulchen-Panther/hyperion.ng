@@ -105,6 +105,5 @@ jobs:
         if: ${{ inputs.upload }}
         uses: actions/upload-artifact@v3
         with:
-          name: ubuntu
           path: deploy
           retention-days: 1

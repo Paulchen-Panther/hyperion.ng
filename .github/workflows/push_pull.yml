@@ -34,26 +34,15 @@ jobs:
   #     pull_request_number: ${{ github.event.pull_request.number }}
   #     publish: ${{ startsWith(github.event.ref, 'refs/tags') }}
 
-  # Build DEB Packages for APT Repository (runs only on tagged commits)
-  deb_build:
-    name: 👷 Build DEB Packages
-    # if: startsWith(github.event.ref, 'refs/tags')
-    # needs: [ github_build ]
-    uses: ./.github/workflows/repo_build_deb.yml
-    secrets: inherit
-    with:
-      upload: true
-
-  # Publish DEB Packages to APT Repository (runs only on tagged commits)
-  deb_publish:
-    name: 🚀 Publish DEB Packages
-    # if: startsWith(github.event.ref, 'refs/tags')
-    needs: [ deb_build ]
-    uses: ./.github/workflows/repo_publish.yml
-    secrets: inherit
-    with:
-      publish: true
-      container: 'ubuntu'
+  # # Build DEB Packages for APT Repository (runs only on tagged commits)
+  # deb_build:
+  #   name: 👷 Build DEB Packages
+  #   # if: startsWith(github.event.ref, 'refs/tags')
+  #   # needs: [ github_build ]
+  #   uses: ./.github/workflows/repo_build_deb.yml
+  #   secrets: inherit
+  #   with:
+  #     upload: true
 
   # Build RPM Packages for DNF Repository (runs only on tagged commits)
   rpm_build:
@@ -66,13 +55,12 @@ jobs:
       upload: true
 
   # Publish RPM Packages to DNF Repository (runs only on tagged commits)
-  rpm_publish:
+  publish_packages:
     name: 🚀 Publish RPM Packages
     # if: startsWith(github.event.ref, 'refs/tags')
+    # needs: [ deb_build, rpm_build ]
     needs: [ rpm_build ]
     uses: ./.github/workflows/repo_publish.yml
     secrets: inherit
     with:
       publish: true
-      container: 'fedora'
-
