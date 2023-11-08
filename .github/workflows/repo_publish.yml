@@ -97,11 +97,11 @@ jobs:
 
           echo '::group::[APT/DNF] Set server directory'
             if [[ "${{ inputs.nightly }}" = true ]]; then
-              [ "$DEB_PACKAGES" -gt 0 ] && echo "APT_SERVER_DIR=${{ secrets.APT_REPO_NIGHTLY }}" >> $GITHUB_ENV
-              [ "$RPM_PACKAGES" -gt 0 ] && echo "DNF_SERVER_DIR=${{ secrets.DNF_REPO_NIGHTLY }}" >> $GITHUB_ENV
+              [[ $DEB_PACKAGES -gt 0 ]] && echo "APT_SERVER_DIR=${{ secrets.APT_REPO_NIGHTLY }}" >> $GITHUB_ENV
+              [[ $RPM_PACKAGES -gt 0 ]] && echo "DNF_SERVER_DIR=${{ secrets.DNF_REPO_NIGHTLY }}" >> $GITHUB_ENV
             else
-              [ "$DEB_PACKAGES" -gt 0 ] && echo "APT_SERVER_DIR=${{ secrets.APT_REPO }}" >> $GITHUB_ENV
-              [ "$RPM_PACKAGES" -gt 0 ] && echo "DNF_SERVER_DIR=${{ secrets.DNF_REPO }}" >> $GITHUB_ENV
+              [[ $DEB_PACKAGES -gt 0 ]] && echo "APT_SERVER_DIR=${{ secrets.APT_REPO }}" >> $GITHUB_ENV
+              [[ $RPM_PACKAGES -gt 0 ]] && echo "DNF_SERVER_DIR=${{ secrets.DNF_REPO }}" >> $GITHUB_ENV
             fi
           echo '::endgroup::'
         env:
