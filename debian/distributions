@@ -32,16 +32,16 @@ SignWith: yes
 
 Origin: Hyperion-Project
 Label: apt.hyperion-project.org
-Suite: oldstable
+Suite: oldoldstable
 Codename: buster
-Architectures: amd64 armhf arm64
+Architectures: amd64 armhf arm64 armel
 Components: main
 Description: Official APT Repository by Hyperion Project
 SignWith: yes
 
 Origin: Hyperion-Project
 Label: apt.hyperion-project.org
-Suite: stable
+Suite: oldstable
 Codename: bullseye
 Architectures: amd64 armhf arm64 armel
 Components: main
@@ -50,7 +50,7 @@ SignWith: yes
 
 Origin: Hyperion-Project
 Label: apt.hyperion-project.org
-Suite: unstable
+Suite: stable
 Codename: bookworm
 Architectures: amd64 armhf arm64 armel
 Components: main
