@@ -36,7 +36,6 @@ jobs:
     needs: [ github_build ]
     runs-on: ubuntu-latest
     steps:
-      # Dispatch event to build APT/DNF Repo
       - name: 📲 Dispatch APT/DNF build
         if: ${{ startsWith(github.event.ref, 'refs/tags') && env.SECRET_HYPERION_BOT_TOKEN != null }}
         uses: peter-evans/repository-dispatch@v2.1.2
