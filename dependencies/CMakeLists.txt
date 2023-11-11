@@ -47,16 +47,7 @@ if (ENABLE_MDNS)
 
 			configure_file(${CMAKE_SOURCE_DIR}/dependencies/CMakeLists-qmdnsengine.txt.in ${QMDNS_WORK_DIR}/CMakeLists.txt @ONLY)
 			execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" . WORKING_DIRECTORY ${QMDNS_WORK_DIR})
-
-			# flag -j to cmake --build was added at 3.12
-			if(NOT (CMAKE_VERSION VERSION_LESS "3.12") AND ((CMAKE_GENERATOR MATCHES "Make") OR WIN32))
-				include(ProcessorCount)
-				ProcessorCount(N)
-				if(NOT N EQUAL 0)
-					set(QMDNS_BUILD_FLAG "-j ${N}")
-				endif()
-			endif()
-			execute_process(COMMAND ${CMAKE_COMMAND} --build . --config "${CMAKE_BUILD_TYPE}" ${QMDNS_BUILD_FLAG} WORKING_DIRECTORY ${QMDNS_WORK_DIR})
+			execute_process(COMMAND ${CMAKE_COMMAND} --build . --config "${CMAKE_BUILD_TYPE}" WORKING_DIRECTORY ${QMDNS_WORK_DIR})
 		endif()
 
 		set(QMDNS_INCLUDE_DIR "${CMAKE_BINARY_DIR}/include")

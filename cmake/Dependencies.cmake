@@ -36,6 +36,7 @@ macro(DeployMacOS TARGET)
 							FILES "${dependency}"
 							DESTINATION "${CMAKE_INSTALL_PREFIX}/${TARGET_BUNDLE_NAME}/Contents/lib"
 							TYPE SHARED_LIBRARY
+							FOLLOW_SYMLINK_CHAIN
 						)
 					endif()
 				endforeach()
@@ -48,7 +49,6 @@ macro(DeployMacOS TARGET)
 				foreach(PLUGIN "platforms" "sqldrivers" "imageformats")
 					if(EXISTS ${PLUGIN_DIR}/${PLUGIN})
 						file(GLOB files "${PLUGIN_DIR}/${PLUGIN}/*")
-						list(FILTER files EXCLUDE REGEX ".*libqwebp\\.dylib$")
 						foreach(file ${files})
 								file(GET_RUNTIME_DEPENDENCIES
 								EXECUTABLES ${file}
@@ -61,6 +61,7 @@ macro(DeployMacOS TARGET)
 											DESTINATION "${CMAKE_INSTALL_PREFIX}/${TARGET_BUNDLE_NAME}/Contents/lib"
 											TYPE SHARED_LIBRARY
 											FILES ${DEPENDENCY}
+											FOLLOW_SYMLINK_CHAIN
 										)
 								endforeach()
 
@@ -82,19 +83,21 @@ macro(DeployMacOS TARGET)
 				if(ENABLE_EFFECTENGINE)
 
 					# Detect the Python version and modules directory
-					find_package(Python3 3.5 REQUIRED)
-					execute_process(
-						COMMAND ${Python3_EXECUTABLE} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib(standard_lib=True))"
-						OUTPUT_VARIABLE PYTHON_MODULES_DIR
-						OUTPUT_STRIP_TRAILING_WHITESPACE
-					)
+					if(NOT CMAKE_VERSION VERSION_LESS "3.12")
+						find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
+						set(PYTHON_VERSION_MAJOR_MINOR "${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}")
+						set(PYTHON_MODULES_DIR ${Python3_STDLIB})
+					else()
+						find_package (PythonLibs ${PYTHON_VERSION_STRING} EXACT)
+						set(PYTHON_VERSION_MAJOR_MINOR "${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}")
+						set(PYTHON_MODULES_DIR ${Python_STDLIB})
+					endif()
 
 					MESSAGE("Add Python ${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR} to bundle")
 					MESSAGE("PYTHON_MODULES_DIR: ${PYTHON_MODULES_DIR}")
 
 					# Copy Python modules to '/../Frameworks/Python.framework/Versions/Current/lib/PythonMAJOR.MINOR' and ignore the unnecessary stuff listed below
 					if (PYTHON_MODULES_DIR)
-						set(PYTHON_VERSION_MAJOR_MINOR "${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}")
 						file(
 							COPY ${PYTHON_MODULES_DIR}/
 							DESTINATION "${CMAKE_INSTALL_PREFIX}/${TARGET_BUNDLE_NAME}/Contents/Frameworks/Python.framework/Versions/Current/lib/python${PYTHON_VERSION_MAJOR_MINOR}"

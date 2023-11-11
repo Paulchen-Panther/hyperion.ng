@@ -134,7 +134,7 @@ endif()
 ########### Install steps ###########
 #####################################
 
-if(APPLE AND NOT CMAKE_HOST_UNIX)
+if(APPLE)
 	set_target_properties(${PROJECT_NAME} PROPERTIES
 		MACOSX_BUNDLE TRUE
 		MACOSX_BUNDLE_INFO_PLIST ${CMAKE_SOURCE_DIR}/cmake/osxbundle/Info.plist.in
