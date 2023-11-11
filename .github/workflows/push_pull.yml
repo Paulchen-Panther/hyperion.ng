@@ -44,6 +44,6 @@ jobs:
           repository: hyperion-project/hyperion.releases-ci
           token: ${{ secrets.HYPERION_BOT_TOKEN }}
           event-type: releases_repo_build
-          client-payload: '{ "head_sha": "${{ github.event.client_payload.head_sha }}" }'
+          client-payload: '{ "head_sha": "${{ github.sha }}" }'
         env:
           SECRET_HYPERION_BOT_TOKEN: ${{ secrets.HYPERION_BOT_TOKEN }}
