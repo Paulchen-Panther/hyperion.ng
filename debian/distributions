@@ -43,7 +43,7 @@ Origin: Hyperion-Project
 Label: apt.hyperion-project.org
 Suite: oldstable
 Codename: bullseye
-Architectures: amd64 armhf arm64 armel
+Architectures: amd64 armhf arm64
 Components: main
 Description: Official APT Repository by Hyperion Project
 SignWith: yes
@@ -52,7 +52,7 @@ Origin: Hyperion-Project
 Label: apt.hyperion-project.org
 Suite: stable
 Codename: bookworm
-Architectures: amd64 armhf arm64 armel
+Architectures: amd64 armhf arm64
 Components: main
 Description: Official APT Repository by Hyperion Project
 SignWith: yes
@@ -61,7 +61,7 @@ Origin: Hyperion-Project
 Label: apt.hyperion-project.org
 Suite: testing
 Codename: trixie
-Architectures: amd64 armhf arm64 armel
+Architectures: amd64 armhf arm64
 Components: main
 Description: Official APT Repository by Hyperion Project
 SignWith: yes

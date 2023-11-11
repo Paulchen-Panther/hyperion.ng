@@ -40,10 +40,11 @@ jobs:
           { distribution: debian, codename: bookworm, description: Debian 12.x (Bookworm),         qt_version: '6' },
           { distribution: debian, codename: trixie,   description: Debian 13.x (Trixie),           qt_version: '6' }
         ]
-        architecture: [ [ amd64, linux/amd64  ], [ arm64, linux/arm64  ], [ armhf, linux/arm/v7 ], [ armel, linux/arm/v6 ] ]
-        exclude:
-          - os: { distribution: ubuntu }
-            architecture: [ armel, linux/arm/v6 ]
+        architecture: [
+          [ amd64, linux/amd64  ],
+          [ arm64, linux/arm64  ],
+          [ armhf, linux/arm/v7 ]
+        ]
 
     steps:
       - name: ⬇ Checkout
