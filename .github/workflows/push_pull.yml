@@ -35,14 +35,15 @@ jobs:
     name: 🚀 Let Hyperion build its own repository (APT/DNF)
     runs-on: ubuntu-latest
     steps:
+      # Dispatch event to build APT/DNF Repo
       - name: 📲 Dispatch APT/DNF build
-      # if: ${{ startsWith(github.event.ref, 'refs/tags') && env.SECRET_HYPERION_BOT_TOKEN != null }}
-      # needs: [ github_build ]
-      uses: peter-evans/repository-dispatch@v2.1.2
-      with:
-        repository: hyperion-project/hyperion.releases-ci
-        token: ${{ secrets.HYPERION_BOT_TOKEN }}
-        event-type: releases_repo_build
-        client-payload: '{ "head_sha": "${{ github.event.client_payload.head_sha }}" }'
-      env:
-        SECRET_HYPERION_BOT_TOKEN: ${{ secrets.HYPERION_BOT_TOKEN }}
+        # if: ${{ startsWith(github.event.ref, 'refs/tags') && env.SECRET_HYPERION_BOT_TOKEN != null }}
+        # needs: [ github_build ]
+        uses: peter-evans/repository-dispatch@v2.1.2
+        with:
+          repository: hyperion-project/hyperion.releases-ci
+          token: ${{ secrets.HYPERION_BOT_TOKEN }}
+          event-type: releases_repo_build
+          client-payload: '{ "head_sha": "${{ github.event.client_payload.head_sha }}" }'
+        env:
+          SECRET_HYPERION_BOT_TOKEN: ${{ secrets.HYPERION_BOT_TOKEN }}
