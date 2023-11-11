@@ -15,10 +15,6 @@ on:
 
 jobs:
 
-########################################################
-######  The following jobs are reusable workflows ######
-########################################################
-
   # # GitHub Push/PR/Release
   # github_build:
   #   name: Qt ${{ matrix.qt_version }} Build ${{ matrix.qt_version == '6' && '(Testing))' || '' }}
@@ -34,32 +30,15 @@ jobs:
   #     pull_request_number: ${{ github.event.pull_request.number }}
   #     publish: ${{ startsWith(github.event.ref, 'refs/tags') }}
 
-  # Build DEB Packages for APT Repository (runs only on tagged commits)
-  deb_build:
-    name: 👷 Build DEB Packages
-    # if: startsWith(github.event.ref, 'refs/tags')
-    # needs: [ github_build ]
-    uses: ./.github/workflows/repo_build_deb.yml
-    secrets: inherit
-    with:
-      upload: true
-
-  # Build RPM Packages for DNF Repository (runs only on tagged commits)
-  rpm_build:
-    name: 👷 Build RPM Packages
-    # if: startsWith(github.event.ref, 'refs/tags')
-    # needs: [ github_build ]
-    uses: ./.github/workflows/repo_build_rpm.yml
-    secrets: inherit
-    with:
-      upload: true
-
-  # Publish RPM Packages to DNF Repository (runs only on tagged commits)
-  publish_packages:
-    name: 🚀 Publish Packages
-    # if: startsWith(github.event.ref, 'refs/tags')
-    needs: [ deb_build, rpm_build ]
-    uses: ./.github/workflows/repo_publish.yml
-    secrets: inherit
-    with:
-      publish: true
+  # # Build DEB/RPM Packages for APT/DNF Repository (runs only on tagged commits)
+  # repo_build:
+  #   name: 🚀 Let Hyperion build its own repository (APT/DNF)
+  #   # if: startsWith(github.event.ref, 'refs/tags')
+  #   # needs: [ github_build ]
+  #   uses: peter-evans/repository-dispatch@v2.1.2
+  #   # if: ${{ github.repository_owner == 'hyperion-project'}}
+  #   with:
+  #     repository: hyperion-project/hyperion.releases-ci
+  #     token: ${{ secrets.HYPERION_BOT_TOKEN }}
+  #     event-type: releases_repo_build
+  #     client-payload: '{ "head_sha": "${{ github.event.client_payload.head_sha }}" }'
