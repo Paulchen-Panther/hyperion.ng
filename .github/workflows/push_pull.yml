@@ -30,15 +30,16 @@ jobs:
   #     pull_request_number: ${{ github.event.pull_request.number }}
   #     publish: ${{ startsWith(github.event.ref, 'refs/tags') }}
 
-  # # Build DEB/RPM Packages for APT/DNF Repository (runs only on tagged commits)
-  # repo_build:
-  #   name: 🚀 Let Hyperion build its own repository (APT/DNF)
-  #   # if: startsWith(github.event.ref, 'refs/tags')
-  #   # needs: [ github_build ]
-  #   uses: peter-evans/repository-dispatch@v2.1.2
-  #   # if: ${{ github.repository_owner == 'hyperion-project'}}
-  #   with:
-  #     repository: hyperion-project/hyperion.releases-ci
-  #     token: ${{ secrets.HYPERION_BOT_TOKEN }}
-  #     event-type: releases_repo_build
-  #     client-payload: '{ "head_sha": "${{ github.event.client_payload.head_sha }}" }'
+  # Build DEB/RPM Packages for APT/DNF Repository (runs only on tagged commits)
+  repo_build:
+    name: 🚀 Let Hyperion build its own repository (APT/DNF)
+    # if: ${{ startsWith(github.event.ref, 'refs/tags') && env.SECRET_HYPERION_BOT_TOKEN != null }}
+    # needs: [ github_build ]
+    uses: peter-evans/repository-dispatch@v2.1.2
+    with:
+      repository: hyperion-project/hyperion.releases-ci
+      token: ${{ secrets.HYPERION_BOT_TOKEN }}
+      event-type: releases_repo_build
+      client-payload: '{ "head_sha": "${{ github.event.client_payload.head_sha }}" }'
+    env:
+      SECRET_HYPERION_BOT_TOKEN: ${{ secrets.HYPERION_BOT_TOKEN }}
