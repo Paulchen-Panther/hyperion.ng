@@ -279,15 +279,13 @@ macro(DeployLinux TARGET)
 		if(ENABLE_EFFECTENGINE)
 			# Detect the Python version and modules directory
 			if (NOT CMAKE_VERSION VERSION_LESS "3.12")
+				find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
 				set(PYTHON_VERSION_MAJOR_MINOR "${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}")
-				set(PYTHON_MODULES_DIR "${Python3_STDLIB}")
+				set(PYTHON_MODULES_DIR ${Python3_STDLIB})
 			else()
+				find_package (PythonLibs ${PYTHON_VERSION_STRING} EXACT)
 				set(PYTHON_VERSION_MAJOR_MINOR "${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}")
-				execute_process(
-					COMMAND ${PYTHON_EXECUTABLE} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib(standard_lib=True))"
-					OUTPUT_VARIABLE PYTHON_MODULES_DIR
-					OUTPUT_STRIP_TRAILING_WHITESPACE
-				)
+				set(PYTHON_MODULES_DIR ${Python_STDLIB})
 			endif()
 
 			# Copy Python modules to 'share/hyperion/lib/pythonMAJOR.MINOR' and ignore the unnecessary stuff listed below
