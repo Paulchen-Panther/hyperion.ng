@@ -15,7 +15,7 @@ on:
 
 jobs:
 
-  # GitHub Push/PR/Release
+  # GitHub Push/Pull Request (Release only on tagged commits)
   github_build:
     name: Qt ${{ matrix.qt_version }} Build ${{ matrix.qt_version == '6' && '(Testing))' || '' }}
     strategy:
@@ -33,11 +33,12 @@ jobs:
   # Build DEB/RPM Packages for APT/DNF Repository (runs only on tagged commits)
   repo_build:
     name: 🚀 Let Hyperion build its own repository (APT/DNF)
+    if: startsWith(github.event.ref, 'refs/tags')
     needs: [ github_build ]
     runs-on: ubuntu-latest
     steps:
       - name: 📲 Dispatch APT/DNF build
-        if: ${{ startsWith(github.event.ref, 'refs/tags') && env.SECRET_HYPERION_BOT_TOKEN != null }}
+        if: ${{ env.SECRET_HYPERION_BOT_TOKEN != null }}
         uses: peter-evans/repository-dispatch@v2.1.2
         with:
           repository: hyperion-project/hyperion.releases-ci

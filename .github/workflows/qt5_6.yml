@@ -26,7 +26,7 @@ on:
         required: false
 
 env:
-  ghcr: paulchen-panther #hyperion-project
+  ghcr: hyperion-project
 
 jobs:
 
@@ -73,7 +73,6 @@ jobs:
           submodules: recursive
 
       - name: 🔧 Prepare
-        if: ${{ inputs.event_name == 'pull_request' }}
         shell: bash
         run: |
           echo '::group::Append PR number to version (PR  only)'
@@ -83,16 +82,9 @@ jobs:
             fi
           echo '::endgroup::'
 
-          echo '::group::Create deploy directory'
-            mkdir ${GITHUB_WORKSPACE}/deploy
-          echo '::endgroup::'
-
       - name: 👷 Build
         shell: bash
-        run: |
-          echo '::group::Build Hyperion'
-            ./.github/scripts/build.sh
-          echo '::endgroup::'
+        run: ./.github/scripts/build.sh
         env:
           DOCKER_IMAGE: ${{ matrix.os.distribution }}
           DOCKER_TAG: ${{ matrix.os.codename }}${{ inputs.qt_version == '6' && '-qt6' || '' }}
@@ -121,27 +113,25 @@ jobs:
         with:
           submodules: recursive
 
-      - name: 🔧 Prepare PR
-        if: ${{ inputs.event_name == 'pull_request' }}
+      - name: 🔧 Prepare
         shell: bash
         run: |
-          echo '::group::Append PR number to version'
-            tr -d '\n' < .version > temp && mv temp .version
-            echo -n "+PR${{ inputs.pull_request_number }}" >> .version
+          echo '::group::Append PR number to version (PR  only)'
+            if [[ "${{ inputs.event_name }}" = "pull_request" ]]; then
+              tr -d '\n' < .version > temp && mv temp .version
+              echo -n "+PR${{ inputs.pull_request_number }}" >> .version
+            fi
           echo '::endgroup::'
 
-      - name: 👷 Build
-        shell: bash
-        run: |
           echo '::group::Update/Install dependencies'
             brew update || true
             brew install --overwrite qt${{ inputs.qt_version }} libusb
             brew link --overwrite --force qt${{ inputs.qt_version }}
           echo '::endgroup::'
 
-          echo '::group::Build packages'
-            ./.github/scripts/build.sh
-          echo '::endgroup::'
+      - name: 👷 Build
+        shell: bash
+        run: ./.github/scripts/build.sh
         env:
           PLATFORM: osx
 
@@ -211,10 +201,7 @@ jobs:
 
       - name: 👷 Build
         shell: bash
-        run: |
-          echo '::group::Build packages'
-            ./.github/scripts/build.sh
-          echo '::endgroup::'
+        run: ./.github/scripts/build.sh
         env:
           PLATFORM: windows
 
