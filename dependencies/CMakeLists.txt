@@ -44,15 +44,15 @@ if (ENABLE_MDNS)
 
 		include(ExternalProject)
 		ExternalProject_Add(qmdns
-			PREFIX				${CMAKE_BINARY_DIR}/dependencies/external/qmdnsengine
+			PREFIX			${CMAKE_BINARY_DIR}/dependencies/external/qmdnsengine
 			BUILD_ALWAYS		OFF
 			DOWNLOAD_COMMAND	""
-			SOURCE_DIR			${CMAKE_CURRENT_SOURCE_DIR}/external/qmdnsengine
-			BINARY_DIR			${CMAKE_BINARY_DIR}/dependencies/external/qmdnsengine/build
-			CMAKE_ARGS			${QMDNS_CMAKE_ARGS}
-			CONFIGURE_COMMAND	${CMAKE_COMMAND} -S <SOURCE_DIR> -B <BINARY_DIR> ${QMDNS_CMAKE_ARGS} -G ${CMAKE_GENERATOR}
-			BUILD_COMMAND		${CMAKE_COMMAND} --build <BINARY_DIR> --config $<CONFIG>
-			INSTALL_DIR			${CMAKE_BINARY_DIR}
+			SOURCE_DIR		${CMAKE_CURRENT_SOURCE_DIR}/external/qmdnsengine
+			# BINARY_DIR		${CMAKE_BINARY_DIR}/dependencies/external/qmdnsengine/build
+			CMAKE_ARGS		${QMDNS_CMAKE_ARGS}
+			# CONFIGURE_COMMAND	${CMAKE_COMMAND} -S <SOURCE_DIR> -B <BINARY_DIR> ${QMDNS_CMAKE_ARGS} -G ${CMAKE_GENERATOR}
+			# BUILD_COMMAND		${CMAKE_COMMAND} --build <BINARY_DIR> --config $<CONFIG>
+			INSTALL_DIR		${CMAKE_BINARY_DIR}
 			BUILD_BYPRODUCTS	${QMDNS_LIBRARIES}
 		)
 
