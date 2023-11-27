@@ -24,6 +24,8 @@ jobs:
           brew untap homebrew/core homebrew/cask
           brew update -q || brew update-reset
           brew install qt${{ inputs.qt_version }} || true
+          brew upgrade $(brew outdated --formula -q) || true
+          brew cleanup || true
           brew doctor
 
       - name: 👷 Build
