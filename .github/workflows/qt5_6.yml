@@ -21,7 +21,8 @@ jobs:
       - name: 🔧 Prepare
         shell: bash
         run: |
-          brew update || brew update-reset
+          brew untap homebrew/core homebrew/cask
+          brew update -q || brew update-reset
           brew install qt${{ inputs.qt_version }} || true
           brew doctor
 
