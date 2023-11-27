@@ -28,7 +28,7 @@ jobs:
         run: |
           brew untap --force homebrew/core homebrew/cask
           brew update || true
-          brew install qt${{ inputs.qt_version }} glfw || true
+          brew install qt${{ inputs.qt_version }} vulkan-headers || true
 
       - name: 👷 Build
         shell: bash
