@@ -20,7 +20,10 @@ jobs:
     steps:
       - name: 🔧 Prepare
         shell: bash
-        run: |
-            # brew update || true
-            brew install qt${{ inputs.qt_version }} libusb
-            brew unlink qt@${{ inputs.qt_version }} && brew link qt@${{ inputs.qt_version }} --force
+        run: brew install qt${{ inputs.qt_version }}
+
+      - name: 👷 Build
+        shell: bash
+        run: ./.github/scripts/build.sh
+        env:
+          PLATFORM: osx
