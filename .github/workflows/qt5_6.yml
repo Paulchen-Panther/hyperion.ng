@@ -21,6 +21,6 @@ jobs:
       - name: 🔧 Prepare
         shell: bash
         run: |
-            brew update || true
+            # brew update || true
             brew install qt${{ inputs.qt_version }} libusb
             brew unlink qt@${{ inputs.qt_version }} && brew link qt@${{ inputs.qt_version }} --force
