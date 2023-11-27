@@ -22,7 +22,7 @@ jobs:
         shell: bash
         run: |
           brew untap --force homebrew/core homebrew/cask
-          brew update
+          brew update || true
           brew install qt${{ inputs.qt_version }} || true
 
       - name: 👷 Build

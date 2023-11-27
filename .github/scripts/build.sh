@@ -46,7 +46,13 @@ elif [[ "$RUNNER_OS" == 'Linux' ]]; then
 		-v "${GITHUB_WORKSPACE}:/source:rw" \
 		$REGISTRY_URL:$DOCKER_TAG \
 		/bin/bash -c "mkdir -p /source/build && cd /source/build &&
-		cmake -DPLATFORM=${PLATFORM} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} ../"
+		cmake -DPLATFORM=${PLATFORM} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} ../ || exit 2 &&
+		cmake --build /source/build --target package -- -j $(nproc) || exit 3 &&
+		cp /source/build/bin/h* /deploy/ 2>/dev/null || : &&
+		cp /source/build/Hyperion-* /deploy/ 2>/dev/null || : &&
+		cd /source && source /source/test/testrunner.sh || exit 5 &&
+		exit 0;
+		exit 1 " || { echo "---> Hyperion compilation failed! Abort"; exit 5; }
 
 	# overwrite file owner to current user
 	sudo chown -fR $(stat -c "%U:%G" ${GITHUB_WORKSPACE}/deploy) ${GITHUB_WORKSPACE}/deploy
