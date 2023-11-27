@@ -25,7 +25,7 @@ jobs:
           brew untap --force homebrew/core homebrew/cask
           brew update -q || brew update-reset
           brew install qt${{ inputs.qt_version }} || true
-          # brew cleanup || true
+          brew cleanup || true
           brew doctor
 
       - name: 👷 Build
