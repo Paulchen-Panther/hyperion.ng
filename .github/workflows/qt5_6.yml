@@ -18,13 +18,16 @@ jobs:
     name: 🍏 macOS test
     runs-on: macos-latest
     steps:
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@master
+        with:
+          cask: false
+          test-bot: false
+
       - name: 🔧 Prepare
         shell: bash
         run: |
-          # brew untap homebrew/core homebrew/cask
-          brew update -q || brew update-reset
           brew install qt${{ inputs.qt_version }} || true
-          brew cleanup || true
           brew doctor
 
       - name: 👷 Build
