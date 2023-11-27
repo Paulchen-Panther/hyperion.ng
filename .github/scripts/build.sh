@@ -46,7 +46,7 @@ elif [[ "$RUNNER_OS" == 'Linux' ]]; then
 		-v "${GITHUB_WORKSPACE}:/source:rw" \
 		$REGISTRY_URL:$DOCKER_TAG \
 		/bin/bash -c "mkdir -p /source/build && cd /source/build &&
-		cmake -DPLATFORM=${PLATFORM} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} ../" || exit 1
+		cmake -DPLATFORM=${PLATFORM} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} ../"
 
 	# overwrite file owner to current user
 	sudo chown -fR $(stat -c "%U:%G" ${GITHUB_WORKSPACE}/deploy) ${GITHUB_WORKSPACE}/deploy

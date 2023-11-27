@@ -21,8 +21,9 @@ jobs:
       - name: 🔧 Prepare
         shell: bash
         run: |
-          brew upgrade || true
-          brew install qt${{ inputs.qt_version }}
+          brew update || brew update-reset
+          brew install qt${{ inputs.qt_version }} || true
+          brew doctor
 
       - name: 👷 Build
         shell: bash
