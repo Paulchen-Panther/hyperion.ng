@@ -28,7 +28,7 @@ jobs:
         run: |
           brew untap --force homebrew/core homebrew/cask
           brew update || true
-          brew install qt${{ inputs.qt_version }} || true
+          brew install qt${{ inputs.qt_version }} glfw || true
 
       - name: 👷 Build
         shell: bash
