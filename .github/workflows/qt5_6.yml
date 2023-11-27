@@ -20,7 +20,9 @@ jobs:
     steps:
       - name: 🔧 Prepare
         shell: bash
-        run: brew install qt${{ inputs.qt_version }}
+        run: |
+          brew upgrade || true
+          brew install qt${{ inputs.qt_version }}
 
       - name: 👷 Build
         shell: bash
