@@ -23,4 +23,4 @@ jobs:
         run: |
             brew update || true
             brew install qt${{ inputs.qt_version }} libusb
-            brew link qt@${{ inputs.qt_version }} --force
+            brew unlink qt@${{ inputs.qt_version }} && brew link qt@${{ inputs.qt_version }} --force
