@@ -21,12 +21,9 @@ jobs:
       - name: 🔧 Prepare
         shell: bash
         run: |
-          unset HOMEBREW_NO_INSTALL_FROM_API
           brew untap --force homebrew/core homebrew/cask
-          brew update -q || brew update-reset
+          brew update
           brew install qt${{ inputs.qt_version }} || true
-          brew cleanup || true
-          brew doctor
 
       - name: 👷 Build
         shell: bash
