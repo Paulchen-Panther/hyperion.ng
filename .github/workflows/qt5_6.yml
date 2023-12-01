@@ -52,14 +52,14 @@ jobs:
         isQt5:
           - ${{ inputs.qt_version == '5' }}
         include:
-          - os.architecture[0]: amd64
+          - os: { architecture[0]: amd64 }
             platform: x11
-          - os.architecture[0]: armv6
+          - os: { architecture[0]: armv6 }
             platform: rpi
-          - os.architecture[0]: armv7
+          - os: { architecture[0]: armv7 }
             platform: rpi
-          - os.architecture[0]: arm64
-            platform: amlogic
+          - os: { architecture[0]: arm64 }
+            platform: rpi
         exclude:
           - isQt5: true
             os: { distribution: debian, codename: bullseye }
