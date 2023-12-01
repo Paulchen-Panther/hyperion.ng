@@ -79,7 +79,7 @@ jobs:
         env:
           DOCKER_IMAGE: ${{ matrix.os.distribution }}
           DOCKER_TAG: ${{ matrix.os.codename }}${{ inputs.qt_version == '6' && '-qt6' || '' }}
-          PLATFORM: ${{ matrix.platform }}
+          PLATFORM: ${{ matrix.os.platform }}
           TARGET_ARCH: ${{ matrix.os.architecture[1] }}
 
       - name: 📦 Upload
