@@ -94,12 +94,13 @@ jobs:
             -S . \
             -B build \
             -G Ninja \
+            -DCMAKE_MAKE_PROGRAM="${IQTA_TOOLS}/Ninja/ninja" \
             -DPLATFORM=${PLATFORM} \
             -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
             -DCMAKE_CONFIGURATION_TYPES="${BUILD_TYPE}" \
             -DMACOS_ARCHITECTURE=arm64 \
             -DCMAKE_INSTALL_PREFIX:PATH=/usr/local
-          cmake --build "build" --config "${BUILD_TYPE}"
+          cmake --build "build" --config "${BUILD_TYPE}" --parallel $(sysctl -n hw.logicalcpu)
         env:
           PLATFORM: ${{ startsWith(github.ref, 'refs/tags/v') && 'osx' || 'osx-dev' }}
           BUILD_TYPE: ${{ startsWith(github.ref, 'refs/tags/v') && 'Release' || 'Debug' }}
