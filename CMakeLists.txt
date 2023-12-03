@@ -200,7 +200,7 @@ if("${PLATFORM}" MATCHES "osx")
 	include_directories("/opt/X11/include/")
 	set(DEFAULT_OSX         ON )
 	set(DEFAULT_AUDIO       OFF)
-	set(DEFAULT_DEV_USB_HID ON )
+	set(DEFAULT_DEV_USB_HID OFF )
 
 elseif ("${PLATFORM}" MATCHES "rpi")
 	set(DEFAULT_DISPMANX   ON)
@@ -576,10 +576,6 @@ message(STATUS "Qt version used: ${QT_VERSION}")
 if(APPLE AND (${QT_VERSION_MAJOR} GREATER_EQUAL 6))
 	set(OPENSSL_ROOT_DIR /usr/local/opt/openssl)
 endif()
-
-# Add libusb and pthreads
-find_package(libusb-1.0 REQUIRED)
-add_definitions(${QT_DEFINITIONS})
 
 # Add the source/lib directories
 add_subdirectory(dependencies)

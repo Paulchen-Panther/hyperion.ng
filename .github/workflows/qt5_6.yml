@@ -99,7 +99,7 @@ jobs:
             -DCMAKE_CONFIGURATION_TYPES="${BUILD_TYPE}" \
             -DMACOS_ARCHITECTURE=arm64 \
             -DCMAKE_INSTALL_PREFIX:PATH=/usr/local
-          cmake --build "build/arm64" --config "${BUILD_TYPE}"
+          cmake --build "build" --config "${BUILD_TYPE}"
         env:
           PLATFORM: ${{ startsWith(github.ref, 'refs/tags/v') && 'osx' || 'osx-dev' }}
           BUILD_TYPE: ${{ startsWith(github.ref, 'refs/tags/v') && 'Release' || 'Debug' }}
