@@ -55,7 +55,7 @@ jobs:
           arch: 'clang_64'
           modules: 'qtserialport'
           dir: '/Users/runner'
-          tools: 'tools_cmake'
+          tools: 'tools_cmake tools_ninja'
           set-env: true
 
       - name: Install Vulkan Headers
@@ -93,7 +93,7 @@ jobs:
           cmake \
             -S . \
             -B build \
-            -G Xcode \
+            -G Ninja \
             -DPLATFORM=${PLATFORM} \
             -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
             -DCMAKE_CONFIGURATION_TYPES="${BUILD_TYPE}" \
