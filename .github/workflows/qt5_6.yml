@@ -42,9 +42,17 @@ jobs:
         with:
           submodules: recursive
 
-      - uses: maxim-lobanov/setup-xcode@v1
+      # - uses: maxim-lobanov/setup-xcode@v1
+      #   with:
+      #     xcode-version: latest-stable
+
+      - name: Install Python
+        uses: actions/setup-python@v4
+        id: setup-python
         with:
-          xcode-version: latest-stable
+          python-version: ${{ env.PYTHON_VERSION }}
+          allow-prereleases: true
+          check-latest: true
 
       - name: Install Qt
         uses: jurplel/install-qt-action@v3
@@ -55,7 +63,8 @@ jobs:
           arch: 'clang_64'
           modules: 'qtserialport'
           dir: '/Users/runner'
-          tools: 'tools_cmake tools_ninja'
+          cache: true
+          cache-key-prefix: macOS-arm64-Qt-${{ env.QT_VERSION }}
           set-env: true
 
       - name: Install Vulkan Headers
@@ -65,16 +74,9 @@ jobs:
           vulkan-use-cache: true
           vulkan-components: Vulkan-Headers
 
-      - name: Install Python
-        uses: actions/setup-python@v4
-        id: setup-python
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          allow-prereleases: true
-          check-latest: true
-
-      - name: Install libjpeg-turbo
+      - name: Install cmake, ninja & libjpeg-turbo
         run: |
+          brew install cmake ninja
           mkdir $HOME/libjpeg-turbo-dmg
           pushd $HOME/libjpeg-turbo-dmg
           wget --no-check-certificate https://github.com/libjpeg-turbo/libjpeg-turbo/releases/download/$LIBJPEG_TURBO_VERSION/libjpeg-turbo-$LIBJPEG_TURBO_VERSION.dmg
@@ -94,7 +96,6 @@ jobs:
             -S . \
             -B build \
             -G Ninja \
-            -DCMAKE_MAKE_PROGRAM="${IQTA_TOOLS}/Ninja/ninja" \
             -DPLATFORM=${PLATFORM} \
             -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
             -DCMAKE_CONFIGURATION_TYPES="${BUILD_TYPE}" \
