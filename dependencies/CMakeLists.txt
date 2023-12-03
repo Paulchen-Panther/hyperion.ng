@@ -100,7 +100,14 @@ if(ENABLE_FLATBUF_SERVER OR ENABLE_FLATBUF_CONNECT)
 		# define the include for the flatbuffers library at the parent scope
 		set(FLATBUFFERS_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/external/flatbuffers/include")
 
-		IF (NOT CMAKE_CROSSCOMPILING)
+		if(NOT CMAKE_CROSSCOMPILING)
+			if(APPLE)
+				execute_process(COMMAND uname -m OUTPUT_VARIABLE HOST_SYSTEM_PROCESSOR OUTPUT_STRIP_TRAILING_WHITESPACE)
+				# appended arch and host system not equal (cross-compiling)
+				if(NOT "${MACOS_ARCHITECTURE}" STREQUAL "${HOST_SYSTEM_PROCESSOR}")
+					find_program(FLATBUFFERS_FLATC_EXECUTABLE NAMES flatc REQUIRED)
+				endif()
+			endif()
 			# define the flatc executable at the parent scope
 			set(FLATBUFFERS_FLATC_EXECUTABLE "$<TARGET_FILE:flatc>")
 		else()

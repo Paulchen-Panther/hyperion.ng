@@ -15,7 +15,6 @@ macro(removeIndent)
 endmacro()
 
 if(APPLE)
-
 	execute_process(COMMAND uname -m OUTPUT_VARIABLE HOST_SYSTEM_PROCESSOR OUTPUT_STRIP_TRAILING_WHITESPACE)
 	set(MACOS_ARCHITECTURE "${HOST_SYSTEM_PROCESSOR}" CACHE STRING "Target architecture for macOS builds. One of x86_64/arm64")
 
@@ -28,12 +27,6 @@ if(APPLE)
 	else()
 		message(FATAL_ERROR "MACOS_ARCHITECTURE must be x86_64 or arm64")
 	endif()
-
-	# Generate schema files
-	set(CMAKE_XCODE_GENERATE_SCHEME ON)
-
-	# This prevents a link error when building with the 10.9 or older SDKs
-	set(CMAKE_XCODE_ATTRIBUTE_CLANG_LINK_OBJC_RUNTIME OFF)
 endif()
 
 PROJECT(hyperion)
