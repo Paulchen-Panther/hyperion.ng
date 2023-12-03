@@ -14,6 +14,27 @@ macro(removeIndent)
 	endif()
 endmacro()
 
+if(APPLE)
+	execute_process(COMMAND uname -m OUTPUT_VARIABLE HOST_SYSTEM_PROCESSOR OUTPUT_STRIP_TRAILING_WHITESPACE)
+	set(MACOS_ARCHITECTURE "${HOST_SYSTEM_PROCESSOR}" CACHE STRING "Target architecture for macOS builds. One of x86_64/arm64")
+
+	if(MACOS_ARCHITECTURE STREQUAL "x86_64")
+		set(CMAKE_OSX_DEPLOYMENT_TARGET 10.9 CACHE INTERNAL "")
+		set(CMAKE_OSX_ARCHITECTURES x86_64 CACHE INTERNAL "")
+	elseif(MACOS_ARCHITECTURE STREQUAL "arm64")
+		set(CMAKE_OSX_DEPLOYMENT_TARGET 10.13 CACHE INTERNAL "")
+		set(CMAKE_OSX_ARCHITECTURES arm64 CACHE INTERNAL "")
+	else()
+		message(FATAL_ERROR "MACOS_ARCHITECTURE must be x86_64 or arm64")
+	endif()
+
+	# Generate schema files
+	set(CMAKE_XCODE_GENERATE_SCHEME ON)
+
+	# This prevents a link error when building with the 10.9 or older SDKs
+	set(CMAKE_XCODE_ATTRIBUTE_CLANG_LINK_OBJC_RUNTIME OFF)
+endif()
+
 PROJECT(hyperion)
 
 # Parse semantic version of version file and write version to config
@@ -52,11 +73,12 @@ if(APPLE)
 	if(REQUIRED_UNGUARDED_AVAILABILITY)
 		list(APPEND CMAKE_REQUIRED_FLAGS ${CMAKE_REQUIRED_FLAGS} "Werror=unguarded-availability")
 	endif()
+	string(APPEND CMAKE_CXX_FLAGS " -stdlib=libc++")
 endif()
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_C_COMPILER_ID MATCHES "GNU")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-psabi")
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-psabi")
+	string(APPEND CMAKE_CXX_FLAGS " -Wno-psabi")
+	string(APPEND CMAKE_C_FLAGS " -Wno-psabi")
 endif()
 
 set(CMAKE_CXX_STANDARD 17)
@@ -171,11 +193,6 @@ macro(FIRSTSUBDIR result curdir)
 endmacro()
 
 if("${PLATFORM}" MATCHES "osx")
-	# specify the min version of the target platform (only GitHub Actions)
-	if(DEFINED ENV{GITHUB_WORKSPACE})
-		set(CMAKE_OSX_DEPLOYMENT_TARGET "10.15")
-	endif()
-
 	# add specific prefix paths
 	FIRSTSUBDIR(SUBDIRPY "/usr/local/opt/python3/Frameworks/Python.framework/Versions")
 	set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${SUBDIRPY})
