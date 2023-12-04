@@ -32,15 +32,27 @@ if (ENABLE_MDNS)
 
 		get_property(isMultiConfig GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 		set(QMDNS_CMAKE_ARGS
+			-Wno-dev # We don't want to be warned over unused variables
 			-DBUILD_SHARED_LIBS:BOOL=OFF
 			-DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_BINARY_DIR}
 			-DBIN_INSTALL_DIR:STRING=lib
 			-DLIB_INSTALL_DIR:STRING=lib
 			-DINCLUDE_INSTALL_DIR:STRING=include
 			-DCMAKE_PREFIX_PATH:PATH=${CMAKE_PREFIX_PATH}
+			-DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER}
+			-DCMAKE_CXX_COMPILER:FILEPATH=${CMAKE_CXX_COMPILER}
+			-DCMAKE_C_FLAGS:STRING=${CMAKE_C_FLAGS}
+			-DCMAKE_CXX_FLAGS:STRING=${CMAKE_CXX_FLAGS}
 			$<$<NOT:$<BOOL:${isMultiConfig}>>:-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}>
-			-Wno-dev
 		)
+
+		if(CMAKE_HOST_APPLE)
+			list(APPEND QMDNS_CMAKE_ARGS
+				-DCMAKE_OSX_ARCHITECTURES:STRING=${CMAKE_OSX_ARCHITECTURES}
+				-DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=${CMAKE_OSX_DEPLOYMENT_TARGET}
+				-DCMAKE_OSX_SYSROOT:PATH=${CMAKE_OSX_SYSROOT}
+			)
+		endif()
 
 		include(ExternalProject)
 		ExternalProject_Add(qmdns
@@ -101,19 +113,17 @@ if(ENABLE_FLATBUF_SERVER OR ENABLE_FLATBUF_CONNECT)
 		set(FLATBUFFERS_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/external/flatbuffers/include")
 
 		if(NOT CMAKE_CROSSCOMPILING)
-			if(APPLE)
-				execute_process(COMMAND uname -m OUTPUT_VARIABLE HOST_SYSTEM_PROCESSOR OUTPUT_STRIP_TRAILING_WHITESPACE)
-				# appended arch and host system not equal (cross-compiling)
-				if(NOT "${MACOS_ARCHITECTURE}" STREQUAL "${HOST_SYSTEM_PROCESSOR}")
-					find_program(FLATBUFFERS_FLATC_EXECUTABLE NAMES flatc REQUIRED)
-				endif()
-			endif()
 			# define the flatc executable at the parent scope
 			set(FLATBUFFERS_FLATC_EXECUTABLE "$<TARGET_FILE:flatc>")
 		else()
-			#Workaround, set flatc comiplier directory hard, as cmake definitions of flatc do not cater for crosscompile correctly.
-			#Includ of flatc_export.cmake detects that flatc target is defined aand returns before using the definitions written by export
-			set ( FLATBUFFERS_FLATC_EXECUTABLE "${CMAKE_BINARY_DIR}/../build-x86x64/bin/flatc")
+			# Workaround, set flatc compiler directory hard, as cmake definitions of flatc do not cater for crosscompile correctly.
+			# Include of 'flatc_export.cmake' detects that flatc target is defined and returns before using the definitions written by export
+			set(FLATBUFFERS_FLATC_EXECUTABLE "${CMAKE_BINARY_DIR}/../build-x86x64/bin/flatc")
+		endif()
+
+		# Build flatc under macOS always natively
+		if(CMAKE_HOST_APPLE AND TARGET flatc)
+			set_target_properties(flatc PROPERTIES OSX_ARCHITECTURES "${CMAKE_HOST_SYSTEM_PROCESSOR}")
 		endif()
 	endif()
 
@@ -175,6 +185,11 @@ if(ENABLE_PROTOBUF_SERVER)
 		# define the protoc executable
 		set(PROTOBUF_PROTOC_EXECUTABLE protobuf::protoc)
 
+		# Build flatc under macOS always natively
+		if(CMAKE_HOST_APPLE AND TARGET protoc)
+			set_target_properties(protoc PROPERTIES OSX_ARCHITECTURES "${CMAKE_HOST_SYSTEM_PROCESSOR}")
+		endif()
+
 		# define the protobuf library
 		set(PROTOBUF_LIBRARIES protobuf::libprotobuf)
 
@@ -234,12 +249,6 @@ if(ENABLE_PROTOBUF_SERVER)
 			endforeach()
 		endif()
 
-		if(CMAKE_CROSSCOMPILING OR USE_SYSTEM_PROTO_LIBS)
-			set(PROTOC_DEPENDENCY ${PROTOBUF_PROTOC_EXECUTABLE})
-		else()
-			set(PROTOC_DEPENDENCY protoc)
-		endif()
-
 		set(${SRCS})
 		set(${HDRS})
 		foreach(FIL ${ARGN})
@@ -254,7 +263,7 @@ if(ENABLE_PROTOBUF_SERVER)
 					   "${CMAKE_CURRENT_BINARY_DIR}/${FIL_WE}.pb.h"
 				COMMAND ${PROTOBUF_PROTOC_EXECUTABLE}
 				ARGS --cpp_out ${CMAKE_CURRENT_BINARY_DIR} ${_protobuf_include_path} ${ABS_FIL}
-				DEPENDS ${ABS_FIL} ${PROTOC_DEPENDENCY}
+				DEPENDS ${ABS_FIL} ${PROTOBUF_PROTOC_EXECUTABLE}
 				COMMENT "Running C++ protocol buffer compiler on ${FIL}"
 				VERBATIM
 			)
