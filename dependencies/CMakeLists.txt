@@ -186,8 +186,14 @@ if(ENABLE_PROTOBUF_SERVER)
 		set(PROTOBUF_PROTOC_EXECUTABLE protobuf::protoc)
 
 		# Build flatc under macOS always natively
+		get_target_property(PROTOC_OSX_ARCH protoc OSX_ARCHITECTURES)
 		if(CMAKE_HOST_APPLE AND TARGET protoc)
-			set_target_properties(protoc PROPERTIES OSX_ARCHITECTURES "${CMAKE_HOST_SYSTEM_PROCESSOR}")
+			if (PROTOC_OSX_ARCH AND NOT (${CMAKE_HOST_SYSTEM_PROCESSOR} IN_LIST PROTOC_OSX_ARCH))
+				list(APPEND PROTOC_OSX_ARCH ${CMAKE_HOST_SYSTEM_PROCESSOR})
+				set_target_properties(protoc PROPERTIES OSX_ARCHITECTURES "${CMAKE_HOST_SYSTEM_PROCESSOR}")
+				set_target_properties(libprotoc PROPERTIES OSX_ARCHITECTURES "${PROTOC_OSX_ARCH}")
+				set_target_properties(libprotobuf PROPERTIES OSX_ARCHITECTURES "${PROTOC_OSX_ARCH}")
+			endif()
 		endif()
 
 		# define the protobuf library
