@@ -76,7 +76,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          brew install cmake ninja flatbuffers
+          brew install cmake ninja
           mkdir $HOME/libjpeg-turbo-dmg
           pushd $HOME/libjpeg-turbo-dmg
           wget --no-check-certificate https://github.com/libjpeg-turbo/libjpeg-turbo/releases/download/$LIBJPEG_TURBO_VERSION/libjpeg-turbo-$LIBJPEG_TURBO_VERSION.dmg

@@ -182,18 +182,18 @@ if(ENABLE_PROTOBUF_SERVER)
 		# define the include for the protobuf library
 		set(PROTOBUF_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/external/protobuf/src")
 
-		# define the protoc executable
-		set(PROTOBUF_PROTOC_EXECUTABLE protobuf::protoc)
-
-		# Build flatc under macOS always natively
+		# Under MacOS use system protoc for cross compiling
 		get_target_property(PROTOC_OSX_ARCH protoc OSX_ARCHITECTURES)
-		if(CMAKE_HOST_APPLE AND TARGET protoc)
-			if (PROTOC_OSX_ARCH AND NOT (${CMAKE_HOST_SYSTEM_PROCESSOR} IN_LIST PROTOC_OSX_ARCH))
-				list(APPEND PROTOC_OSX_ARCH ${CMAKE_HOST_SYSTEM_PROCESSOR})
-				set_target_properties(protoc PROPERTIES OSX_ARCHITECTURES "${CMAKE_HOST_SYSTEM_PROCESSOR}")
-				set_target_properties(libprotoc PROPERTIES OSX_ARCHITECTURES "${PROTOC_OSX_ARCH}")
-				set_target_properties(libprotobuf PROPERTIES OSX_ARCHITECTURES "${PROTOC_OSX_ARCH}")
+		if (PROTOC_OSX_ARCH)
+			find_program(SYSTEM_PROTOC protoc PATHS ENV PATH)
+			if(SYSTEM_PROTOC)
+				set(PROTOBUF_PROTOC_EXECUTABLE ${SYSTEM_PROTOC})
+			else()
+				message(FATAL_ERROR "System Protobuf is needed while cross-compiling")
 			endif()
+		else()
+			# define the protoc executable
+			set(PROTOBUF_PROTOC_EXECUTABLE protobuf::protoc)
 		endif()
 
 		# define the protobuf library
@@ -255,6 +255,12 @@ if(ENABLE_PROTOBUF_SERVER)
 			endforeach()
 		endif()
 
+		if(CMAKE_CROSSCOMPILING OR USE_SYSTEM_PROTO_LIBS)
+			set(PROTOC_DEPENDENCY ${PROTOBUF_PROTOC_EXECUTABLE})
+		else()
+			set(PROTOC_DEPENDENCY protoc)
+		endif()
+
 		set(${SRCS})
 		set(${HDRS})
 		foreach(FIL ${ARGN})
@@ -269,7 +275,7 @@ if(ENABLE_PROTOBUF_SERVER)
 					   "${CMAKE_CURRENT_BINARY_DIR}/${FIL_WE}.pb.h"
 				COMMAND ${PROTOBUF_PROTOC_EXECUTABLE}
 				ARGS --cpp_out ${CMAKE_CURRENT_BINARY_DIR} ${_protobuf_include_path} ${ABS_FIL}
-				DEPENDS ${ABS_FIL} ${PROTOBUF_PROTOC_EXECUTABLE}
+				DEPENDS ${ABS_FIL} ${PROTOC_DEPENDENCY}
 				COMMENT "Running C++ protocol buffer compiler on ${FIL}"
 				VERBATIM
 			)
