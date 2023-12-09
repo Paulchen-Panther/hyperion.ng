@@ -91,17 +91,28 @@ jobs:
         shell: bash
         run: |
           set -e
-          mkdir build
+          mkdir build-x86x64 build-arm64
           cmake \
             -S . \
-            -B build \
+            -B build-x86x64 \
+            -G Ninja \
+            -DPLATFORM=${PLATFORM} \
+            -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
+            -DCMAKE_CONFIGURATION_TYPES="${BUILD_TYPE}" \
+            -DCMAKE_INSTALL_PREFIX:PATH=/usr/local
+          cmake --build "build-x86x64" --config "${BUILD_TYPE}" --parallel $(sysctl -n hw.logicalcpu)
+          cmake \
+            -S . \
+            -B build-arm64 \
             -G Ninja \
             -DPLATFORM=${PLATFORM} \
             -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
             -DCMAKE_CONFIGURATION_TYPES="${BUILD_TYPE}" \
             -DMACOS_ARCHITECTURE=arm64 \
+            -DIMPORT_PROTOC=build-x86x64/protoc_export.cmake
+            -DIMPORT_FLATC=build-x86x64/flatc_export.cmake
             -DCMAKE_INSTALL_PREFIX:PATH=/usr/local
-          cmake --build "build" --config "${BUILD_TYPE}" --parallel $(sysctl -n hw.logicalcpu)
+          cmake --build "build-arm64" --config "${BUILD_TYPE}" --parallel $(sysctl -n hw.logicalcpu)
         env:
           PLATFORM: ${{ startsWith(github.ref, 'refs/tags/v') && 'osx' || 'osx-dev' }}
           BUILD_TYPE: ${{ startsWith(github.ref, 'refs/tags/v') && 'Release' || 'Debug' }}
