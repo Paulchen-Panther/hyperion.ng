@@ -1,37 +1,73 @@
-find_path(MBEDTLS_INCLUDE_DIR mbedtls/ssl.h)
+# mbedtls
+# mbedx509
+# mbedcrypto
 
-find_library(MBEDTLS_SSL_LIBRARY mbedtls)
-find_library(MBEDTLS_X509_LIBRARY mbedx509)
-find_library(MBEDTLS_CRYPTO_LIBRARY mbedcrypto)
+find_path(mbedtls_INCLUDE_DIR
+    NAMES mbedtls/ssl.h
+	PATHS /usr/include /usr/local/include
+)
 
-set(MBEDTLS_LIBRARIES ${MBEDTLS_SSL_LIBRARY} ${MBEDTLS_X509_LIBRARY} ${MBEDTLS_CRYPTO_LIBRARY})
-set(MBEDTLS_LIBRARIES ${MBEDTLS_LIBRARIES} PARENT_SCOPE)
+find_library(mbedtls_LIBRARY
+	NAMES libmbedtls mbedtls
+	PATHS /usr/lib /usr/local/lib
+)
 
-if (MBEDTLS_INCLUDE_DIR)
-    if (EXISTS "${MBEDTLS_INCLUDE_DIR}/mbedtls/build_info.h")
-        file(STRINGS ${MBEDTLS_INCLUDE_DIR}/mbedtls/build_info.h _MBEDTLS_VERSION_LINE REGEX "^#define[ \t]+MBEDTLS_VERSION_STRING[\t ].*")
-        string(REGEX REPLACE ".*MBEDTLS_VERSION_STRING[\t ]+\"(.*)\"" "\\1" MBEDTLS_VERSION ${_MBEDTLS_VERSION_LINE})
-        set (MBEDTLS_VERSION ${MBEDTLS_VERSION} PARENT_SCOPE)
-    elseif(EXISTS "${MBEDTLS_INCLUDE_DIR}/mbedtls/version.h")
-        file(STRINGS "${MBEDTLS_INCLUDE_DIR}/mbedtls/version.h" _MBEDTLS_VERSION_STRING REGEX "^#[\t ]*define[\t ]+MBEDTLS_VERSION_STRING[\t ]+\"[0-9]+.[0-9]+.[0-9]+\"")
-        string(REGEX REPLACE "^.*MBEDTLS_VERSION_STRING.*([0-9]+.[0-9]+.[0-9]+).*" "\\1" MBEDTLS_VERSION "${_MBEDTLS_VERSION_STRING}")
-        set (MBEDTLS_VERSION ${MBEDTLS_VERSION} PARENT_SCOPE)
-    endif()
-endif ()
+find_library(mbedx509_LIBRARY
+	NAMES libmbedx509 mbedx509
+	PATHS /usr/lib /usr/local/lib
+)
 
-if (MBEDTLS_INCLUDE_DIR AND MBEDTLS_LIBRARIES AND MBEDTLS_VERSION)
+find_library(mbedcrypto_LIBRARY
+	NAMES libmbedcrypto mbedcrypto
+	PATHS /usr/lib /usr/local/lib
+)
 
-    include(FindPackageHandleStandardArgs)
+include(CheckSymbolExists)
+if(mbedtls_LIBRARY AND NOT mbedx509_LIBRARY AND NOT mbedcrypto_LIBRARY)
+	set(CMAKE_REQUIRED_INCLUDES "${mbedtls_INCLUDE_DIR}")
+	set(CMAKE_REQUIRED_LIBRARIES "${mbedtls_LIBRARY}")
 
-    find_package_handle_standard_args(mbedtls
-        REQUIRED_VARS
-                MBEDTLS_INCLUDE_DIR
-                MBEDTLS_LIBRARIES
+	check_symbol_exists(mbedtls_x509_crt_init "mbedtls/x590_crt.h" MBEDTLS_INCLUDES_X509)
+	check_symbol_exists(mbedtls_sha256_init "mbedtls/sha256.h" MBEDTLS_INCLUDES_CRYPTO)
 
-        VERSION_VAR
-                MBEDTLS_VERSION
-    )
+	unset(CMAKE_REQUIRED_INCLUDES)
+	unset(CMAKE_REQUIRED_LIBRARIES)
+endif()
 
-    mark_as_advanced (MBEDTLS_INCLUDE_DIR MBEDTLS_LIBRARIES MBEDTLS_SSL_LIBRARY MBEDTLS_X509_LIBRARY MBEDTLS_CRYPTO_LIBRARY MBEDTLS_VERSION)
+if(MBEDTLS_INCLUDES_X509 AND MBEDTLS_INCLUDES_CRYPTO)
+	find_package_handle_standard_args(mbedtls
+		FOUND_VAR MBEDTLS_FOUND
+		REQUIRED_VARS mbedtls_INCLUDE_DIR mbedtls_LIBRARY
+	)
 
-endif (MBEDTLS_INCLUDE_DIR AND MBEDTLS_LIBRARIES AND MBEDTLS_VERSION)
+	mark_as_advanced(mbedtls_INCLUDE_DIR mbedtls_LIBRARY)
+	list(APPEND COMPONENTS tls)
+else()
+	find_package_handle_standard_args(mbedtls
+		FOUND_VAR MBEDTLS_FOUND
+		REQUIRED_VARS mbedtls_INCLUDE_DIR mbedtls_LIBRARY mbedx509_LIBRARY mbedcrypto_LIBRARY
+	)
+
+  	mark_as_advanced(mbedtls_INCLUDE_DIR mbedtls_LIBRARY mbedx509_LIBRARY mbedcrypto_LIBRARY)
+	  list(APPEND COMPONENTS tls x509 crypto)
+endif()
+
+if(MBEDTLS_FOUND)
+	foreach(COMP IN LISTS COMPONENTS)
+		if(NOT TARGET mbed${COMP})
+			if(IS_ABSOLUTE "${mbed${COMP}_LIBRARY}")
+				add_library(mbed${COMP} UNKNOWN IMPORTED GLOBAL)
+				set_property(TARGET mbed${COMP} PROPERTY IMPORTED_LOCATION "${mbed${COMP}_LIBRARY}")
+			else()
+				add_library(mbed${COMP} INTERFACE IMPORTED GLOBAL)
+				set_property(TARGET mbed${COMP} PROPERTY IMPORTED_LIBNAME "${mbed${COMP}_LIBRARY}")
+			endif()
+		endif()
+	endforeach()
+
+	set_target_properties(mbedtls PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${mbedtls_INCLUDE_DIR}")
+
+	if(NOT MBEDTLS_INCLUDES_X509 AND NOT MBEDTLS_INCLUDES_CRYPTO)
+		set_property(TARGET mbedtls PROPERTY INTERFACE_LINK_LIBRARIES mbedcrypto mbedx509)
+	endif()
+endif()

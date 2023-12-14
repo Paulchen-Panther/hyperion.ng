@@ -470,7 +470,7 @@ if(ENABLE_JSONCHECKS)
 endif(ENABLE_JSONCHECKS)
 
 # Add project specific cmake modules (find, etc)
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 find_package(GitVersion)
 

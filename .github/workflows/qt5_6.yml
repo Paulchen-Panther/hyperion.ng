@@ -76,7 +76,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          brew install cmake ninja protobuf
+          brew install cmake ninja
           mkdir $HOME/libjpeg-turbo-dmg
           pushd $HOME/libjpeg-turbo-dmg
           wget --no-check-certificate https://github.com/libjpeg-turbo/libjpeg-turbo/releases/download/$LIBJPEG_TURBO_VERSION/libjpeg-turbo-$LIBJPEG_TURBO_VERSION.dmg
@@ -91,26 +91,15 @@ jobs:
         shell: bash
         run: |
           set -e
-          mkdir build-x86x64 build-arm64
+          mkdir build
           cmake \
             -S . \
-            -B build-x86x64 \
-            -G Ninja \
-            -DPLATFORM=${PLATFORM} \
-            -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
-            -DCMAKE_CONFIGURATION_TYPES="${BUILD_TYPE}" \
-            -DCMAKE_INSTALL_PREFIX:PATH=/usr/local
-          cmake --build "build-x86x64" --config "${BUILD_TYPE}" --parallel $(sysctl -n hw.logicalcpu)
-          cmake \
-            -S . \
-            -B build-arm64 \
+            -B build \
             -G Ninja \
             -DPLATFORM=${PLATFORM} \
             -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
             -DCMAKE_CONFIGURATION_TYPES="${BUILD_TYPE}" \
             -DMACOS_ARCHITECTURE=arm64 \
-            -DIMPORT_PROTOC=build-x86x64/protoc_export.cmake
-            -DIMPORT_FLATC=build-x86x64/flatc_export.cmake
             -DCMAKE_INSTALL_PREFIX:PATH=/usr/local
           cmake --build "build-arm64" --config "${BUILD_TYPE}" --parallel $(sysctl -n hw.logicalcpu)
         env:
