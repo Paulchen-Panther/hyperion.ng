@@ -96,20 +96,14 @@ jobs:
             -S . \
             -B build \
             -G Ninja \
-            -DPLATFORM=${PLATFORM} \
-            -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
-            -DCMAKE_CONFIGURATION_TYPES="${BUILD_TYPE}" \
+            -DPLATFORM=osx \
+            -DCMAKE_BUILD_TYPE=Release \
             -DMACOS_ARCHITECTURE=arm64 \
             -DCMAKE_INSTALL_PREFIX:PATH=/usr/local
           cmake --build "build" --config "${BUILD_TYPE}" --parallel $(sysctl -n hw.logicalcpu)
-        env:
-          PLATFORM: ${{ startsWith(github.ref, 'refs/tags/v') && 'osx' || 'osx-dev' }}
-          BUILD_TYPE: ${{ startsWith(github.ref, 'refs/tags/v') && 'Release' || 'Debug' }}
+          ls build/
 
       - name: 📦 Upload
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ inputs.event_name == 'pull_request' && env.NAME || 'artifact' }}
           path: 'build/Hyperion-*'
-        env:
-          NAME: ${{ inputs.qt_version == '6' && 'macOS_x64_qt6' || 'macOS_x64' }}
