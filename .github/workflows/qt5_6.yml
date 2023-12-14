@@ -101,9 +101,9 @@ jobs:
             -DMACOS_ARCHITECTURE=arm64 \
             -DCMAKE_INSTALL_PREFIX:PATH=/usr/local
           cmake --build "build" --config "${BUILD_TYPE}" --parallel $(sysctl -n hw.logicalcpu)
-          ls build/
+          ls build/bin/
 
       - name: 📦 Upload
         uses: actions/upload-artifact@v3
         with:
-          path: 'build/Hyperion-*'
+          path: 'build/bin/Hyperion-*'
