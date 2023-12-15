@@ -29,22 +29,26 @@ env:
   ghcr: hyperion-project
 
 jobs:
+
+######################
+###### macOS #########
+######################
+
   macOS:
-    name: 🍏 macOS arm64
+    name: 🍏 macOS x64
     runs-on: macos-latest
     env:
-      QT_VERSION: 6.6.0
-      PYTHON_VERSION: 3.13
+      PYTHON_VERSION: 3.12
       LIBJPEG_TURBO_VERSION: 3.0.1
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: ['x86_64', 'arm64']
     steps:
       - name: ⬇ Checkout
         uses: actions/checkout@v4
         with:
           submodules: recursive
-
-      # - uses: maxim-lobanov/setup-xcode@v1
-      #   with:
-      #     xcode-version: latest-stable
 
       - name: Install Python
         uses: actions/setup-python@v4
@@ -54,56 +58,55 @@ jobs:
           allow-prereleases: true
           check-latest: true
 
-      - name: Install Qt
+      - name: 📥 Install Qt
         uses: jurplel/install-qt-action@v3
         with:
-          version: ${{ env.QT_VERSION }}
-          host: 'mac'
+          version: ${{ inputs.qt_version == '6' && '6.6.0' || '5.15.2' }}
+          host: mac
           target: 'desktop'
-          arch: 'clang_64'
-          modules: 'qtserialport'
-          dir: '/Users/runner'
-          cache: true
-          cache-key-prefix: macOS-arm64-Qt-${{ env.QT_VERSION }}
+          arch: ${{ matrix.arch == 'arm64' && ''clang_64'' || '' }}
+          modules: ${{ inputs.qt_version == '6' && 'qtserialport' || '' }}
+          cache: 'true'
+          cache-key-prefix: macOS-${{ matrix.arch }}-Qt-${{ env.QT_VERSION }}
           set-env: true
 
-      - name: Install Vulkan Headers
-        uses: humbletim/setup-vulkan-sdk@v1.2.0
-        with:
-          vulkan-query-version: latest
-          vulkan-use-cache: true
-          vulkan-components: Vulkan-Headers
-
-      - name: Install dependencies
+      - name: 🔧 Prepare
+        shell: bash
         run: |
-          brew install cmake ninja
-          mkdir $HOME/libjpeg-turbo-dmg
-          pushd $HOME/libjpeg-turbo-dmg
-          wget --no-check-certificate https://github.com/libjpeg-turbo/libjpeg-turbo/releases/download/$LIBJPEG_TURBO_VERSION/libjpeg-turbo-$LIBJPEG_TURBO_VERSION.dmg
-          hdid libjpeg-turbo-$LIBJPEG_TURBO_VERSION.dmg
-          sudo installer -pkg /Volumes/libjpeg-turbo-$LIBJPEG_TURBO_VERSION/libjpeg-turbo.pkg -target /
-          hdiutil detach /Volumes/libjpeg-turbo-$LIBJPEG_TURBO_VERSION
-          rm *.dmg
-          popd
-          rmdir $HOME/libjpeg-turbo-dmg
+          echo '::group::Append PR number to version (PR  only)'
+            if [[ "${{ inputs.event_name }}" = "pull_request" ]]; then
+              tr -d '\n' < .version > temp && mv temp .version
+              echo -n "+PR${{ inputs.pull_request_number }}" >> .version
+            fi
+          echo '::endgroup::'
+
+          echo '::group::Update/Install dependencies'
+            brew untap --force homebrew/core homebrew/cask
+            brew update || true
+            brew install cmake ninja vulkan-headers || true
+            mkdir $HOME/libjpeg-turbo-dmg
+            pushd $HOME/libjpeg-turbo-dmg
+            wget --no-check-certificate https://github.com/libjpeg-turbo/libjpeg-turbo/releases/download/$LIBJPEG_TURBO_VERSION/libjpeg-turbo-$LIBJPEG_TURBO_VERSION.dmg
+            hdid libjpeg-turbo-$LIBJPEG_TURBO_VERSION.dmg
+            sudo installer -pkg /Volumes/libjpeg-turbo-$LIBJPEG_TURBO_VERSION/libjpeg-turbo.pkg -target /
+            hdiutil detach /Volumes/libjpeg-turbo-$LIBJPEG_TURBO_VERSION
+            rm *.dmg
+            popd
+            rmdir $HOME/libjpeg-turbo-dmg
+          echo '::endgroup::'
 
       - name: 👷 Build
         shell: bash
-        run: |
-          set -e
-          mkdir build
-          cmake \
-            -S . \
-            -B build \
-            -G Ninja \
-            -DPLATFORM=osx \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DMACOS_ARCHITECTURE=arm64 \
-            -DCMAKE_INSTALL_PREFIX:PATH=/usr/local
-          cmake --build "build" --config "${BUILD_TYPE}" --parallel $(sysctl -n hw.logicalcpu)
-          ls build/bin/
+        run: ./.github/scripts/build.sh
+        env:
+          PLATFORM: osx
+          OSX_ARCHITECTURE: ${{ matrix.arch }}
 
       - name: 📦 Upload
+        # if: ${{ inputs.publish || inputs.event_name == 'pull_request' }}
         uses: actions/upload-artifact@v3
         with:
-          path: 'build/bin/Hyperion-*'
+          name: ${{ inputs.event_name == 'pull_request' && env.NAME || 'artifact' }}
+          path: 'build/Hyperion-*'
+        env:
+          NAME: ${{ inputs.qt_version == '6' && 'macOS_${{ matrix.arch }}_qt6' || 'macOS_${{ matrix.arch }}' }}

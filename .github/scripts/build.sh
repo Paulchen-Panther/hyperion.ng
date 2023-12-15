@@ -4,6 +4,7 @@
 [ -z "${BUILD_TYPE}" ] && BUILD_TYPE="Debug"
 [ -z "${TARGET_ARCH}" ] && TARGET_ARCH="linux/amd64"
 [ -z "${PLATFORM}" ] && PLATFORM="x11"
+[ -z "${OSX_ARCHITECTURE}" ] && OSX_ARCHITECTURE="x86_64"
 
 # Determine cmake build type; tag builds are Release, else Debug (-dev appends to platform)
 if [[ $GITHUB_REF == *"refs/tags"* ]]; then
@@ -17,8 +18,7 @@ echo "Compile Hyperion on '${RUNNER_OS}' with build type '${BUILD_TYPE}' and pla
 # Build the package on MacOS, Windows or Linux
 if [[ "$RUNNER_OS" == 'macOS' ]]; then
 	mkdir build || exit 1
-	cd build
-	cmake -DPLATFORM=${PLATFORM} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_INSTALL_PREFIX:PATH=/usr/local ../ || exit 2
+	cmake -B build -G Ninja -DPLATFORM=${PLATFORM} -DMACOS_ARCHITECTURE=${OSX_ARCHITECTURE} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_INSTALL_PREFIX:PATH=/usr/local ../ || exit 2
 	make -j $(sysctl -n hw.ncpu) package || exit 3
 	cd ${GITHUB_WORKSPACE} && source /${GITHUB_WORKSPACE}/test/testrunner.sh || exit 4
 	exit 0;
