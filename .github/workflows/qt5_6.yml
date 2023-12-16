@@ -64,7 +64,7 @@ jobs:
           version: ${{ inputs.qt_version == '6' && '6.6.0' || '5.15.2' }}
           host: mac
           target: 'desktop'
-          arch: ${{ matrix.arch == 'arm64' && 'clang_64' || '' }}
+          arch: 'clang_64'
           modules: ${{ inputs.qt_version == '6' && 'qtserialport' || '' }}
           cache: 'true'
           cache-key-prefix: macOS-${{ matrix.arch }}-Qt-${{ env.QT_VERSION }}
