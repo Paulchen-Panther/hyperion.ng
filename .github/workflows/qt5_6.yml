@@ -111,14 +111,14 @@ jobs:
               -G Ninja \
               -DPLATFORM=${{ env.PLATFORM }} \
               -DMACOS_ARCHITECTURE=${{ matrix.arch }} \
-              -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+              -DCMAKE_BUILD_TYPE=Release \
               -DCMAKE_INSTALL_PREFIX:PATH=/usr/local
           echo '::endgroup::'
 
           echo '::group::Build'
             cmake \
               --build build \
-              --config "${{ env.BUILD_TYPE }}" \
+              --config 'Release' \
               --target package \
               --parallel $(sysctl -n hw.ncpu)
           echo '::endgroup::'
