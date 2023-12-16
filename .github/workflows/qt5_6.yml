@@ -38,12 +38,17 @@ jobs:
     name: 🍏 macOS x64
     runs-on: macos-latest
     env:
-      PYTHON_VERSION: 3.12
+      PYTHON_VERSION: 3.13
       LIBJPEG_TURBO_VERSION: 3.0.1
     strategy:
       fail-fast: false
       matrix:
         arch: [x86_64, arm64]
+        isQt5:
+          - ${{ inputs.qt_version == '5' }}
+        exclude:
+          - isQt5: true
+            arch: arm64
     steps:
       - name: ⬇ Checkout
         uses: actions/checkout@v4
