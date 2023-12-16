@@ -43,14 +43,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        arch: ['x86_64', 'arm64']
+        arch: [x86_64, arm64]
     steps:
       - name: ⬇ Checkout
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: Install Python
+      - name: 📥 Install Python
         uses: actions/setup-python@v4
         id: setup-python
         with:
@@ -84,6 +84,7 @@ jobs:
             brew untap --force homebrew/core homebrew/cask
             brew update || true
             brew install cmake ninja vulkan-headers || true
+
             mkdir $HOME/libjpeg-turbo-dmg
             pushd $HOME/libjpeg-turbo-dmg
             wget --no-check-certificate https://github.com/libjpeg-turbo/libjpeg-turbo/releases/download/$LIBJPEG_TURBO_VERSION/libjpeg-turbo-$LIBJPEG_TURBO_VERSION.dmg
@@ -97,10 +98,32 @@ jobs:
 
       - name: 👷 Build
         shell: bash
-        run: ./.github/scripts/build.sh
+        run: |
+          echo '::group::Configure'
+            mkdir build
+            cmake \
+              -B build \
+              -G Ninja \
+              -DPLATFORM=${{ env.PLATFORM }} \
+              -DMACOS_ARCHITECTURE=${{ matrix.arch }} \
+              -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+              -DCMAKE_INSTALL_PREFIX:PATH=/usr/local
+          echo '::endgroup::'
+
+          echo '::group::Build'
+            cmake \
+              --build build \
+              --config "${{ env.BUILD_TYPE }}" \
+              --target package \
+              --parallel $(sysctl -n hw.ncpu)
+          echo '::endgroup::'
+
+          echo '::group::Running'
+            source ./test/testrunner.sh
+          echo '::endgroup::'
         env:
-          PLATFORM: osx
-          OSX_ARCHITECTURE: ${{ matrix.arch }}
+          PLATFORM: ${{ startsWith(github.ref, 'refs/tags/v') && 'osx' || 'osx-dev' }}
+          BUILD_TYPE: ${{ startsWith(github.ref, 'refs/tags/v') && 'Release' || 'Debug' }}
 
       - name: 📦 Upload
         # if: ${{ inputs.publish || inputs.event_name == 'pull_request' }}

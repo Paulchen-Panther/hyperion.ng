@@ -19,16 +19,15 @@ echo "Compile Hyperion on '${RUNNER_OS}' with build type '${BUILD_TYPE}' and pla
 if [[ "$RUNNER_OS" == 'macOS' ]]; then
 	mkdir build || exit 1
 	cmake -B build -G Ninja -DPLATFORM=${PLATFORM} -DMACOS_ARCHITECTURE=${OSX_ARCHITECTURE} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_INSTALL_PREFIX:PATH=/usr/local || exit 2
-	make -j $(sysctl -n hw.ncpu) package || exit 3
+	cmake --build build --target package --parallel $(sysctl -n hw.ncpu) || exit 3
 	cd ${GITHUB_WORKSPACE} && source /${GITHUB_WORKSPACE}/test/testrunner.sh || exit 4
 	exit 0;
 	exit 1 || { echo "---> Hyperion compilation failed! Abort"; exit 5; }
 elif [[ $RUNNER_OS == "Windows" ]]; then
 	echo "Number of Cores $NUMBER_OF_PROCESSORS"
 	mkdir build || exit 1
-	cd build
-	cmake -G "Visual Studio 17 2022" -A x64 -DPLATFORM=${PLATFORM} -DCMAKE_BUILD_TYPE="Release" ../ || exit 2
-	cmake --build . --target package --config "Release" -- -nologo -v:m -maxcpucount || exit 3
+	cmake -B build -G "Visual Studio 17 2022" -A x64 -DPLATFORM=${PLATFORM} -DCMAKE_BUILD_TYPE="Release" ../ || exit 2
+	cmake --build build --target package --config "Release" -- -nologo -v:m -maxcpucount || exit 3
 	exit 0;
 	exit 1 || { echo "---> Hyperion compilation failed! Abort"; exit 5; }
 elif [[ "$RUNNER_OS" == 'Linux' ]]; then
