@@ -17,7 +17,7 @@ jobs:
 
   # GitHub Push/Pull Request (Release only on tagged commits)
   github_build:
-    name: Qt ${{ matrix.qt_version }} Build ${{ matrix.qt_version == '6' && '(Testing))' || '' }}
+    name: Qt ${{ matrix.qt_version }} Build ${{ matrix.qt_version == '6' && '(Testing)' || '' }}
     strategy:
       fail-fast: false
       matrix:
