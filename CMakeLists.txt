@@ -512,6 +512,16 @@ endif()
 
 if(CMAKE_HOST_APPLE)
 	set(CMAKE_EXE_LINKER_FLAGS "-framework CoreGraphics")
+
+	# Use @rpath instead of @loader_path
+	set(CMAKE_MACOS_RPATH TRUE)
+
+    # tell ranlib to ignore empty compilation units
+    set(CMAKE_C_ARCHIVE_FINISH   "<CMAKE_RANLIB> -no_warning_for_no_symbols <TARGET>")
+    set(CMAKE_CXX_ARCHIVE_FINISH "<CMAKE_RANLIB> -no_warning_for_no_symbols <TARGET>")
+    # prevents ar from invoking ranlib, let CMake do it
+    set(CMAKE_C_ARCHIVE_CREATE   "<CMAKE_AR> qc -S <TARGET> <LINK_FLAGS> <OBJECTS>")
+    set(CMAKE_CXX_ARCHIVE_CREATE "<CMAKE_AR> qc -S <TARGET> <LINK_FLAGS> <OBJECTS>")
 endif()
 
 find_package(Threads REQUIRED)

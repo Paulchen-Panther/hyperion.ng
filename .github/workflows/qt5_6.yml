@@ -37,13 +37,10 @@ jobs:
   macOS:
     name: 🍏 macOS ${{ matrix.arch }}
     runs-on: macos-latest
-    env:
-      PYTHON_VERSION: 3.13
-      LIBJPEG_TURBO_VERSION: 3.0.1
     strategy:
       fail-fast: false
       matrix:
-        arch: ['x86_64', 'arm64']
+        arch: [x86_64, arm64]
         isQt5:
           - ${{ inputs.qt_version == '5' }}
         exclude:
@@ -54,26 +51,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
-
-      - name: 📥 Install Python
-        uses: actions/setup-python@v4
-        id: setup-python
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          allow-prereleases: true
-          check-latest: true
-
-      - name: 📥 Install Qt
-        uses: jurplel/install-qt-action@v3
-        with:
-          version: ${{ inputs.qt_version == '6' && '6.6.0' || '5.15.2' }}
-          host: mac
-          target: 'desktop'
-          arch: ${{ matrix.arch == 'arm64' && 'clang_64' || '' }}
-          modules: ${{ inputs.qt_version == '6' && 'qtserialport' || '' }}
-          cache: 'true'
-          cache-key-prefix: macOS-${{ matrix.arch }}-Qt-${{ env.QT_VERSION }}
-          set-env: true
 
       - name: 🔧 Prepare
         shell: bash
@@ -88,18 +65,26 @@ jobs:
           echo '::group::Update/Install dependencies'
             brew untap --force homebrew/core homebrew/cask
             brew update || true
-            brew install cmake ninja vulkan-headers || true
-
-            mkdir $HOME/libjpeg-turbo-dmg
-            pushd $HOME/libjpeg-turbo-dmg
-            wget --no-check-certificate https://github.com/libjpeg-turbo/libjpeg-turbo/releases/download/$LIBJPEG_TURBO_VERSION/libjpeg-turbo-$LIBJPEG_TURBO_VERSION.dmg
-            hdid libjpeg-turbo-$LIBJPEG_TURBO_VERSION.dmg
-            sudo installer -pkg /Volumes/libjpeg-turbo-$LIBJPEG_TURBO_VERSION/libjpeg-turbo.pkg -target /
-            hdiutil detach /Volumes/libjpeg-turbo-$LIBJPEG_TURBO_VERSION
-            rm *.dmg
-            popd
-            rmdir $HOME/libjpeg-turbo-dmg
+            brew install ninja vulkan-headers || true
+            if [[ "${{ inputs.qt_version }}" = '6' ]]; then
+              PACKAGES=(qt@6 python@${{ env.QT_VERSION }} jpeg-turbo)
+              DEPS=($(brew deps --union --topological $(echo $PACKAGES) | tr '\n' ' '))
+              PACKAGES=("${DEPS[@]}" "${PACKAGES[@]}")
+              export HOMEBREW_NO_INSTALL_CLEANUP=1
+              export HOMEBREW_NO_INSTALL_UPGRADE=1
+              export HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK=1
+              for PACKAGE in "${PACKAGES[@]}"; do
+                echo "Fetching Package: $PACKAGE"
+                formulaResult=$(brew --cache --bottle-tag=arm64_monterey $PACKAGE 2>&1)
+                brew fetch --force --bottle-tag=arm64_monterey $PACKAGE || true
+                brew reinstall --verbose --force-bottle $formulaResult || true
+              done
+            else
+              brew install qt@5 python@${{ env.QT_VERSION }} jpeg-turbo || true
+            fi
           echo '::endgroup::'
+        env:
+          PYTHON_VERSION: 3.12
 
       - name: 👷 Build
         shell: bash

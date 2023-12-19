@@ -23,6 +23,8 @@ macro(DeployMacOS TARGET)
 					UNRESOLVED_DEPENDENCIES_VAR unresolved_deps
 				)
 
+				message(STATUS "resolved_deps = ${resolved_deps}")
+
 				foreach(dependency ${resolved_deps})
 					string(FIND ${dependency} "dylib" _index)
 					if (${_index} GREATER -1)
@@ -30,6 +32,7 @@ macro(DeployMacOS TARGET)
 							FILES "${dependency}"
 							DESTINATION "${CMAKE_INSTALL_PREFIX}/${TARGET_BUNDLE_NAME}/Contents/Frameworks"
 							TYPE SHARED_LIBRARY
+							FOLLOW_SYMLINK_CHAIN
 						)
 					else()
 						file(INSTALL
@@ -71,6 +74,7 @@ macro(DeployMacOS TARGET)
 									FILES ${file}
 									DESTINATION "${CMAKE_INSTALL_PREFIX}/${TARGET_BUNDLE_NAME}/Contents/plugins/${PLUGIN}"
 									TYPE SHARED_LIBRARY
+									FOLLOW_SYMLINK_CHAIN
 								)
 
 						endforeach()
