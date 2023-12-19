@@ -67,7 +67,7 @@ jobs:
             brew update || true
             brew install ninja vulkan-headers || true
             if [[ "${{ inputs.qt_version }}" = '6' ]]; then
-              PACKAGES=(qt@6 python@${{ env.QT_VERSION }} jpeg-turbo)
+              PACKAGES=(qt@6 python@${{ env.PYTHON_VERSION }} jpeg-turbo)
               DEPS=($(brew deps --union --topological $(echo $PACKAGES) | tr '\n' ' '))
               PACKAGES=("${DEPS[@]}" "${PACKAGES[@]}")
               export HOMEBREW_NO_INSTALL_CLEANUP=1
@@ -80,7 +80,7 @@ jobs:
                 brew reinstall --verbose --force-bottle $formulaResult || true
               done
             else
-              brew install qt@5 python@${{ env.QT_VERSION }} jpeg-turbo || true
+              brew install qt@5 python@${{ env.PYTHON_VERSION }} jpeg-turbo || true
             fi
           echo '::endgroup::'
         env:
