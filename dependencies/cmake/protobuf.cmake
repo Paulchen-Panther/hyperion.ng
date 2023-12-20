@@ -65,10 +65,6 @@ if(NOT USE_SYSTEM_PROTO_LIBS)
 									-Wno-dev # We don't want to be warned over unused variables
 				BUILD_COMMAND       ${CMAKE_MAKE_PROGRAM} protoc
 				BUILD_BYPRODUCTS    <BINARY_DIR>/protoc
-				LOG_DOWNLOAD		OFF
-				LOG_INSTALL			OFF
-				LOG_CONFIGURE		OFF
-				LOG_BUILD			OFF
 			)
 
 			add_executable(protoc IMPORTED GLOBAL)

@@ -72,10 +72,6 @@ if(NOT USE_SYSTEM_FLATBUFFERS_LIBS)
 									-Wno-dev # We don't want to be warned over unused variables
 				BUILD_COMMAND       ${CMAKE_MAKE_PROGRAM} flatc
 				BUILD_BYPRODUCTS    <BINARY_DIR>/flatc
-				LOG_DOWNLOAD		OFF
-				LOG_INSTALL			OFF
-				LOG_CONFIGURE		OFF
-				LOG_BUILD			OFF
 			)
 
 			add_executable(flatc IMPORTED GLOBAL)
