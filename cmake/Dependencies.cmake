@@ -32,8 +32,8 @@ macro(DeployMacOS TARGET)
 							FILES "${dependency}"
 							DESTINATION "${CMAKE_INSTALL_PREFIX}/${TARGET_BUNDLE_NAME}/Contents/Frameworks"
 							TYPE SHARED_LIBRARY
-							FOLLOW_SYMLINK_CHAIN
 						)
+						message(STATUS "Install '${dependency}' into ${CMAKE_INSTALL_PREFIX}/${TARGET_BUNDLE_NAME}/Contents/Frameworks")
 					else()
 						file(INSTALL
 							FILES "${dependency}"
@@ -41,12 +41,13 @@ macro(DeployMacOS TARGET)
 							TYPE SHARED_LIBRARY
 							FOLLOW_SYMLINK_CHAIN
 						)
+						message(STATUS "Install '${dependency}' into ${CMAKE_INSTALL_PREFIX}/${TARGET_BUNDLE_NAME}/Contents/lib")
 					endif()
 				endforeach()
 
 				list(LENGTH unresolved_deps unresolved_length)
 				if("${unresolved_length}" GREATER 0)
-					MESSAGE("The following unresolved dependencies were discovered: ${unresolved_deps}")
+					message(STATUS "The following unresolved dependencies were discovered: ${unresolved_deps}")
 				endif()
 
 				foreach(PLUGIN "platforms" "sqldrivers" "imageformats" "tls")
@@ -66,6 +67,7 @@ macro(DeployMacOS TARGET)
 											FILES ${DEPENDENCY}
 											FOLLOW_SYMLINK_CHAIN
 										)
+										message(STATUS "Install '${DEPENDENCY}' into ${CMAKE_INSTALL_PREFIX}/${TARGET_BUNDLE_NAME}/Contents/lib")
 								endforeach()
 
 								get_filename_component(singleQtLib ${file} NAME)
@@ -74,18 +76,21 @@ macro(DeployMacOS TARGET)
 									FILES ${file}
 									DESTINATION "${CMAKE_INSTALL_PREFIX}/${TARGET_BUNDLE_NAME}/Contents/plugins/${PLUGIN}"
 									TYPE SHARED_LIBRARY
-									FOLLOW_SYMLINK_CHAIN
 								)
-
+								message(STATUS "Install '${file}' into ${CMAKE_INSTALL_PREFIX}/${TARGET_BUNDLE_NAME}/Contents/plugins/${PLUGIN}")
 						endforeach()
 					endif()
 				endforeach()
+
+				list(LENGTH unresolved_deps unresolved_length)
+				if("${unresolved_length}" GREATER 0)
+					message(STATUS "The following unresolved dependencies were discovered: ${unresolved_deps}")
+				endif()
 
 				include(BundleUtilities)
 				fixup_bundle("${CMAKE_INSTALL_PREFIX}/${TARGET_BUNDLE_NAME}" "${QT_PLUGINS}" "${CMAKE_INSTALL_PREFIX}/${TARGET_BUNDLE_NAME}/Contents/lib" IGNORE_ITEM "python;python3;Python;Python3;.Python;.Python3")
 
 				if(ENABLE_EFFECTENGINE)
-
 					# Detect the Python version and modules directory
 					if(NOT CMAKE_VERSION VERSION_LESS "3.12")
 						find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
