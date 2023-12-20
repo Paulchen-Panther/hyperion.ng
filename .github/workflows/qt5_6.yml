@@ -57,7 +57,7 @@ jobs:
           submodules: recursive
 
       - name: 🔧 Append PR number to version (PR  only)
-        if: ${{ inputs.event_name == pull_request }}
+        if: ${{ inputs.event_name == 'pull_request' }}
         shell: bash
         run: tr -d '\n' < .version > temp && mv temp .version && echo -n "+PR${{ inputs.pull_request_number }}" >> .version
 
@@ -73,7 +73,7 @@ jobs:
         uses: lukka/get-cmake@latest
 
       - name: 📥 Install Qt5/6 (x86_64)
-        if: ${{ matrix.arch == x86_64 }}
+        if: ${{ matrix.arch == 'x86_64' }}
         shell: bash
         run: |
           brew untap --force homebrew/core homebrew/cask
@@ -81,7 +81,7 @@ jobs:
           brew install qt${{ inputs.qt_version }} || true
 
       - name: 📥 Install Qt6 (arm64)
-        if: ${{ matrix.arch == arm64 }}
+        if: ${{ matrix.arch == 'arm64' }}
         uses: jurplel/install-qt-action@v3
         with:
           version: ${{ env.QT6_ARM64 }}
@@ -94,7 +94,7 @@ jobs:
           set-env: true
 
       - name: 📥 Install Vulkan Headers
-        if: ${{ inputs.qt_version == 6 }}
+        if: ${{ inputs.qt_version == '6' }}
         uses: humbletim/setup-vulkan-sdk@v1.2.0
         with:
           vulkan-query-version: latest
