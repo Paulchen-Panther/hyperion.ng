@@ -7,7 +7,7 @@ on:
       qt_version:
         type: string
         description: Build with this Qt version
-        default: '5'
+        default: 5
         required: false
       event_name:
         type: string
@@ -37,12 +37,17 @@ jobs:
   macOS:
     name: 🍏 macOS ${{ matrix.arch }}
     runs-on: macos-latest
+    env:
+      PYTHON_VERSION: 3.12
+      LIBJPEG_TURBO_VERSION: 3.0.1
+      QT5_VERSION: 5.15.2
+      QT6_VERSION: 6.6.0
     strategy:
       fail-fast: false
       matrix:
         arch: [x86_64, arm64]
         isQt5:
-          - ${{ inputs.qt_version == '5' }}
+          - ${{ inputs.qt_version == 5 }}
         exclude:
           - isQt5: true
             arch: 'arm64'
@@ -52,41 +57,50 @@ jobs:
         with:
           submodules: recursive
 
-      - name: 🔧 Prepare
+      - name: 🔧 Append PR number to version (PR  only)
+        if: ${{ inputs.event_name == 'pull_request' }}
+        shell: bash
+        run: tr -d '\n' < .version > temp && mv temp .version && echo -n "+PR${{ inputs.pull_request_number }}" >> .version
+
+      - name: 📥 Install Python
+        uses: actions/setup-python@v4
+        id: setup-python
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          allow-prereleases: true
+          check-latest: true
+
+      - name: 📥 Install Qt
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: ${{ inputs.qt_version == 6 && env.QT6_VERSION || env.QT5_VERSION }}
+          host: mac
+          target: 'desktop'
+          arch: ${{ matrix.arch == 'arm64' && 'clang_64' || '' }}
+          modules: ${{ inputs.qt_version == 6 && 'qtserialport' || '' }}
+          cache: 'true'
+          cache-key-prefix: macOS-${{ matrix.arch }}-Qt-${{ env.QT_VERSION }}
+          set-env: true
+
+      - name: 📥 Install CMake and Ninja
+        uses: lukka/get-cmake@latest
+
+      - name: Install Vulkan Headers
+        uses: humbletim/setup-vulkan-sdk@v1.2.0
+        with:
+          vulkan-query-version: latest
+          vulkan-use-cache: true
+          vulkan-components: Vulkan-Headers
+
+      - name: 📥 Install libjpeg-turbo
         shell: bash
         run: |
-          echo '::group::Append PR number to version (PR  only)'
-            if [[ "${{ inputs.event_name }}" = "pull_request" ]]; then
-              tr -d '\n' < .version > temp && mv temp .version
-              echo -n "+PR${{ inputs.pull_request_number }}" >> .version
-            fi
-          echo '::endgroup::'
+          wget --no-check-certificate https://github.com/libjpeg-turbo/libjpeg-turbo/releases/download/$LIBJPEG_TURBO_VERSION/libjpeg-turbo-$LIBJPEG_TURBO_VERSION.dmg
+          hdid libjpeg-turbo-$LIBJPEG_TURBO_VERSION.dmg
+          sudo installer -pkg /Volumes/libjpeg-turbo-$LIBJPEG_TURBO_VERSION/libjpeg-turbo.pkg -target /
+          hdiutil detach /Volumes/libjpeg-turbo-$LIBJPEG_TURBO_VERSION
 
-          echo '::group::Update/Install dependencies'
-            brew untap --force homebrew/core homebrew/cask
-            brew update || true
-            brew install ninja vulkan-headers || true
-            if [[ "${{ inputs.qt_version }}" = '6' ]]; then
-              PACKAGES=(qt@6 python@${{ env.PYTHON_VERSION }} jpeg-turbo)
-              DEPS=($(brew deps --union --topological $(echo $PACKAGES) | tr '\n' ' '))
-              PACKAGES=("${DEPS[@]}" "${PACKAGES[@]}")
-              export HOMEBREW_NO_INSTALL_CLEANUP=1
-              export HOMEBREW_NO_INSTALL_UPGRADE=1
-              export HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK=1
-              for PACKAGE in "${PACKAGES[@]}"; do
-                echo "Fetching Package: $PACKAGE"
-                formulaResult=$(brew --cache --bottle-tag=arm64_monterey $PACKAGE 2>&1)
-                brew fetch --force --bottle-tag=arm64_monterey $PACKAGE || true
-                brew reinstall --verbose --force-bottle $formulaResult || true
-              done
-            else
-              brew install qt@5 python@${{ env.PYTHON_VERSION }} jpeg-turbo || true
-            fi
-          echo '::endgroup::'
-        env:
-          PYTHON_VERSION: 3.12
-
-      - name: 👷 Build
+      - name: 👷 Configure & Build
         shell: bash
         run: |
           echo '::group::Configure'
@@ -96,14 +110,13 @@ jobs:
               -G Ninja \
               -DPLATFORM=${{ env.PLATFORM }} \
               -DMACOS_ARCHITECTURE=${{ matrix.arch }} \
-              -DCMAKE_BUILD_TYPE=Release \
-              -DCMAKE_INSTALL_PREFIX:PATH=/usr/local
+              -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
           echo '::endgroup::'
 
           echo '::group::Build'
             cmake \
               --build build \
-              --config 'Release' \
+              --config ${{ env.BUILD_TYPE }} \
               --target package \
               --parallel $(sysctl -n hw.ncpu)
           echo '::endgroup::'
@@ -122,4 +135,4 @@ jobs:
           name: ${{ inputs.event_name == 'pull_request' && env.NAME || 'artifact' }}
           path: 'build/Hyperion-*'
         env:
-          NAME: ${{ inputs.qt_version == '6' && 'macOS_${{ matrix.arch }}_qt6' || 'macOS_${{ matrix.arch }}' }}
+          NAME: ${{ inputs.qt_version == 6 && 'macOS_${{ matrix.arch }}_qt6' || 'macOS_${{ matrix.arch }}' }}
