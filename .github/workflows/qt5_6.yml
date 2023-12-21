@@ -44,12 +44,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        arch: [x86_64, arm64]
-        isQt5:
-          - ${{ inputs.qt_version == 5 }}
-        exclude:
-          - isQt5: true
-            arch: arm64
+        arch: [arm64]
+        # arch: [x86_64, arm64]
+        # isQt5:
+        #   - ${{ inputs.qt_version == 5 }}
+        # exclude:
+        #   - isQt5: true
+        #     arch: arm64
     steps:
       - name: ⬇ Checkout
         uses: actions/checkout@v4

@@ -1,8 +1,4 @@
-if(APPLE)
-	project(Hyperion)
-else()
-	project(hyperiond)
-endif()
+project(hyperiond)
 
 #####################################
 ############ Preparation ############
@@ -136,6 +132,7 @@ endif()
 
 if(APPLE)
 	set_target_properties(${PROJECT_NAME} PROPERTIES
+		OUTPUT_NAME "Hyperion"
 		MACOSX_BUNDLE TRUE
 		MACOSX_BUNDLE_INFO_PLIST ${CMAKE_SOURCE_DIR}/cmake/osxbundle/Info.plist.in
 		MACOSX_BUNDLE_BUNDLE_NAME "Hyperion"

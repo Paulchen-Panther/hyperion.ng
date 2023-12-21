@@ -25,7 +25,7 @@ install(CODE [[
     message(STATUS "resolved_deps = ${resolved_deps}")
 
     foreach(dependency ${resolved_deps})
-        string(FIND ${dependency} "dylib" _index)
+        string(FIND ${dependency} "dylib;dSYM" _index)
         if (${_index} GREATER -1)
             message(STATUS "Frameworks = ${dependency}")
             file(INSTALL
