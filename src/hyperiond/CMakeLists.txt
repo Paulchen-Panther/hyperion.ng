@@ -239,14 +239,17 @@ if(WIN32)
 endif(WIN32)
 
 if(ENABLE_DEPLOY_DEPENDENCIES)
-	# Deploy all dependencies for package creation
-	include(${CMAKE_SOURCE_DIR}/cmake/Dependencies.cmake)
-
-	if(APPLE) #macOS
-		DeployMacOS(${PROJECT_NAME})
-	elseif (NOT WIN32) # Linux
-		DeployLinux(${PROJECT_NAME})
-	elseif(WIN32) # Windows
-		DeployWindows(${PROJECT_NAME})
+	if(EXISTS ${TARGET_FILE})
+		message(STATUS "Collecting Dependencies for target file: ${TARGET_FILE}")
+		include(${CMAKE_SOURCE_DIR}/cmake/RuntimeDependencies${CMAKE_HOST_SYSTEM_NAME}.cmake)
+	elseif(EXISTS "${CMAKE_SOURCE_DIR}/cmake/RuntimeDependencies${CMAKE_HOST_SYSTEM_NAME}.cmake")
+		# Run CMake after target was built
+		add_custom_command(
+			TARGET ${PROJECT_NAME} POST_BUILD
+			COMMAND "${CMAKE_COMMAND}" "-DTARGET_FILE=$<TARGET_FILE:${PROJECT_NAME}>"
+			ARGS ${CMAKE_SOURCE_DIR}
+			WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+			VERBATIM
+		)
 	endif()
 endif(ENABLE_DEPLOY_DEPENDENCIES)
