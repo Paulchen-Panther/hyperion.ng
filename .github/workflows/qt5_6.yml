@@ -114,7 +114,7 @@ jobs:
             mkdir build
             cmake \
               -B build \
-              -G XCode \
+              -G Xcode \
               -DMACOS_ARCHITECTURE=${{ matrix.arch }} \
               -DCMAKE_BUILD_TYPE=Release
           echo '::endgroup::'
