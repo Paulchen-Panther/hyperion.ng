@@ -70,9 +70,6 @@ jobs:
           allow-prereleases: true
           check-latest: true
 
-      - name: 📥 Install CMake and Ninja
-        uses: lukka/get-cmake@latest
-
       - name: 📥 Install Qt5/6 (x86_64)
         if: ${{ matrix.arch == 'x86_64' }}
         shell: bash
@@ -117,7 +114,7 @@ jobs:
             mkdir build
             cmake \
               -B build \
-              -G Ninja \
+              -G XCode \
               -DMACOS_ARCHITECTURE=${{ matrix.arch }} \
               -DCMAKE_BUILD_TYPE=Release
           echo '::endgroup::'
@@ -126,6 +123,7 @@ jobs:
             cmake \
               --build build \
               --config Release \
+              --target package \
               --parallel $(sysctl -n hw.ncpu)
           echo '::endgroup::'
 

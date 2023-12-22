@@ -12,6 +12,7 @@ string(CONFIGURE [[
     set(PLUGIN_DIR ${QT_PLUGIN_DIR})
     set(BUILD_DIR ${CMAKE_BINARY_DIR})
     set(ENABLE_EFFECTENGINE ${ENABLE_EFFECTENGINE})
+    set(XCODE_VERSION ${XCODE_VERSION})
 ]] setVariables)
 install(CODE ${setVariables} COMPONENT "Hyperion")
 
@@ -25,8 +26,7 @@ install(CODE [[
     message(STATUS "resolved_deps = ${resolved_deps}")
 
     foreach(dependency ${resolved_deps})
-        string(FIND ${dependency} "dylib;dSYM" _index)
-        if (${_index} GREATER -1)
+        if(dependency MATCHES "\\.(dylib)$")
             message(STATUS "Frameworks = ${dependency}")
             file(INSTALL
                 FILES "${dependency}"
@@ -52,20 +52,24 @@ install(CODE [[
     foreach(PLUGIN "platforms" "sqldrivers" "imageformats" "tls")
         if(EXISTS ${PLUGIN_DIR}/${PLUGIN})
             file(GLOB files "${PLUGIN_DIR}/${PLUGIN}/*")
+            if(PLUGIN STREQUAL "sqldrivers")
+                list(FILTER files EXCLUDE REGEX ".*(sqlodbc|sqlpsql)\\.(dylib|dSYM)$")
+            endif()
             foreach(file ${files})
+                if(file MATCHES "\\.(dylib)$")
                     file(GET_RUNTIME_DEPENDENCIES
-                    EXECUTABLES ${file}
-                    RESOLVED_DEPENDENCIES_VAR PLUGINS
-                    UNRESOLVED_DEPENDENCIES_VAR unresolved_deps
+                        LIBRARIES ${file}
+                        RESOLVED_DEPENDENCIES_VAR PLUGINS
+                        UNRESOLVED_DEPENDENCIES_VAR unresolved_deps
                     )
 
                     foreach(DEPENDENCY ${PLUGINS})
-                            file(INSTALL
-                                DESTINATION "${CMAKE_INSTALL_PREFIX}/${TARGET_BUNDLE_NAME}/Contents/lib"
-                                TYPE SHARED_LIBRARY
-                                FILES ${DEPENDENCY}
-                                FOLLOW_SYMLINK_CHAIN
-                            )
+                        file(INSTALL
+                            DESTINATION "${CMAKE_INSTALL_PREFIX}/${TARGET_BUNDLE_NAME}/Contents/lib"
+                            TYPE SHARED_LIBRARY
+                            FILES ${DEPENDENCY}
+                            FOLLOW_SYMLINK_CHAIN
+                        )
                     endforeach()
 
                     get_filename_component(singleQtLib ${file} NAME)
@@ -75,6 +79,7 @@ install(CODE [[
                         DESTINATION "${CMAKE_INSTALL_PREFIX}/${TARGET_BUNDLE_NAME}/Contents/plugins/${PLUGIN}"
                         TYPE SHARED_LIBRARY
                     )
+                endif()
             endforeach()
 
             list(LENGTH unresolved_deps unresolved_length)
@@ -85,7 +90,7 @@ install(CODE [[
     endforeach()
 
     include(BundleUtilities)
-    fixup_bundle("${CMAKE_INSTALL_PREFIX}/${TARGET_BUNDLE_NAME}" "${QT_PLUGINS}" "${CMAKE_INSTALL_PREFIX}/${TARGET_BUNDLE_NAME}/Contents/lib" IGNORE_ITEM "python;python3;Python;Python3;.Python;.Python3")
+    fixup_bundle("${CMAKE_INSTALL_PREFIX}/${TARGET_BUNDLE_NAME}" "${QT_PLUGINS}" "${CMAKE_INSTALL_PREFIX}/${TARGET_BUNDLE_NAME}/Contents/lib" IGNORE_ITEM "python;python3;Python;Python3;.Python;.Python3;Python.app")
 
     if(ENABLE_EFFECTENGINE)
         # Detect the Python version and modules directory
@@ -119,6 +124,11 @@ install(CODE [[
             )
         endif(PYTHON_MODULES_DIR)
     endif(ENABLE_EFFECTENGINE)
+
+    # Python ad-hoc signature fix (XCode 14+)
+    if(NOT XCODE_VERSION VERSION_LESS 14)
+        execute_process(COMMAND "/usr/bin/codesign" "--deep" "-s" "-" "-f" "${CMAKE_INSTALL_PREFIX}/${TARGET_BUNDLE_NAME}/Contents/Frameworks/Python.framework")
+    endif()
 
     file(REMOVE_RECURSE "${CMAKE_INSTALL_PREFIX}/${TARGET_BUNDLE_NAME}/Contents/lib")
     file(REMOVE_RECURSE "${CMAKE_INSTALL_PREFIX}/share")

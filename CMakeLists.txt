@@ -1,19 +1,8 @@
+# Minimum required CMake version is 3.5.0
 cmake_minimum_required(VERSION 3.5.0)
-
 message(STATUS "CMake Version: ${CMAKE_VERSION}")
 
-macro(addIndent text)
-	if(${CMAKE_VERSION} VERSION_GREATER "3.16.0")
-		list(APPEND CMAKE_MESSAGE_INDENT ${text})
-	endif()
-endmacro()
-
-macro(removeIndent)
-	if(${CMAKE_VERSION} VERSION_GREATER "3.16.0")
-		list(POP_BACK CMAKE_MESSAGE_INDENT)
-	endif()
-endmacro()
-
+# Definitions that must happen before the project() command
 if(CMAKE_HOST_APPLE)
 	execute_process(COMMAND uname -m OUTPUT_VARIABLE HOST_SYSTEM_PROCESSOR OUTPUT_STRIP_TRAILING_WHITESPACE)
 	if(MACOS_ARCHITECTURE AND (NOT MACOS_ARCHITECTURE STREQUAL HOST_SYSTEM_PROCESSOR))
@@ -36,10 +25,27 @@ if(CMAKE_HOST_APPLE)
 	string(APPEND CMAKE_CXX_FLAGS " -stdlib=libc++")
 endif()
 
+# Set the required C++ standard
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+# Use ccache if available
+find_program(CCACHE_PROG ccache)
+mark_as_advanced(FORCE CCACHE_PROG)
+if( CCACHE_PROG )
+   set_property( GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CCACHE_PROG}" )
+   set_property( GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CCACHE_PROG}" )
+endif()
+
+# Our main project
 PROJECT(hyperion)
 
+# Append our cmake module path (for include, find, etc.)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
 # Parse semantic version of version file and write version to config
-include (${CMAKE_CURRENT_SOURCE_DIR}/cmake/version.cmake)
+include(HelperFunctions)
 file (STRINGS ".version" HYPERION_VERSION)
 SetVersionNumber(HYPERION ${HYPERION_VERSION})
 set(DEFAULT_JSON_CONFIG_FILE ${CMAKE_CURRENT_SOURCE_DIR}/config/hyperion.config.json.default)
@@ -53,26 +59,20 @@ set(CMAKE_AUTOMOC ON)
 # auto prepare .qrc files
 set(CMAKE_AUTORCC ON)
 
-# multicore compiling
+# Set Multicore compiling if available
 include(ProcessorCount)
 ProcessorCount(NCORES)
 if(NOT NCORES EQUAL 0)
 	set(CMAKE_BUILD_PARALLEL_LEVEL NCORES)
 endif()
 
-# Configure CCache ifavailable
-find_program(CCACHE_FOUND ccache)
-if(CCACHE_FOUND)
-	set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
-	set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
-endif(CCACHE_FOUND)
-
-# enable C++17
+# XCode 14 no longer allows building unsigned binaries. Adhoc signing is nessasary.
 if(CMAKE_HOST_APPLE)
-	include(CheckCXXCompilerFlag)
-	CHECK_CXX_COMPILER_FLAG("Werror=unguarded-availability" REQUIRED_UNGUARDED_AVAILABILITY)
-	if(REQUIRED_UNGUARDED_AVAILABILITY)
-		list(APPEND CMAKE_REQUIRED_FLAGS ${CMAKE_REQUIRED_FLAGS} "Werror=unguarded-availability")
+	if(XCODE_VERSION VERSION_LESS 14)
+		set(CMAKE_XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "" CACHE INTERNAL "")
+	else()
+		set(CMAKE_XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "-" CACHE INTERNAL "")
+		set(CMAKE_XCODE_ATTRIBUTE_OTHER_CODE_SIGN_FLAGS "-o linker-signed --timestamp" CACHE INTERNAL "")
 	endif()
 endif()
 
@@ -81,11 +81,8 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_C_COMPILER_ID MATCHES "GNU")
 	string(APPEND CMAKE_C_FLAGS " -Wno-psabi")
 endif()
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-
 # Set build variables
+
 # Grabber
 set(DEFAULT_AMLOGIC                     OFF)
 set(DEFAULT_DISPMANX                    OFF)
@@ -191,6 +188,9 @@ macro(FIRSTSUBDIR result curdir)
   endforeach()
   set(${result} ${dirlist})
 endmacro()
+
+# Include helper macros
+include(HelperMacros)
 
 if("${PLATFORM}" MATCHES "osx")
 	# add specific prefix paths
@@ -469,9 +469,6 @@ if(ENABLE_JSONCHECKS)
 	endif()
 endif(ENABLE_JSONCHECKS)
 
-# Add project specific cmake modules (find, etc)
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-
 find_package(GitVersion)
 
 # configure a header file to pass some of the CMake settings
@@ -517,6 +514,8 @@ if(CMAKE_HOST_APPLE)
     set(CMAKE_CXX_ARCHIVE_CREATE "<CMAKE_AR> Scr <TARGET> <LINK_FLAGS> <OBJECTS>")
     set(CMAKE_C_ARCHIVE_FINISH   "<CMAKE_RANLIB> -no_warning_for_no_symbols -c <TARGET>")
     set(CMAKE_CXX_ARCHIVE_FINISH "<CMAKE_RANLIB> -no_warning_for_no_symbols -c <TARGET>")
+
+	set(CMAKE_XCODE_ATTRIBUTE_OTHER_CODE_SIGN_FLAGS "-o linker-signed")
 endif()
 
 find_package(Threads REQUIRED)
@@ -612,4 +611,4 @@ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/cmake/cmake_uninstall.cmake.in" "${C
 add_custom_target(uninstall COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)
 
 # enable make package - no code after this line !
-include (${CMAKE_CURRENT_SOURCE_DIR}/cmake/packages.cmake)
+include (${CMAKE_CURRENT_SOURCE_DIR}/cmake/Packaging.cmake)

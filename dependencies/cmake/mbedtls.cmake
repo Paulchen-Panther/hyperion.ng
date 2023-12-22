@@ -21,6 +21,9 @@ if(NOT USE_SYSTEM_MBEDTLS_LIBS)
 	# Disable mbedTLS tests
 	set(ENABLE_TESTING OFF CACHE BOOL "Disable mbedTLS tests")
 
+	# Disable fatal warnings
+	option(MBEDTLS_FATAL_WARNINGS "Compiler warnings treated as errors" OFF)
+
 	# Disable mbedTLS program building
 	set(ENABLE_PROGRAMS OFF CACHE BOOL "Disable mbedTLS programs")
 

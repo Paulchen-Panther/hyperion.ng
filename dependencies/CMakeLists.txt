@@ -1,5 +1,4 @@
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-include(helper_functions)
 
 if(ENABLE_DEV_USB_HID)
 	add_subdirectory(build/hidapi)
