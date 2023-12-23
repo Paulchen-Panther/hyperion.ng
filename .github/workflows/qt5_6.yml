@@ -113,6 +113,7 @@ jobs:
           echo '::group::Configure'
             mkdir build
             cmake \
+              -S . \
               -B build \
               -G Xcode \
               -DMACOS_ARCHITECTURE=${{ matrix.arch }} \
@@ -120,10 +121,11 @@ jobs:
           echo '::endgroup::'
 
           echo '::group::Build'
-            cmake \
+            cmake
               --build build \
               --config Release \
-              --parallel $(sysctl -n hw.ncpu)
+              --target ALL_BUILD \
+              --j $(sysctl -n hw.ncpu) --
           echo '::endgroup::'
 
           echo '::group::Package'
