@@ -44,6 +44,7 @@ if(NOT USE_SYSTEM_PROTO_LIBS)
 		else()
 			# ... or build protoc nativly
 			include(ExternalProject)
+			get_property(isMultiConfig GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 			ExternalProject_Add(protoc-host
 				PREFIX				${CMAKE_BINARY_DIR}/dependencies/external/protoc-host
 				BUILD_ALWAYS		OFF
@@ -62,13 +63,12 @@ if(NOT USE_SYSTEM_PROTO_LIBS)
 									-DCMAKE_CXX_FLAGS:STRING=${CMAKE_CXX_FLAGS}
 									-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
 									-Wno-dev # We don't want to be warned over unused variables
-				# BUILD_COMMAND       ${CMAKE_MAKE_PROGRAM} protoc
-				BUILD_BYPRODUCTS    <BINARY_DIR>/Releease/protoc
+				BUILD_BYPRODUCTS    <BINARY_DIR>/protoc
 			)
 
 			add_executable(protoc IMPORTED GLOBAL)
 			ExternalProject_Get_Property(protoc-host BINARY_DIR)
-			set_target_properties(protoc PROPERTIES IMPORTED_LOCATION ${BINARY_DIR}/Release/protoc)
+			set_target_properties(protoc PROPERTIES IMPORTED_LOCATION ${BINARY_DIR}/$<$<BOOL:${isMultiConfig}>:$<CONFIG>/>/protoc)
 			add_dependencies(protoc protoc-host)
 		endif()
 	else()

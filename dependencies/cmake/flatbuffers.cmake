@@ -50,7 +50,10 @@ if(NOT USE_SYSTEM_FLATBUFFERS_LIBS)
 			include(${IMPORT_FLATC})
 		else()
 			# ... or build flatc nativly
-			set(FLATBUFFERS_COMPILER ${CMAKE_BINARY_DIR}/bin/flatc${CMAKE_EXECUTABLE_SUFFIX})
+			set(FLATBUFFERS_COMPILER flatc${CMAKE_EXECUTABLE_SUFFIX})
+
+			get_property(isMultiConfig GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+
 
 			include(ExternalProject)
 			ExternalProject_Add(flatc-host
@@ -69,13 +72,12 @@ if(NOT USE_SYSTEM_FLATBUFFERS_LIBS)
 									-DCMAKE_CXX_FLAGS:STRING=${CMAKE_CXX_FLAGS}
 									-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
 									-Wno-dev # We don't want to be warned over unused variables
-				# BUILD_COMMAND       ${CMAKE_MAKE_PROGRAM} flatc
-				BUILD_BYPRODUCTS    <BINARY_DIR>/Release/flatc
+				BUILD_BYPRODUCTS    <BINARY_DIR>/flatc
 			)
 
 			add_executable(flatc IMPORTED GLOBAL)
 			ExternalProject_Get_Property(flatc-host BINARY_DIR)
-			set_target_properties(flatc PROPERTIES IMPORTED_LOCATION ${BINARY_DIR}/Release/flatc)
+			set_target_properties(flatc PROPERTIES IMPORTED_LOCATION ${BINARY_DIR}/$<$<BOOL:${isMultiConfig}>:$<CONFIG>/>/flatc)
 			add_dependencies(flatc flatc-host)
 		endif()
 	else()

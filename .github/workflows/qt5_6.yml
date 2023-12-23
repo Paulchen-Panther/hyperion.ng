@@ -130,11 +130,11 @@ jobs:
             cd build && cpack --verbose
           echo '::endgroup::'
 
-      # - name: 📦 Upload
-      #   # if: ${{ inputs.publish || inputs.event_name == 'pull_request' }}
-      #   uses: actions/upload-artifact@v3
-      #   with:
-      #     name: ${{ inputs.event_name == 'pull_request' && env.NAME || 'artifact' }}
-      #     path: 'build/Hyperion-*'
-      #   env:
-      #     NAME: ${{ inputs.qt_version == 6 && 'macOS_${{ matrix.arch }}_qt6' || 'macOS_${{ matrix.arch }}' }}
+      - name: 📦 Upload
+        # if: ${{ inputs.publish || inputs.event_name == 'pull_request' }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ inputs.event_name == 'pull_request' && env.NAME || 'artifact' }}
+          path: 'build/Hyperion-*'
+        env:
+          NAME: ${{ inputs.qt_version == 6 && 'macOS_${{ matrix.arch }}_qt6' || 'macOS_${{ matrix.arch }}' }}
