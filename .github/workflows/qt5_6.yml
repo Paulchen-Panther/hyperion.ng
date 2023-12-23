@@ -123,7 +123,6 @@ jobs:
             cmake \
               --build build \
               --config Release \
-              --target ALL_BUILD \
               --parallel $(sysctl -n hw.ncpu)
           echo '::endgroup::'
 

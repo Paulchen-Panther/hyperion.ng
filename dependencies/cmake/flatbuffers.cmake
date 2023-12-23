@@ -55,7 +55,6 @@ if(NOT USE_SYSTEM_FLATBUFFERS_LIBS)
 			include(ExternalProject)
 			ExternalProject_Add(flatc-host
 				PREFIX				${CMAKE_BINARY_DIR}/dependencies/external/flatc-host
-				EXCLUDE_FROM_ALL    ON
 				BUILD_ALWAYS		OFF
 				DOWNLOAD_COMMAND	""
 				INSTALL_COMMAND     ""

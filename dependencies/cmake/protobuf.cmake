@@ -46,7 +46,6 @@ if(NOT USE_SYSTEM_PROTO_LIBS)
 			include(ExternalProject)
 			ExternalProject_Add(protoc-host
 				PREFIX				${CMAKE_BINARY_DIR}/dependencies/external/protoc-host
-				EXCLUDE_FROM_ALL    ON
 				BUILD_ALWAYS		OFF
 				DOWNLOAD_COMMAND	""
 				INSTALL_COMMAND     ""
