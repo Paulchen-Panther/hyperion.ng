@@ -121,10 +121,10 @@ jobs:
 
           echo '::group::Build'
             cmake
-              --build build \
+              -B build \
               --config Release \
               --target ALL_BUILD \
-              --j $(sysctl -n hw.ncpu) --
+              --parallel $(sysctl -n hw.ncpu)
           echo '::endgroup::'
 
           echo '::group::Package'
