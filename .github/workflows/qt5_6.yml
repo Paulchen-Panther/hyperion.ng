@@ -113,7 +113,6 @@ jobs:
           echo '::group::Configure'
             mkdir build
             cmake \
-              -S . \
               -B build \
               -G Xcode \
               -DMACOS_ARCHITECTURE=${{ matrix.arch }} \
