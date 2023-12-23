@@ -70,12 +70,12 @@ if(NOT USE_SYSTEM_FLATBUFFERS_LIBS)
 									-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
 									-Wno-dev # We don't want to be warned over unused variables
 				# BUILD_COMMAND       ${CMAKE_MAKE_PROGRAM} flatc
-				BUILD_BYPRODUCTS    <BINARY_DIR>/flatc
+				BUILD_BYPRODUCTS    <BINARY_DIR>/Releease/flatc
 			)
 
 			add_executable(flatc IMPORTED GLOBAL)
 			ExternalProject_Get_Property(flatc-host BINARY_DIR)
-			set_target_properties(flatc PROPERTIES IMPORTED_LOCATION ${BINARY_DIR}/flatc)
+			set_target_properties(flatc PROPERTIES IMPORTED_LOCATION ${BINARY_DIR}/Releease/flatc)
 			add_dependencies(flatc flatc-host)
 		endif()
 	else()

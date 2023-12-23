@@ -63,12 +63,12 @@ if(NOT USE_SYSTEM_PROTO_LIBS)
 									-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
 									-Wno-dev # We don't want to be warned over unused variables
 				# BUILD_COMMAND       ${CMAKE_MAKE_PROGRAM} protoc
-				BUILD_BYPRODUCTS    <BINARY_DIR>/protoc
+				BUILD_BYPRODUCTS    <BINARY_DIR>/Releease/protoc
 			)
 
 			add_executable(protoc IMPORTED GLOBAL)
 			ExternalProject_Get_Property(protoc-host BINARY_DIR)
-			set_target_properties(protoc PROPERTIES IMPORTED_LOCATION ${BINARY_DIR}/protoc)
+			set_target_properties(protoc PROPERTIES IMPORTED_LOCATION ${BINARY_DIR}/Release/protoc)
 			add_dependencies(protoc protoc-host)
 		endif()
 	else()
