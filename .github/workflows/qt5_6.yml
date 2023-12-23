@@ -120,8 +120,8 @@ jobs:
           echo '::endgroup::'
 
           echo '::group::Build'
-            cmake
-              -B build \
+            cmake \
+              --build build \
               --config Release \
               --target ALL_BUILD \
               --parallel $(sysctl -n hw.ncpu)
