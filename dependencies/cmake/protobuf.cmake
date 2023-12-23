@@ -50,7 +50,7 @@ if(NOT USE_SYSTEM_PROTO_LIBS)
 				BUILD_ALWAYS		OFF
 				DOWNLOAD_COMMAND	""
 				INSTALL_COMMAND     ""
-				SOURCE_DIR			${CMAKE_CURRENT_SOURCE_DIR}/external/protobuf
+				SOURCE_DIR			${CMAKE_SOURCE_DIR}/dependencies/external/protobuf
 				CMAKE_ARGS          -Dprotobuf_BUILD_LIBPROTOC:BOOL=OFF
 									-Dprotobuf_INSTALL:BOOL=OFF
 									-Dprotobuf_BUILD_TESTS:BOOL=${protobuf_BUILD_TESTS}
@@ -63,7 +63,7 @@ if(NOT USE_SYSTEM_PROTO_LIBS)
 									-DCMAKE_CXX_FLAGS:STRING=${CMAKE_CXX_FLAGS}
 									-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
 									-Wno-dev # We don't want to be warned over unused variables
-				BUILD_COMMAND       ${CMAKE_MAKE_PROGRAM} protoc
+				# BUILD_COMMAND       ${CMAKE_MAKE_PROGRAM} protoc
 				BUILD_BYPRODUCTS    <BINARY_DIR>/protoc
 			)
 

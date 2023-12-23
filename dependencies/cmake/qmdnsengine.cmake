@@ -29,7 +29,7 @@ else()
 		PREFIX				${CMAKE_BINARY_DIR}/dependencies/external/qmdnsengine
 		BUILD_ALWAYS		OFF
 		DOWNLOAD_COMMAND	""
-		SOURCE_DIR			${CMAKE_CURRENT_SOURCE_DIR}/external/qmdnsengine
+		SOURCE_DIR			${CMAKE_SOURCE_DIR}/dependencies/external/qmdnsengine
 		CMAKE_ARGS			${QMDNS_CMAKE_ARGS}
 		INSTALL_DIR			${CMAKE_BINARY_DIR}
 		BUILD_BYPRODUCTS    <INSTALL_DIR>/lib/${CMAKE_STATIC_LIBRARY_PREFIX}qmdnsengine${CMAKE_STATIC_LIBRARY_SUFFIX}

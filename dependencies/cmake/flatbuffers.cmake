@@ -59,7 +59,7 @@ if(NOT USE_SYSTEM_FLATBUFFERS_LIBS)
 				BUILD_ALWAYS		OFF
 				DOWNLOAD_COMMAND	""
 				INSTALL_COMMAND     ""
-				SOURCE_DIR			${CMAKE_CURRENT_SOURCE_DIR}/external/flatbuffers
+				SOURCE_DIR			${CMAKE_SOURCE_DIR}/dependencies/external/flatbuffers
 				CMAKE_ARGS          -DFLATBUFFERS_BUILD_FLATLIB:BOOL=OFF
 									-DFLATBUFFERS_INSTALL:BOOL=OFF
 									-DBUILD_SHARED_LIBS:BOOL=${BUILD_SHARED_LIBS}
@@ -70,7 +70,7 @@ if(NOT USE_SYSTEM_FLATBUFFERS_LIBS)
 									-DCMAKE_CXX_FLAGS:STRING=${CMAKE_CXX_FLAGS}
 									-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
 									-Wno-dev # We don't want to be warned over unused variables
-				BUILD_COMMAND       ${CMAKE_MAKE_PROGRAM} flatc
+				# BUILD_COMMAND       ${CMAKE_MAKE_PROGRAM} flatc
 				BUILD_BYPRODUCTS    <BINARY_DIR>/flatc
 			)
 
