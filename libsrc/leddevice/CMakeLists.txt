@@ -111,6 +111,7 @@ if(ENABLE_DEV_NETWORK)
 			include_directories(${MBEDTLS_INCLUDE_DIR})
 			target_link_libraries(leddevice ${MBEDTLS_LIBRARIES})
 			target_include_directories(leddevice PRIVATE ${MBEDTLS_INCLUDE_DIR})
+			add_dependencies(qmdnsengine qmdns)
 		endif (MBEDTLS_LIBRARIES)
 	endif()
 
