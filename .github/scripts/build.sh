@@ -19,7 +19,7 @@ if [[ "$RUNNER_OS" == 'macOS' ]]; then
 	mkdir build || exit 1
 	cd build
 	cmake -DPLATFORM=${PLATFORM} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_INSTALL_PREFIX:PATH=/usr/local ../ || exit 2
-	make -j $(sysctl -n hw.ncpu) package || exit 0
+	make -j $(sysctl -n hw.ncpu) package || ls lib/
  	ls lib/ | exit 3
 	cd ${GITHUB_WORKSPACE} && source /${GITHUB_WORKSPACE}/test/testrunner.sh || exit 4
 	exit 0;
