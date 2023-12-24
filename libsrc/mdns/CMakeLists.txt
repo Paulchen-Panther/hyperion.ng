@@ -11,3 +11,5 @@ target_link_libraries(mdns
 	qmdnsengine
 	$<$<BOOL:${WIN32}>:bcrypt.lib>
 )
+
+add_dependencies(mdns qmdnsengine)
