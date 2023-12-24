@@ -20,7 +20,7 @@ endif()
 
 if (ENABLE_MDNS)
 	set(USE_SYSTEM_QMDNS_LIBS ${DEFAULT_USE_SYSTEM_QMDNS_LIBS} CACHE BOOL "use qmdnsengine library from system")
-	
+
 	if(USE_SYSTEM_QMDNS_LIBS)
 		find_package(qmdnsengine REQUIRED)
 	else()
@@ -36,7 +36,7 @@ if (ENABLE_MDNS)
 			-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
 			-Wno-dev # We don't want to be warned over unused variables
 		)
-	
+
 		if(CMAKE_OSX_ARCHITECTURES)
 			list(APPEND QMDNS_CMAKE_ARGS
 				-DCMAKE_OSX_ARCHITECTURES:STRING=${CMAKE_OSX_ARCHITECTURES}
@@ -44,7 +44,7 @@ if (ENABLE_MDNS)
 				-DCMAKE_OSX_SYSROOT:PATH=${CMAKE_OSX_SYSROOT}
 			)
 		endif()
-	
+
 		include(ExternalProject)
 		ExternalProject_Add(qmdns
 			PREFIX				${CMAKE_BINARY_DIR}/dependencies/external/qmdnsengine
@@ -55,14 +55,17 @@ if (ENABLE_MDNS)
 			INSTALL_DIR			${CMAKE_BINARY_DIR}
 			BUILD_BYPRODUCTS    <INSTALL_DIR>/lib/${CMAKE_STATIC_LIBRARY_PREFIX}qmdnsengine${CMAKE_STATIC_LIBRARY_SUFFIX}
 		)
-	
+
 		add_library(qmdnsengine STATIC IMPORTED GLOBAL)
 		ExternalProject_Get_Property(qmdns INSTALL_DIR)
 		set_target_properties(qmdnsengine PROPERTIES
 			IMPORTED_LOCATION ${INSTALL_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}qmdnsengine${CMAKE_STATIC_LIBRARY_SUFFIX}
 			INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_BINARY_DIR}/include
 		)
-	
+
+		get_target_property(TEST qmdnsengine IMPORTED_LOCATION)
+		message(STATUS "--------->>>>> ${TEST}")
+
 		add_dependencies(qmdnsengine qmdns)
 	endif()
 endif()
