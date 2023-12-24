@@ -45,6 +45,8 @@ if (ENABLE_MDNS)
 			)
 		endif()
 
+		set(QMDNS_LIBRARY ${CMAKE_BINARY_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}qmdnsengine${CMAKE_STATIC_LIBRARY_SUFFIX}
+
 		include(ExternalProject)
 		ExternalProject_Add(qmdns
 			PREFIX				${CMAKE_BINARY_DIR}/dependencies/external/qmdnsengine
@@ -53,18 +55,14 @@ if (ENABLE_MDNS)
 			SOURCE_DIR			${CMAKE_SOURCE_DIR}/dependencies/external/qmdnsengine
 			CMAKE_ARGS			${QMDNS_CMAKE_ARGS}
 			INSTALL_DIR			${CMAKE_BINARY_DIR}
-			BUILD_BYPRODUCTS    <INSTALL_DIR>/lib/${CMAKE_STATIC_LIBRARY_PREFIX}qmdnsengine${CMAKE_STATIC_LIBRARY_SUFFIX}
+			BUILD_BYPRODUCTS    ${QMDNS_LIBRARY}
 		)
 
 		add_library(qmdnsengine STATIC IMPORTED GLOBAL)
-		ExternalProject_Get_Property(qmdns INSTALL_DIR)
 		set_target_properties(qmdnsengine PROPERTIES
-			IMPORTED_LOCATION ${INSTALL_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}qmdnsengine${CMAKE_STATIC_LIBRARY_SUFFIX}
+			IMPORTED_LOCATION ${QMDNS_LIBRARY}
 			INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_BINARY_DIR}/include
 		)
-
-		get_target_property(TEST qmdnsengine IMPORTED_LOCATION)
-		message(STATUS "--------->>>>> ${TEST}")
 
 		add_dependencies(qmdnsengine qmdns)
 	endif()
