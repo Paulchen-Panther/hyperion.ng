@@ -33,7 +33,6 @@ parts:
     cmake-parameters:
       - -DCMAKE_BUILD_TYPE=Release
       - -DUSE_SYSTEM_MBEDTLS_LIBS=ON
-      - -DUSE_SYSTEM_QMDNS_LIBS=ON
       - -DUSE_SYSTEM_FLATBUFFERS_LIBS=ON
       - -DUSE_SYSTEM_PROTO_LIBS=ON
       - -DENABLE_DEPLOY_DEPENDENCIES=OFF
@@ -64,6 +63,8 @@ parts:
       - libjpeg-dev
       - libturbojpeg0-dev
       - libmbedtls-dev
+      - libflatbuffers-dev
+      - libprotobuf-dev
       - libftdi1-dev
       - libssl-dev
       - libglib2.0-dev
@@ -83,6 +84,8 @@ parts:
       - libusb-1.0-0
       - libasound2
       - libmbedtls14
+      - libflatbuffers1
+      - libprotobuf23
       - libturbojpeg
       - libcec6
     override-pull: |
