@@ -83,6 +83,7 @@ parts:
       - libqt6sql6
       - libqt6serialport6
       - libqt6sql6-sqlite
+      - libpython3.10
       - libusb-1.0-0
       - libasound2
       - libmbedtls14
@@ -90,6 +91,7 @@ parts:
       - libprotobuf23
       - libturbojpeg
       - libcec6
+      - libxcb-render-util0
     override-pull: |
       craftctl default
       craftctl set grade=stable
