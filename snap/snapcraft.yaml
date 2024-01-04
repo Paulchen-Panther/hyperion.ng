@@ -30,8 +30,14 @@ apps:
 parts:
   hyperion-ng:
     plugin: cmake
+    cmake-parameters:
+      - -DUSE_SYSTEM_MBEDTLS_LIBS=ON
+      - -DENABLE_DEPLOY_DEPENDENCIES=OFF
+      - -DCMAKE_BUILD_TYPE=Release
+    cmake-generator: Ninja
     source-type: git
-    source: .
+    source: https://github.com/hyperion-project/hyperion.ng
+    source-branch: master
     parse-info: [usr/local/share/metainfo/hyperiond.metainfo.xml]
     build-packages:
       - git
@@ -76,9 +82,7 @@ parts:
       - libmbedtls14
       - libturbojpeg
       - libcec6
-    cmake-parameters:
-      - "-DUSE_SYSTEM_MBEDTLS_LIBS=ON -DENABLE_DEPLOY_DEPENDENCIES=OFF -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr"
-    cmake-generator: Ninja
     override-pull: |
       craftctl default
+      craftctl set grade=stable
       craftctl set version=$(cat .version)
