@@ -31,14 +31,17 @@ parts:
   hyperion-ng:
     plugin: cmake
     cmake-parameters:
-      - -DUSE_SYSTEM_MBEDTLS_LIBS=ON
-      - -DENABLE_DEPLOY_DEPENDENCIES=OFF
       - -DCMAKE_BUILD_TYPE=Release
+      - -DUSE_SYSTEM_MBEDTLS_LIBS=ON
+      - -DUSE_SYSTEM_QMDNS_LIBS=ON
+      - -DUSE_SYSTEM_FLATBUFFERS_LIBS=ON
+      - -DUSE_SYSTEM_PROTO_LIBS=ON
+      - -DENABLE_DEPLOY_DEPENDENCIES=OFF
     cmake-generator: Ninja
     source-type: git
     source: https://github.com/hyperion-project/hyperion.ng
     source-branch: master
-    parse-info: [usr/local/share/metainfo/hyperion.metainfo.xml]
+    parse-info: [usr/local/share/hyperion/desktop/hyperion.metainfo.xml]
     build-packages:
       - git
       - cmake
