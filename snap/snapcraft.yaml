@@ -25,7 +25,7 @@ apps:
       - unity7
       - x11
     common-id: com.hyperion-project.hyperion
-    desktop: usr/local/share/hyperion/desktop/hyperiond.desktop
+    desktop: usr/local/share/hyperion/desktop/hyperion.desktop
 
 parts:
   hyperion-ng:
@@ -38,7 +38,7 @@ parts:
     source-type: git
     source: https://github.com/hyperion-project/hyperion.ng
     source-branch: master
-    parse-info: [usr/local/share/metainfo/hyperiond.metainfo.xml]
+    parse-info: [usr/local/share/metainfo/hyperion.metainfo.xml]
     build-packages:
       - git
       - cmake
