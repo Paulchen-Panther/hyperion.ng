@@ -64,7 +64,9 @@ parts:
       - libturbojpeg0-dev
       - libmbedtls-dev
       - libflatbuffers-dev
+      - flatbuffers-compiler
       - libprotobuf-dev
+      - protobuf-compiler
       - libftdi1-dev
       - libssl-dev
       - libglib2.0-dev
