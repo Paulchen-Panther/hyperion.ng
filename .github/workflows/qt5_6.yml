@@ -93,7 +93,7 @@ jobs:
 
       - name: 📥 Install Ninja
         shell: bash
-         run: brew install ninja || true
+        run: brew install ninja || true
 
       - name: 📥 Install Vulkan Headers
         if: ${{ inputs.qt_version == '6' }}
