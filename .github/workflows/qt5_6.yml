@@ -91,6 +91,10 @@ jobs:
           cache-key-prefix: macOS-Qt-${{ env.QT6_ARM64 }}
           set-env: true
 
+      - name: 📥 Install Ninja
+        shell: bash
+         run: brew install ninja || true
+
       - name: 📥 Install Vulkan Headers
         if: ${{ inputs.qt_version == '6' }}
         uses: humbletim/setup-vulkan-sdk@v1.2.0
@@ -114,7 +118,7 @@ jobs:
             mkdir build
             cmake \
               -B build \
-              -G Xcode \
+              -G Ninja \
               -DMACOS_ARCHITECTURE=${{ matrix.arch }} \
               -DCMAKE_BUILD_TYPE=Release
           echo '::endgroup::'
