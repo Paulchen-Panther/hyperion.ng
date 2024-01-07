@@ -88,10 +88,10 @@ SET ( CPACK_RPM_PRE_UNINSTALL_SCRIPT_FILE "${CMAKE_SOURCE_DIR}/cmake/package-scr
 # .dmg for Apple macOS
 # https://cmake.org/cmake/help/latest/cpack_gen/dmg.html
 IF (APPLE)
-	SET ( CPACK_PACKAGE_ICON "${CMAKE_SOURCE_DIR}/cmake/osxbundle/PackageIcon.icns" )
+	SET ( CPACK_PACKAGE_ICON "${CMAKE_SOURCE_DIR}/cmake/macos/PackageIcon.icns" )
 	SET ( CPACK_RESOURCE_FILE_LICENSE "${CMAKE_BINARY_DIR}/LICENSE" )
-	SET ( CPACK_DMG_BACKGROUND_IMAGE "${CMAKE_SOURCE_DIR}/cmake/osxbundle/Background.png" )
-	SET ( CPACK_DMG_DS_STORE_SETUP_SCRIPT "${CMAKE_SOURCE_DIR}/cmake/osxbundle/AppleScript.scpt" )
+	SET ( CPACK_DMG_BACKGROUND_IMAGE "${CMAKE_SOURCE_DIR}/cmake/macos/Background.png" )
+	SET ( CPACK_DMG_DS_STORE_SETUP_SCRIPT "${CMAKE_SOURCE_DIR}/cmake/macos/AppleScript.scpt" )
 ENDIF(APPLE)
 
 # Windows NSIS

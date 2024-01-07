@@ -55,3 +55,4 @@ function(get_build_interface_include_directory)
 
 	set(${arg_OUTPUT} "${_output}" PARENT_SCOPE)
 endfunction()
+
