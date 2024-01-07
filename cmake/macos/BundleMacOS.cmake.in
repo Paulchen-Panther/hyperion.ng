@@ -37,6 +37,7 @@ endforeach()
 list(LENGTH unresolved_deps unresolved_length)
 if("${unresolved_length}" GREATER 0)
     message(STATUS "The following unresolved dependencies were discovered: ${unresolved_deps}")
+    execute_process(COMMAND otool -L ${MAC_BUNDLE_INSTALL_BIN_DIR}/@MAC_BUNDLE_NAME@)
 endif()
 
 execute_process(
@@ -91,11 +92,8 @@ execute_process(
     OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
-get_filename_component(QT_LOCATION @QT_CORE_LOCATION@ PATH)
-message("QT location: ${QT_LOCATION}")
-
 include(BundleUtilities)
-fixup_bundle("${MAC_BUNDLE_INSTALL_DIR}" "${QT_PLUGINS}" "${MAC_BUNDLE_INSTALL_TMP_DIR};${QT_LOCATION}" IGNORE_ITEM "Python")
+fixup_bundle("${MAC_BUNDLE_INSTALL_DIR}" "${QT_PLUGINS}" "${MAC_BUNDLE_INSTALL_TMP_DIR}" IGNORE_ITEM "Python")
 file(REMOVE_RECURSE "${MAC_BUNDLE_INSTALL_TMP_DIR}")
 
 if(ENABLE_EFFECTENGINE)
