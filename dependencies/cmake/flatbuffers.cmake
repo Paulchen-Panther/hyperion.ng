@@ -77,7 +77,7 @@ if(NOT USE_SYSTEM_FLATBUFFERS_LIBS)
 
 			add_executable(flatc IMPORTED GLOBAL)
 			ExternalProject_Get_Property(flatc-host BINARY_DIR)
-			set_target_properties(flatc PROPERTIES IMPORTED_LOCATION ${BINARY_DIR}/$<$<BOOL:${isMultiConfig}>:$<CONFIG>/>/flatc)
+			set_target_properties(flatc PROPERTIES IMPORTED_LOCATION ${BINARY_DIR}/flatc)
 			add_dependencies(flatc flatc-host)
 		endif()
 	else()

@@ -68,7 +68,7 @@ if(NOT USE_SYSTEM_PROTO_LIBS)
 
 			add_executable(protoc IMPORTED GLOBAL)
 			ExternalProject_Get_Property(protoc-host BINARY_DIR)
-			set_target_properties(protoc PROPERTIES IMPORTED_LOCATION ${BINARY_DIR}/$<$<BOOL:${isMultiConfig}>:$<CONFIG>/>/protoc)
+			set_target_properties(protoc PROPERTIES IMPORTED_LOCATION ${BINARY_DIR}/protoc)
 			add_dependencies(protoc protoc-host)
 		endif()
 	else()
