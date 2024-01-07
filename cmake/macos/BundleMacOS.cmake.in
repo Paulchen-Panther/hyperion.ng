@@ -85,8 +85,17 @@ foreach(PLUGIN "platforms" "sqldrivers" "imageformats" "tls")
     endif()
 endforeach()
 
+execute_process(
+    COMMAND @QMAKE_EXECUTABLE@ -query QT_INSTALL_PLUGINS
+    OUTPUT_VARIABLE QT_PLUGIN_DIR
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+get_filename_component(QT_LOCATION @QT_CORE_LOCATION@ PATH)
+message("QT location: ${QT_LOCATION}")
+
 include(BundleUtilities)
-fixup_bundle("${MAC_BUNDLE_INSTALL_DIR}" "${QT_PLUGINS}" "${MAC_BUNDLE_INSTALL_TMP_DIR}" IGNORE_ITEM "Python")
+fixup_bundle("${MAC_BUNDLE_INSTALL_DIR}" "${QT_PLUGINS}" "${MAC_BUNDLE_INSTALL_TMP_DIR};${QT_LOCATION}" IGNORE_ITEM "Python")
 file(REMOVE_RECURSE "${MAC_BUNDLE_INSTALL_TMP_DIR}")
 
 if(ENABLE_EFFECTENGINE)
