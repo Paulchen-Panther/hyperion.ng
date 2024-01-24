@@ -86,14 +86,15 @@ foreach(PLUGIN "platforms" "sqldrivers" "imageformats" "tls")
     endif()
 endforeach()
 
-execute_process(
-    COMMAND @QMAKE_EXECUTABLE@ -query QT_INSTALL_PLUGINS
-    OUTPUT_VARIABLE QT_PLUGIN_DIR
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-)
+set(DISCOVER_DIRS ${MAC_BUNDLE_INSTALL_TMP_DIR})
+if(CMAKE_PREFIX_PATH)
+    foreach(dir ${CMAKE_PREFIX_PATH})
+        list(APPEND DISCOVER_DIRS "${dir}/bin" "${dir}/lib")
+    endforeach()
+endif()
 
 include(BundleUtilities)
-fixup_bundle("${MAC_BUNDLE_INSTALL_DIR}" "${QT_PLUGINS}" "${MAC_BUNDLE_INSTALL_TMP_DIR}" IGNORE_ITEM "Python")
+fixup_bundle("${MAC_BUNDLE_INSTALL_DIR}" "${QT_PLUGINS}" "${DISCOVER_DIRS}" IGNORE_ITEM "Python")
 file(REMOVE_RECURSE "${MAC_BUNDLE_INSTALL_TMP_DIR}")
 
 if(ENABLE_EFFECTENGINE)

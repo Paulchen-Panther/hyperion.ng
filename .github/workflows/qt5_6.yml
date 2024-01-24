@@ -119,6 +119,7 @@ jobs:
             cmake \
               -B build \
               -G Ninja \
+              -DCMAKE_PREFIX_PATH=$Qt6_DIR \
               -DMACOS_ARCHITECTURE=${{ matrix.arch }} \
               -DCMAKE_BUILD_TYPE=Release
           echo '::endgroup::'
