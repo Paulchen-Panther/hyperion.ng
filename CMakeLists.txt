@@ -19,12 +19,13 @@ if(CMAKE_HOST_APPLE)
 		set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "")
 	elseif(MACOS_ARCHITECTURE STREQUAL "universal")
 		set(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING "")
-		set(CMAKE_OSX_DEPLOYMENT_TARGET "10.15" CACHE STRING "")
+		set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "")
 	else()
 		message(FATAL_ERROR "MACOS_ARCHITECTURE must be x86_64, arm64 or universal")
 	endif()
 
 	string(APPEND CMAKE_CXX_FLAGS " -stdlib=libc++")
+	message(STATUS "Building for architecture: ${MACOS_ARCHITECTURE}")
 endif()
 
 # Set the required C++ standard
@@ -497,6 +498,14 @@ if(ENABLE_DEPLOY_DEPENDENCIES AND UNIX AND NOT APPLE)
 	set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
 	set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib")
 	set(CMAKE_INSTALL_RPATH_USE_LINK_PATH ON)
+endif()
+
+# Suppress superfluous randlib warnings about "*.a" having no symbols on MacOS
+if (CMAKE_HOST_APPLE)
+	set(CMAKE_C_ARCHIVE_CREATE   "<CMAKE_AR> Scr <TARGET> <LINK_FLAGS> <OBJECTS>")
+	set(CMAKE_CXX_ARCHIVE_CREATE "<CMAKE_AR> Scr <TARGET> <LINK_FLAGS> <OBJECTS>")
+	set(CMAKE_C_ARCHIVE_FINISH   "<CMAKE_RANLIB> -no_warning_for_no_symbols -c <TARGET>")
+	set(CMAKE_CXX_ARCHIVE_FINISH "<CMAKE_RANLIB> -no_warning_for_no_symbols -c <TARGET>")
 endif()
 
 find_package(Threads REQUIRED)
