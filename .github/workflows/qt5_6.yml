@@ -131,6 +131,7 @@ jobs:
           brew install qt5 || true
 
       - name: 📥 Install Qt6
+        if: ${{ inputs.qt_version == '6' }}
         uses: jurplel/install-qt-action@v3
         with:
           version: ${{ env.QT6_VERSION }}

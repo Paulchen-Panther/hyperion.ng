@@ -44,10 +44,9 @@ elif [[ "$RUNNER_OS" == 'Linux' ]]; then
 		-v "${GITHUB_WORKSPACE}/deploy:/deploy" \
 		-v "${GITHUB_WORKSPACE}:/source:rw" \
 		$REGISTRY_URL:$DOCKER_TAG \
-		/bin/bash -c "mkdir -p /source/build && cd /source/build &&
-		cmake -DPLATFORM=${PLATFORM} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} ../ || exit 2 &&
-		cmake --build /source/build --target package -- -j $(nproc) || exit 3 &&
-		cp /source/build/bin/h* /deploy/ 2>/dev/null || : &&
+		/bin/bash -c "mkdir -p /source/build &&
+		cmake -B /source/build -G Ninja -DPLATFORM=${PLATFORM} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} || exit 2 &&
+		cmake --build /source/build --target package --parallel $(nproc) || exit 3 &&
 		cp /source/build/Hyperion-* /deploy/ 2>/dev/null || : &&
 		cd /source && source /source/test/testrunner.sh || exit 5 &&
 		exit 0;
