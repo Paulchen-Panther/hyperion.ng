@@ -37,7 +37,6 @@ endforeach()
 list(LENGTH unresolved_deps unresolved_length)
 if("${unresolved_length}" GREATER 0)
     message(STATUS "The following unresolved dependencies were discovered: ${unresolved_deps}")
-    execute_process(COMMAND otool -L ${MAC_BUNDLE_INSTALL_BIN_DIR}/@MAC_BUNDLE_NAME@)
 endif()
 
 execute_process(
@@ -86,15 +85,14 @@ foreach(PLUGIN "platforms" "sqldrivers" "imageformats" "tls")
     endif()
 endforeach()
 
-set(DISCOVER_DIRS ${MAC_BUNDLE_INSTALL_TMP_DIR})
-if(CMAKE_PREFIX_PATH)
-    foreach(dir ${CMAKE_PREFIX_PATH})
-        list(APPEND DISCOVER_DIRS "${dir}/bin" "${dir}/lib")
-    endforeach()
-endif()
+execute_process(
+    COMMAND @QMAKE_EXECUTABLE@ -query QT_HOST_LIBS
+    OUTPUT_VARIABLE QT_HOST_LIBS_DIR
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
 
 include(BundleUtilities)
-fixup_bundle("${MAC_BUNDLE_INSTALL_DIR}" "${QT_PLUGINS}" "${DISCOVER_DIRS}" IGNORE_ITEM "Python")
+fixup_bundle("${MAC_BUNDLE_INSTALL_DIR}" "${QT_PLUGINS}" "${MAC_BUNDLE_INSTALL_TMP_DIR};${QT_HOST_LIBS_DIR}" IGNORE_ITEM "Python")
 file(REMOVE_RECURSE "${MAC_BUNDLE_INSTALL_TMP_DIR}")
 
 if(ENABLE_EFFECTENGINE)
