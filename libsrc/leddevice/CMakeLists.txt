@@ -94,10 +94,6 @@ add_library(leddevice
 target_link_libraries(leddevice
 	hyperion
 	hyperion-utils
-<<<<<<< HEAD
-	hyperion-utils::qstring_utils
-=======
->>>>>>> e3183eaf (Refactor)
 )
 
 if(WIN32)
