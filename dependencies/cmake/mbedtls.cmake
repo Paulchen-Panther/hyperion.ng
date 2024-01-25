@@ -45,6 +45,9 @@ endif()
 if(TARGET mbedtls AND MBEDTLS_VERSION)
 	message(STATUS "Using ${BUILD_OR_SYSTEM} mbedtls library (build version \"${MBEDTLS_VERSION}\")")
 	string(REGEX MATCH "[0-9]+|-([A-Za-z0-9_.]+)" MAJOR_VERSION ${MBEDTLS_VERSION})
-	define_property(TARGET PROPERTY MBEDTLS_MAJOR_VERSION)
+	define_property(TARGET PROPERTY MBEDTLS_MAJOR_VERSION
+		BRIEF_DOCS "Custom mbedTLS major version target property."
+		FULL_DOCS "Custom mbedTLS major version target property."
+	)
 	set_target_properties(mbedtls PROPERTIES MBEDTLS_MAJOR_VERSION ${MAJOR_VERSION})
 endif()

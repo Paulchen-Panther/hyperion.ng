@@ -96,7 +96,7 @@ jobs:
 ######################
 
   macOS:
-    name: 🍏 macOS (universal)
+    name: 🍏 macOS ${{ inputs.qt_version == '6' && '(universal)' || '(x86_64)' }}
     runs-on: macos-latest
     env:
       PYTHON_VERSION: 3.13
