@@ -1,0 +1,11 @@
+macro(addIndent text)
+	if(${CMAKE_VERSION} VERSION_GREATER "3.16.0")
+		list(APPEND CMAKE_MESSAGE_INDENT ${text})
+	endif()
+endmacro()
+
+macro(removeIndent)
+	if(${CMAKE_VERSION} VERSION_GREATER "3.16.0")
+		list(POP_BACK CMAKE_MESSAGE_INDENT)
+	endif()
+endmacro()

@@ -96,35 +96,75 @@ jobs:
 ######################
 
   macOS:
-    name: 🍏 macOS x64
+    name: 🍏 macOS (universal)
     runs-on: macos-latest
+    env:
+      PYTHON_VERSION: 3.13
+      LIBJPEG_TURBO_VERSION: 3.0.1
+      QT6_VERSION: 6.6.1
+
     steps:
       - name: ⬇ Checkout
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: 🔧 Prepare
+      - name: 🔧 Append Pull Request number to version (PR  only)
+        if: ${{ inputs.event_name == 'pull_request' }}
+        shell: bash
+        run: tr -d '\n' < .version > temp && mv temp .version && echo -n "+PR${{ inputs.pull_request_number }}" >> .version
+
+      - name: 📥 Install Python
+        uses: actions/setup-python@v4
+        id: setup-python
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          allow-prereleases: true
+          check-latest: true
+
+      - name: 📥 Install Qt5
+        if: ${{ inputs.qt_version == '5' }}
         shell: bash
         run: |
-          echo '::group::Append PR number to version (PR  only)'
-            if [[ "${{ inputs.event_name }}" = "pull_request" ]]; then
-              tr -d '\n' < .version > temp && mv temp .version
-              echo -n "+PR${{ inputs.pull_request_number }}" >> .version
-            fi
-          echo '::endgroup::'
+          brew untap --force homebrew/core homebrew/cask
+          brew update || true
+          brew install qt5 || true
 
-          echo '::group::Update/Install dependencies'
-            brew untap --force homebrew/core homebrew/cask
-            brew update || true
-            brew install qt${{ inputs.qt_version }} vulkan-headers ninja || true
-          echo '::endgroup::'
+      - name: 📥 Install Qt6
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: ${{ env.QT6_VERSION }}
+          host: mac
+          target: desktop
+          arch: clang_64
+          modules: qtserialport
+          cache: true
+          cache-key-prefix: macOS-Qt-${{ env.QT6_VERSION }}
+          set-env: true
+
+      - name: 📥 Install Vulkan Headers (Qt6 only)
+        if: ${{ inputs.qt_version == '6' }}
+        uses: humbletim/setup-vulkan-sdk@v1.2.0
+        with:
+          vulkan-query-version: latest
+          vulkan-use-cache: true
+          vulkan-components: Vulkan-Headers
+
+      - name: 📥 Install Ninja & libjpeg-turbo
+        shell: bash
+        run: |
+          brew install ninja || true
+          wget --no-check-certificate https://github.com/libjpeg-turbo/libjpeg-turbo/releases/download/$LIBJPEG_TURBO_VERSION/libjpeg-turbo-$LIBJPEG_TURBO_VERSION.dmg
+          hdid libjpeg-turbo-$LIBJPEG_TURBO_VERSION.dmg
+          sudo installer -pkg /Volumes/libjpeg-turbo-$LIBJPEG_TURBO_VERSION/libjpeg-turbo.pkg -target /
+          hdiutil detach /Volumes/libjpeg-turbo-$LIBJPEG_TURBO_VERSION
 
       - name: 👷 Build
         shell: bash
         run: ./.github/scripts/build.sh
         env:
           PLATFORM: osx
+          OSX_ARCHITECTURE: ${{ inputs.qt_version == '6' && 'universal' || 'x86_64' }}
 
       - name: 📦 Upload
         if: ${{ inputs.publish || inputs.event_name == 'pull_request' }}
@@ -133,14 +173,14 @@ jobs:
           name: ${{ inputs.event_name == 'pull_request' && env.NAME || 'artifact' }}
           path: 'build/Hyperion-*'
         env:
-          NAME: ${{ inputs.qt_version == '6' && 'macOS_x64_qt6' || 'macOS_x64' }}
+          NAME: ${{ inputs.qt_version == '6' && 'macOS_universal_qt6' || 'macOS_x64' }}
 
 ######################
 ###### Windows #######
 ######################
 
   windows:
-    name: 🪟 Windows x64
+    name: 🪟 Windows (x64)
     runs-on: windows-2022
     env:
       VCINSTALLDIR: 'C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC'

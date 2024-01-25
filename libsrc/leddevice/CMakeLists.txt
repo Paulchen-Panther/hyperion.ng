@@ -104,18 +104,16 @@ if(WIN32)
 endif()
 
 if(ENABLE_DEV_NETWORK)
-	target_link_libraries(leddevice Qt${QT_VERSION_MAJOR}::Network ssdp)
+	target_link_libraries(leddevice
+		Qt${QT_VERSION_MAJOR}::Network
+		ssdp
+		mbedtls
+		mbedx509
+		mbedcrypto
+	)
 
-	if(NOT DEFAULT_USE_SYSTEM_MBEDTLS_LIBS)
-		if(MBEDTLS_LIBRARIES)
-			include_directories(${MBEDTLS_INCLUDE_DIR})
-			target_link_libraries(leddevice ${MBEDTLS_LIBRARIES})
-			target_include_directories(leddevice PRIVATE ${MBEDTLS_INCLUDE_DIR})
-		endif (MBEDTLS_LIBRARIES)
-	endif()
-
-	string(REGEX MATCH "[0-9]+|-([A-Za-z0-9_.]+)" MBEDTLS_MAJOR ${MBEDTLS_VERSION})
-	if(MBEDTLS_MAJOR EQUAL "3")
+	get_target_property(MAJOR_VERSION mbedtls MBEDTLS_MAJOR_VERSION)
+	if(${MAJOR_VERSION} EQUAL "3")
 		target_compile_definitions(leddevice PRIVATE USE_MBEDTLS3)
 		if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
 			target_compile_features(leddevice PRIVATE cxx_std_20)

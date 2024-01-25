@@ -7,4 +7,5 @@ add_library(osx-grabber
 
 target_link_libraries(osx-grabber
 	hyperion
+	"-framework CoreGraphics"
 )

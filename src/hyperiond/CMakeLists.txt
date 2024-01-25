@@ -1,8 +1,4 @@
-if(APPLE)
-	project(Hyperion)
-else()
-	project(hyperiond)
-endif()
+project(hyperiond)
 
 #####################################
 ############ Preparation ############
@@ -16,11 +12,11 @@ if(WIN32)
 
 	# promote hyperiond as GUI app
 	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")
-elseif(APPLE)
+elseif(CMAKE_HOST_APPLE)
 	# include resource files for macos bundle (copy LICENSE file and correct line breaks)
 	configure_file(${CMAKE_SOURCE_DIR}/LICENSE ${CMAKE_BINARY_DIR}/LICENSE COPYONLY)
 	execute_process(COMMAND bash -c "perl -pi -e 's/\n/\r/g' ${CMAKE_BINARY_DIR}/LICENSE")
-	set(MACOS_BUNDLE_RESOURCE_FILES ${CMAKE_SOURCE_DIR}/cmake/osxbundle/Hyperion.icns ${CMAKE_BINARY_DIR}/LICENSE)
+	set(MACOS_BUNDLE_RESOURCE_FILES ${CMAKE_SOURCE_DIR}/cmake/macos/Hyperion.icns ${CMAKE_BINARY_DIR}/LICENSE)
 	set_source_files_properties(${MACOS_BUNDLE_RESOURCE_FILES} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
 endif()
 
@@ -134,58 +130,76 @@ endif()
 ########### Install steps ###########
 #####################################
 
-if(APPLE)
+if(CMAKE_HOST_APPLE)
+	# set bundle information
+	set(MAC_BUNDLE_NAME "Hyperion")
 	set_target_properties(${PROJECT_NAME} PROPERTIES
-		MACOSX_BUNDLE TRUE
-		MACOSX_BUNDLE_INFO_PLIST ${CMAKE_SOURCE_DIR}/cmake/osxbundle/Info.plist.in
-		MACOSX_BUNDLE_BUNDLE_NAME "Hyperion"
+		OUTPUT_NAME ${MAC_BUNDLE_NAME}
+		MACOSX_BUNDLE ON
+		MACOSX_BUNDLE_INFO_PLIST "${CMAKE_SOURCE_DIR}/cmake/macos/Info.plist.in"
+		MACOSX_BUNDLE_BUNDLE_NAME ${MAC_BUNDLE_NAME}
 		MACOSX_BUNDLE_BUNDLE_VERSION ${HYPERION_VERSION}
-		MACOSX_BUNDLE_COPYRIGHT "Copyright(c) 2014-2024 Hyperion Project"
-		MACOSX_BUNDLE_GUI_IDENTIFIER "com.hyperion-project.${PROJECT_NAME}"
+		MACOSX_BUNDLE_COPYRIGHT "Copyright(c) 2014-2023 Hyperion Project"
+		MACOSX_BUNDLE_GUI_IDENTIFIER "com.hyperion-project.${MAC_BUNDLE_NAME}"
 		MACOSX_BUNDLE_ICON_FILE "Hyperion.icns"
-		MACOSX_BUNDLE_INFO_STRING "${PROJECT_NAME} ${HYPERION_VERSION}"
+		MACOSX_BUNDLE_INFO_STRING "${MAC_BUNDLE_NAME} ${HYPERION_VERSION}"
 		MACOSX_BUNDLE_SHORT_VERSION_STRING ${HYPERION_VERSION}
 		MACOSX_BUNDLE_LONG_VERSION_STRING ${HYPERION_VERSION}
 	)
 
-	install (TARGETS ${PROJECT_NAME} DESTINATION . COMPONENT "Hyperion")
+	install(TARGETS ${PROJECT_NAME} BUNDLE DESTINATION . COMPONENT "Hyperion")
+	get_target_property(QMAKE_EXECUTABLE Qt${QT_VERSION_MAJOR}::qmake IMPORTED_LOCATION)
+	configure_file("${CMAKE_SOURCE_DIR}/cmake/macos/BundleMacOS.cmake.in" "${PROJECT_BINARY_DIR}/BundleMacOS.cmake" @ONLY)
+    install(SCRIPT "${PROJECT_BINARY_DIR}/BundleMacOS.cmake" COMPONENT "Hyperion")
 elseif(NOT WIN32)
 	# install Hyperion/service files/effect folder
-	install (TARGETS ${PROJECT_NAME} DESTINATION "share/hyperion/bin" COMPONENT "Hyperion")
-	install (DIRECTORY ${CMAKE_SOURCE_DIR}/bin/service DESTINATION "share/hyperion" COMPONENT "Hyperion")
-	install (FILES ${CMAKE_SOURCE_DIR}/effects/readme.txt DESTINATION "share/hyperion/effects" COMPONENT "Hyperion")
+	install(TARGETS ${PROJECT_NAME} DESTINATION "share/hyperion/bin" COMPONENT "Hyperion")
+	install(DIRECTORY ${CMAKE_SOURCE_DIR}/bin/service DESTINATION "share/hyperion" COMPONENT "Hyperion")
+	install(FILES ${CMAKE_SOURCE_DIR}/effects/readme.txt DESTINATION "share/hyperion/effects" COMPONENT "Hyperion")
 
 	# install Hyperion icons
 	set(ICON_SIZES 16 22 24 32 36 48 64 72 96 128 192 256 512)
 	foreach(size ${ICON_SIZES})
-	  set(ICONS_FROM "${CMAKE_SOURCE_DIR}/resources/icons/hyperion-${size}px.png")
-	  set(ICONS_TO "share/hyperion/icons/${size}x${size}/apps/")
-	  install(FILES ${ICONS_FROM} DESTINATION ${ICONS_TO} RENAME "hyperion.png" COMPONENT "Hyperion")
+		set(ICONS_FROM "${CMAKE_SOURCE_DIR}/resources/icons/hyperion-${size}px.png")
+		set(ICONS_TO "share/hyperion/icons/${size}x${size}/apps/")
+		install(FILES ${ICONS_FROM} DESTINATION ${ICONS_TO} RENAME "hyperion.png" COMPONENT "Hyperion")
 	endforeach(size)
 
 	# install desktop/appstream file
-	install (FILES ${CMAKE_SOURCE_DIR}/cmake/desktop/hyperion.metainfo.xml DESTINATION "share/hyperion/desktop" COMPONENT "Hyperion")
-	install (FILES ${CMAKE_SOURCE_DIR}/cmake/desktop/hyperion.desktop DESTINATION "share/hyperion/desktop" COMPONENT "Hyperion")
+	install(FILES ${CMAKE_SOURCE_DIR}/cmake/desktop/hyperion.metainfo.xml DESTINATION "share/hyperion/desktop" COMPONENT "Hyperion")
+	install(FILES ${CMAKE_SOURCE_DIR}/cmake/desktop/hyperion.desktop DESTINATION "share/hyperion/desktop" COMPONENT "Hyperion")
 else()
-	install (TARGETS ${PROJECT_NAME} DESTINATION "bin" COMPONENT "Hyperion")
-	install (FILES ${CMAKE_SOURCE_DIR}/effects/readme.txt DESTINATION "effects" COMPONENT "Hyperion")
-endif()
-
-if(CMAKE_HOST_UNIX AND NOT APPLE)
+	install(TARGETS ${PROJECT_NAME} DESTINATION "bin" COMPONENT "Hyperion")
+	install(FILES ${CMAKE_SOURCE_DIR}/effects/readme.txt DESTINATION "effects" COMPONENT "Hyperion")
 	install(CODE "execute_process(COMMAND ln -sf \"../share/hyperion/bin/${PROJECT_NAME}\" \"${CMAKE_BINARY_DIR}/symlink_${PROJECT_NAME}\")" COMPONENT "Hyperion")
 	install(FILES "${CMAKE_BINARY_DIR}/symlink_${PROJECT_NAME}" DESTINATION "bin" RENAME ${PROJECT_NAME} COMPONENT "Hyperion")
 	install(CODE "file (REMOVE ${CMAKE_BINARY_DIR}/symlink_${PROJECT_NAME})" COMPONENT "Hyperion")
 	install(FILES ${CMAKE_SOURCE_DIR}/bin/scripts/updateHyperionUser.sh DESTINATION "share/hyperion/scripts" COMPONENT "Hyperion")
 endif()
 
+if(ENABLE_DEPLOY_DEPENDENCIES AND NOT APPLE)
+	if(EXISTS ${TARGET_FILE})
+		message(STATUS "Collecting Dependencies for target file: ${TARGET_FILE}")
+		include(${CMAKE_SOURCE_DIR}/cmake/RuntimeDependencies${CMAKE_HOST_SYSTEM_NAME}.cmake)
+	elseif(EXISTS "${CMAKE_SOURCE_DIR}/cmake/RuntimeDependencies${CMAKE_HOST_SYSTEM_NAME}.cmake")
+		# Run CMake after target was built
+		add_custom_command(
+			TARGET ${PROJECT_NAME} POST_BUILD
+			COMMAND "${CMAKE_COMMAND}" "-DTARGET_FILE=$<TARGET_FILE:${PROJECT_NAME}>"
+			ARGS ${CMAKE_SOURCE_DIR}
+			WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+			VERBATIM
+		)
+	endif()
+endif()
+
 ######################################
 ########## Additional steps ##########
 ######################################
 
-# Deploy Qt DLLs into the binary folder.
-# This is necessary for starting the application from within the IDE
-
 if(WIN32)
+	# Deploy Qt DLLs into the binary folder.
+	# This is necessary for starting the application from within the IDE
 	get_target_property(QT_QMAKE_EXECUTABLE Qt${QT_VERSION_MAJOR}::qmake IMPORTED_LOCATION)
 	get_filename_component(QT_BIN_DIR "${QT_QMAKE_EXECUTABLE}" DIRECTORY)
 	find_program(WINDEPLOYQT_EXECUTABLE windeployqt HINTS "${QT_BIN_DIR}")
@@ -237,16 +251,3 @@ if(WIN32)
 		)
 	endif(OPENSSL_FOUND)
 endif(WIN32)
-
-if(ENABLE_DEPLOY_DEPENDENCIES)
-	# Deploy all dependencies for package creation
-	include(${CMAKE_SOURCE_DIR}/cmake/Dependencies.cmake)
-
-	if(APPLE) #macOS
-		DeployMacOS(${PROJECT_NAME})
-	elseif (NOT WIN32) # Linux
-		DeployLinux(${PROJECT_NAME})
-	elseif(WIN32) # Windows
-		DeployWindows(${PROJECT_NAME})
-	endif()
-endif(ENABLE_DEPLOY_DEPENDENCIES)

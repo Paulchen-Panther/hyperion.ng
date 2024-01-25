@@ -34,6 +34,9 @@ CMakeSettings.json
 # Allow
 !.vs/launch.vs.json
 
+# Visual Studio Code workspace settings
+.vscode/settings.json
+
 # LedDevice 'File' output
 NULL
 

@@ -1,23 +1,53 @@
+# Minimum required CMake version is 3.5.0
 cmake_minimum_required(VERSION 3.5.0)
-
 message(STATUS "CMake Version: ${CMAKE_VERSION}")
 
-macro(addIndent text)
-	if(${CMAKE_VERSION} VERSION_GREATER "3.16.0")
-		list(APPEND CMAKE_MESSAGE_INDENT ${text})
+# Definitions that must happen before the project() command
+if(CMAKE_HOST_APPLE)
+	execute_process(COMMAND uname -m OUTPUT_VARIABLE HOST_SYSTEM_PROCESSOR OUTPUT_STRIP_TRAILING_WHITESPACE)
+	if(NOT MACOS_ARCHITECTURE STREQUAL HOST_SYSTEM_PROCESSOR)
+		set(CMAKE_SYSTEM_NAME "Darwin")
 	endif()
-endmacro()
 
-macro(removeIndent)
-	if(${CMAKE_VERSION} VERSION_GREATER "3.16.0")
-		list(POP_BACK CMAKE_MESSAGE_INDENT)
+	set(MACOS_ARCHITECTURE "${HOST_SYSTEM_PROCESSOR}" CACHE STRING "Target architecture for macOS. x86_64, arm64 or universal")
+
+	if(MACOS_ARCHITECTURE STREQUAL "x86_64")
+		set(CMAKE_OSX_ARCHITECTURES "x86_64" CACHE STRING "")
+		set(CMAKE_OSX_DEPLOYMENT_TARGET "10.15" CACHE STRING "")
+	elseif(MACOS_ARCHITECTURE STREQUAL "arm64")
+		set(CMAKE_OSX_ARCHITECTURES "arm64" CACHE STRING "")
+		set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "")
+	elseif(MACOS_ARCHITECTURE STREQUAL "universal")
+		set(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING "")
+		set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "")
+	else()
+		message(FATAL_ERROR "MACOS_ARCHITECTURE must be x86_64, arm64 or universal")
 	endif()
-endmacro()
 
+	string(APPEND CMAKE_CXX_FLAGS " -stdlib=libc++")
+endif()
+
+# Set the required C++ standard
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+# Use ccache if available
+find_program(CCACHE_PROG ccache)
+mark_as_advanced(FORCE CCACHE_PROG)
+if( CCACHE_PROG )
+   set_property( GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CCACHE_PROG}" )
+   set_property( GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CCACHE_PROG}" )
+endif()
+
+# Our main project
 PROJECT(hyperion)
 
+# Append our cmake module path (for include, find, etc.)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
 # Parse semantic version of version file and write version to config
-include (${CMAKE_CURRENT_SOURCE_DIR}/cmake/version.cmake)
+include(HelperFunctions)
 file (STRINGS ".version" HYPERION_VERSION)
 SetVersionNumber(HYPERION ${HYPERION_VERSION})
 set(DEFAULT_JSON_CONFIG_FILE ${CMAKE_CURRENT_SOURCE_DIR}/config/hyperion.config.json.default)
@@ -31,39 +61,20 @@ set(CMAKE_AUTOMOC ON)
 # auto prepare .qrc files
 set(CMAKE_AUTORCC ON)
 
-# multicore compiling
+# Set Multicore compiling if available
 include(ProcessorCount)
 ProcessorCount(NCORES)
 if(NOT NCORES EQUAL 0)
 	set(CMAKE_BUILD_PARALLEL_LEVEL NCORES)
 endif()
 
-# Configure CCache ifavailable
-find_program(CCACHE_FOUND ccache)
-if(CCACHE_FOUND)
-	set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
-	set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
-endif(CCACHE_FOUND)
-
-# enable C++17
-if(APPLE)
-	include(CheckCXXCompilerFlag)
-	CHECK_CXX_COMPILER_FLAG("Werror=unguarded-availability" REQUIRED_UNGUARDED_AVAILABILITY)
-	if(REQUIRED_UNGUARDED_AVAILABILITY)
-		list(APPEND CMAKE_REQUIRED_FLAGS ${CMAKE_REQUIRED_FLAGS} "Werror=unguarded-availability")
-	endif()
-endif()
-
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_C_COMPILER_ID MATCHES "GNU")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-psabi")
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-psabi")
+	string(APPEND CMAKE_CXX_FLAGS " -Wno-psabi")
+	string(APPEND CMAKE_C_FLAGS " -Wno-psabi")
 endif()
-
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Set build variables
+
 # Grabber
 set(DEFAULT_AMLOGIC                     OFF)
 set(DEFAULT_DISPMANX                    OFF)
@@ -120,8 +131,8 @@ if(${CMAKE_SYSTEM} MATCHES "Linux")
 	set(DEFAULT_DEV_USB_HID     ON)
 	set(DEFAULT_CEC             ON)
 elseif (WIN32)
-	set(DEFAULT_DX ON)
-	set(DEFAULT_MF ON)
+	set(DEFAULT_DX				ON)
+	set(DEFAULT_MF				ON)
 else()
 	set(DEFAULT_FB              OFF)
 	set(DEFAULT_V4L2            OFF)
@@ -132,7 +143,7 @@ else()
 endif()
 
 if(NOT DEFINED PLATFORM)
-	if(APPLE)
+	if(CMAKE_HOST_APPLE)
 		set(PLATFORM "osx")
 	elseif (WIN32)
 		set(PLATFORM "windows")
@@ -170,12 +181,10 @@ macro(FIRSTSUBDIR result curdir)
   set(${result} ${dirlist})
 endmacro()
 
-if("${PLATFORM}" MATCHES "osx")
-	# specify the min version of the target platform (only GitHub Actions)
-	if(DEFINED ENV{GITHUB_WORKSPACE})
-		set(CMAKE_OSX_DEPLOYMENT_TARGET "10.15")
-	endif()
+# Include helper macros
+include(HelperMacros)
 
+if("${PLATFORM}" MATCHES "osx")
 	# add specific prefix paths
 	FIRSTSUBDIR(SUBDIRPY "/usr/local/opt/python3/Frameworks/Python.framework/Versions")
 	set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${SUBDIRPY})
@@ -452,9 +461,6 @@ if(ENABLE_JSONCHECKS)
 	endif()
 endif(ENABLE_JSONCHECKS)
 
-# Add project specific cmake modules (find, etc)
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
-
 find_package(GitVersion)
 
 # configure a header file to pass some of the CMake settings
@@ -487,14 +493,18 @@ endif()
 # Don't create new dynamic tags (RUNPATH) and setup -rpath to search for shared libs in BINARY/../lib folder (only for Unix)
 if(ENABLE_DEPLOY_DEPENDENCIES AND UNIX AND NOT APPLE)
 	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--disable-new-dtags")
-	set(CMAKE_SKIP_BUILD_RPATH FALSE)
-	set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
+	set(CMAKE_SKIP_BUILD_RPATH OFF)
+	set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
 	set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib")
-	set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+	set(CMAKE_INSTALL_RPATH_USE_LINK_PATH ON)
 endif()
 
-if(APPLE)
-	set(CMAKE_EXE_LINKER_FLAGS "-framework CoreGraphics")
+# Suppress superfluous randlib warnings about "*.a" having no symbols on MacOS
+if (CMAKE_HOST_APPLE)
+	set(CMAKE_C_ARCHIVE_CREATE   "<CMAKE_AR> Scr <TARGET> <LINK_FLAGS> <OBJECTS>")
+	set(CMAKE_CXX_ARCHIVE_CREATE "<CMAKE_AR> Scr <TARGET> <LINK_FLAGS> <OBJECTS>")
+	set(CMAKE_C_ARCHIVE_FINISH   "<CMAKE_RANLIB> -no_warning_for_no_symbols -c <TARGET>")
+	set(CMAKE_CXX_ARCHIVE_FINISH "<CMAKE_RANLIB> -no_warning_for_no_symbols -c <TARGET>")
 endif()
 
 find_package(Threads REQUIRED)
@@ -594,4 +604,4 @@ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/cmake/cmake_uninstall.cmake.in" "${C
 add_custom_target(uninstall COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)
 
 # enable make package - no code after this line !
-include (${CMAKE_CURRENT_SOURCE_DIR}/cmake/packages.cmake)
+include (${CMAKE_CURRENT_SOURCE_DIR}/cmake/Packaging.cmake)
