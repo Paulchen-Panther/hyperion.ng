@@ -35,22 +35,13 @@ jobs:
 ######################
 
   macOS:
-    name: 🍏 macOS ${{ matrix.arch }}
-    runs-on: macos-latest
+    name: 🍏 macOS
+    runs-on: macos-12
     env:
       PYTHON_VERSION: 3.13
       LIBJPEG_TURBO_VERSION: 3.0.1
-      QT6_ARM64: 6.6.1
-    strategy:
-      fail-fast: false
-      matrix:
-        arch: [arm64]
-        # arch: [x86_64, arm64]
-        # isQt5:
-        #   - ${{ inputs.qt_version == 5 }}
-        # exclude:
-        #   - isQt5: true
-        #     arch: arm64
+      QT6_VERSION: 6.6.1
+
     steps:
       - name: ⬇ Checkout
         uses: actions/checkout@v4
@@ -62,7 +53,7 @@ jobs:
         shell: bash
         run: tr -d '\n' < .version > temp && mv temp .version && echo -n "+PR${{ inputs.pull_request_number }}" >> .version
 
-      - name: 📥 Install Python
+      - name: 📥 Install Python (universal)
         uses: actions/setup-python@v4
         id: setup-python
         with:
@@ -70,25 +61,16 @@ jobs:
           allow-prereleases: true
           check-latest: true
 
-      - name: 📥 Install Qt5/6 (x86_64)
-        if: ${{ matrix.arch == 'x86_64' }}
-        shell: bash
-        run: |
-          brew untap --force homebrew/core homebrew/cask
-          brew update || true
-          brew install qt${{ inputs.qt_version }} || true
-
-      - name: 📥 Install Qt6 (arm64)
-        if: ${{ matrix.arch == 'arm64' }}
+      - name: 📥 Install Qt6 (Universal)
         uses: jurplel/install-qt-action@v3
         with:
-          version: ${{ env.QT6_ARM64 }}
+          version: ${{ env.QT6_VERSION }}
           host: mac
           target: desktop
           arch: clang_64
           modules: qtserialport
           cache: true
-          cache-key-prefix: macOS-Qt-${{ env.QT6_ARM64 }}
+          cache-key-prefix: macOS-Qt-${{ env.QT6_VERSION }}
           set-env: true
 
       - name: 📥 Install Ninja
@@ -119,7 +101,7 @@ jobs:
             cmake \
               -B build \
               -G Ninja \
-              -DMACOS_ARCHITECTURE=${{ matrix.arch }} \
+              -DMACOS_ARCHITECTURE=universal \
               -DCMAKE_BUILD_TYPE=Release
           echo '::endgroup::'
 
