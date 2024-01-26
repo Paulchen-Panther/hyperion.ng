@@ -168,13 +168,15 @@ elseif(NOT WIN32)
 	# install desktop/appstream file
 	install(FILES ${CMAKE_SOURCE_DIR}/cmake/desktop/hyperion.metainfo.xml DESTINATION "share/hyperion/desktop" COMPONENT "Hyperion")
 	install(FILES ${CMAKE_SOURCE_DIR}/cmake/desktop/hyperion.desktop DESTINATION "share/hyperion/desktop" COMPONENT "Hyperion")
-else()
-	install(TARGETS ${PROJECT_NAME} DESTINATION "bin" COMPONENT "Hyperion")
-	install(FILES ${CMAKE_SOURCE_DIR}/effects/readme.txt DESTINATION "effects" COMPONENT "Hyperion")
+
+	# create symlink and copy "updateHyperionUser.sh" script
 	install(CODE "execute_process(COMMAND ln -sf \"../share/hyperion/bin/${PROJECT_NAME}\" \"${CMAKE_BINARY_DIR}/symlink_${PROJECT_NAME}\")" COMPONENT "Hyperion")
 	install(FILES "${CMAKE_BINARY_DIR}/symlink_${PROJECT_NAME}" DESTINATION "bin" RENAME ${PROJECT_NAME} COMPONENT "Hyperion")
 	install(CODE "file (REMOVE ${CMAKE_BINARY_DIR}/symlink_${PROJECT_NAME})" COMPONENT "Hyperion")
 	install(FILES ${CMAKE_SOURCE_DIR}/bin/scripts/updateHyperionUser.sh DESTINATION "share/hyperion/scripts" COMPONENT "Hyperion")
+else()
+	install(TARGETS ${PROJECT_NAME} DESTINATION "bin" COMPONENT "Hyperion")
+	install(FILES ${CMAKE_SOURCE_DIR}/effects/readme.txt DESTINATION "effects" COMPONENT "Hyperion")
 endif()
 
 if(ENABLE_DEPLOY_DEPENDENCIES AND NOT APPLE)
