@@ -47,6 +47,6 @@ elif [[ "$RUNNER_OS" == 'Linux' ]]; then
 		-v "${GITHUB_WORKSPACE}:/source:rw" \
 		-w "/source" \
 		ghcr.io/hyperion-project/${DOCKER_IMAGE}:${DOCKER_TAG} \
-		/bin/bash -c "mkdir build && ${CONFIGURE} && ${BUILD} -j ${CORES}  &&
-		cp /source/build/Hyperion-* /deploy/ 2>/dev/null
+		/bin/bash -c "mkdir build && ${CONFIGURE} && ${BUILD} -j ${CORES} &&
+		cp /source/build/Hyperion-* /deploy/ 2>/dev/null"
 fi

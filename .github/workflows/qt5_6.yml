@@ -206,11 +206,12 @@ jobs:
           path: C:\Users\runneradmin\AppData\Local\Temp\chocolatey
           key: ${{ runner.os }}${{ inputs.qt_version == '6' && '-chocolatey-qt6' || '-chocolatey' }}
 
-      - name: 📥 Install DirectX SDK, OpenSSL, libjpeg-turbo ${{ inputs.qt_version == '6' && 'and Vulkan-SDK' || '' }}
+      - name: 📥 Install DirectX SDK, OpenSSL, Ninja, libjpeg-turbo ${{ inputs.qt_version == '6' && 'and Vulkan-SDK' || '' }}
         shell: powershell
         run: |
           choco install --no-progress directx-sdk ${{env.VULKAN_SDK}} -y
           choco install --no-progress ${{env.OPENSSL}} -y
+          choco install --no-progress ninja -y
           Invoke-WebRequest https://netcologne.dl.sourceforge.net/project/libjpeg-turbo/3.0.1/libjpeg-turbo-3.0.1-vc64.exe -OutFile libjpeg-turbo.exe -UserAgent NativeHost
           .\libjpeg-turbo /S
         env:
