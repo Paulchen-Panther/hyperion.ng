@@ -22,11 +22,7 @@ if(NOT USE_SYSTEM_PROTO_LIBS)
 	# Build abeil (3rd party sub-module) with C++ version requirements
 	set(ABSL_PROPAGATE_CXX_STD ON CACHE BOOL "Build abseil-cpp with C++ version requirements propagated")
 
-	# Temporary fix for https://github.com/abseil/abseil-cpp/issues/1510 on Windows (WinGW)
-	# Remove when protobuf release include abseil-cpp
-	add_compile_options(-DABSL_FORCE_WAITER_MODE=4)
-
-	# # Disable Protobuf Compiler if cross compiling (and import or build nativly)
+	# Disable Protobuf Compiler if cross compiling (and import or build nativly)
 	include (CMakeDependentOption)
 	CMAKE_DEPENDENT_OPTION(protobuf_BUILD_PROTOC_BINARIES "Build protobuf libraries and protoc compiler" OFF "CMAKE_CROSSCOMPILING" ON)
 

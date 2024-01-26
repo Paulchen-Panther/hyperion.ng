@@ -1,10 +1,4 @@
-#!/bin/bash -e
-
-error_message() {
-  echo "---> Hyperion compilation failed! Abort"; exit 1
-}
-
-trap error_message ERR
+#!/bin/bash
 
 # set environment variables if not exists
 [ -z "${BUILD_TYPE}" ] && BUILD_TYPE="Debug"
@@ -13,41 +7,53 @@ trap error_message ERR
 [ -z "${OSX_ARCHITECTURE}" ] && OSX_ARCHITECTURE="x86_64"
 
 # Determine cmake build type; tag builds are Release, else Debug (-dev appends to platform)
-# TODO Debug build for Windows
-if [[ $GITHUB_REF == *"refs/tags"* || "$RUNNER_OS" == "Windows" ]]; then
+if [[ $GITHUB_REF == *"refs/tags"* ]]; then
 	BUILD_TYPE=Release
-elif [[ ! "$RUNNER_OS" == "Windows" ]]; then
+else
 	PLATFORM=${PLATFORM}-dev
 fi
 
-CONFIGURE="cmake -B build -G Ninja -DPLATFORM=${PLATFORM} -DCMAKE_BUILD_TYPE=${BUILD_TYPE}"
-BUILD="cmake --build build --target package --config ${BUILD_TYPE}"
-
-if [[ "$RUNNER_OS" == 'macOS' ]]; then
-	CORES=$(sysctl -n hw.ncpu)
-	CONFIGURE="${CONFIGURE} -DMACOS_ARCHITECTURE=${OSX_ARCHITECTURE} -DCMAKE_INSTALL_PREFIX:PATH=/usr/local"
-elif [[ "$RUNNER_OS" == "Windows" ]]; then
-	CORES=$NUMBER_OF_PROCESSORS
-	BUILD="${BUILD} --"
-elif [[ "$RUNNER_OS" == 'Linux' ]]; then
-	CORES=$(nproc)
-fi
-
 echo "Compile Hyperion on '${RUNNER_OS}' with build type '${BUILD_TYPE}' and platform '${PLATFORM}'"
-echo "Number of Cores $CORES"
 
-if [[ "$RUNNER_OS" == 'macOS' || "$RUNNER_OS" == 'Windows' ]]; then
-	mkdir build
-	${CONFIGURE}
-	${BUILD} -j ${CORES}
+# Build the package on MacOS, Windows or Linux
+if [[ "$RUNNER_OS" == 'macOS' ]]; then
+	echo "Number of Cores $(sysctl -n hw.ncpu)"
+	mkdir build || exit 1
+	cmake -B build -G Ninja -DPLATFORM=${PLATFORM} -DMACOS_ARCHITECTURE=${OSX_ARCHITECTURE} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_INSTALL_PREFIX:PATH=/usr/local || exit 2
+	cmake --build build --target package --parallel $(sysctl -n hw.ncpu) || exit 3
+	cd ${GITHUB_WORKSPACE} && source /${GITHUB_WORKSPACE}/test/testrunner.sh || exit 4
+	exit 0;
+	exit 1 || { echo "---> Hyperion compilation failed! Abort"; exit 5; }
+elif [[ $RUNNER_OS == "Windows" ]]; then
+	echo "Number of Cores $(nproc)"
+	mkdir build || exit 1
+	cmake -B build -G "Visual Studio 17 2022" -A x64 -DPLATFORM=${PLATFORM} -DCMAKE_BUILD_TYPE="Release" ../ || exit 2
+	cmake --build build --target package --config "Release" -- -nologo -v:m -maxcpucount || exit 3
+	exit 0;
+	exit 1 || { echo "---> Hyperion compilation failed! Abort"; exit 5; }
 elif [[ "$RUNNER_OS" == 'Linux' ]]; then
+	echo "Number of Cores $NUMBER_OF_PROCESSORS"
 	echo "Docker arguments used: DOCKER_IMAGE=${DOCKER_IMAGE}, DOCKER_TAG=${DOCKER_TAG}, TARGET_ARCH=${TARGET_ARCH}"
+	# verification bypass of external dependencies
+	# set GitHub Container Registry url
+	REGISTRY_URL="ghcr.io/hyperion-project/${DOCKER_IMAGE}"
+	# take ownership of deploy dir
 	mkdir ${GITHUB_WORKSPACE}/deploy
+
+	# run docker
 	docker run --rm --platform=${TARGET_ARCH} \
 		-v "${GITHUB_WORKSPACE}/deploy:/deploy" \
 		-v "${GITHUB_WORKSPACE}:/source:rw" \
 		-w "/source" \
-		ghcr.io/hyperion-project/${DOCKER_IMAGE}:${DOCKER_TAG} \
-		/bin/bash -c "mkdir build && ${CONFIGURE} && ${BUILD} -j ${CORES} &&
-		cp /source/build/Hyperion-* /deploy/ 2>/dev/null"
+		$REGISTRY_URL:$DOCKER_TAG \
+		/bin/bash -c "mkdir build &&
+		cmake -B build -G Ninja -DPLATFORM=${PLATFORM} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} || exit 2 &&
+		cmake --build build --target package --parallel $(nproc) || exit 3 &&
+		cp /source/build/Hyperion-* /deploy/ 2>/dev/null || : &&
+		cd /source && source /source/test/testrunner.sh || exit 5 &&
+		exit 0;
+		exit 1 " || { echo "---> Hyperion compilation failed! Abort"; exit 5; }
+
+	# overwrite file owner to current user
+	sudo chown -fR $(stat -c "%U:%G" ${GITHUB_WORKSPACE}/deploy) ${GITHUB_WORKSPACE}/deploy
 fi
