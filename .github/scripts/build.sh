@@ -13,9 +13,10 @@ trap error_message ERR
 [ -z "${OSX_ARCHITECTURE}" ] && OSX_ARCHITECTURE="x86_64"
 
 # Determine cmake build type; tag builds are Release, else Debug (-dev appends to platform)
-if [[ $GITHUB_REF == *"refs/tags"* ]]; then
+# TODO Debug build for Windows
+if [[ $GITHUB_REF == *"refs/tags"* || "$RUNNER_OS" == "Windows" ]]; then
 	BUILD_TYPE=Release
-else
+elif [[ ! "$RUNNER_OS" == "Windows" ]]; then
 	PLATFORM=${PLATFORM}-dev
 fi
 
@@ -25,7 +26,7 @@ BUILD="cmake --build build --target package --config ${BUILD_TYPE}"
 if [[ "$RUNNER_OS" == 'macOS' ]]; then
 	CORES=$(sysctl -n hw.ncpu)
 	CONFIGURE="${CONFIGURE} -DMACOS_ARCHITECTURE=${OSX_ARCHITECTURE} -DCMAKE_INSTALL_PREFIX:PATH=/usr/local"
-elif [[ $RUNNER_OS == "Windows" ]]; then
+elif [[ "$RUNNER_OS" == "Windows" ]]; then
 	CORES=$NUMBER_OF_PROCESSORS
 	BUILD="${BUILD} --"
 elif [[ "$RUNNER_OS" == 'Linux' ]]; then
