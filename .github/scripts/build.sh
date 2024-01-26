@@ -27,7 +27,7 @@ if [[ "$RUNNER_OS" == 'macOS' ]]; then
 elif [[ $RUNNER_OS == "Windows" ]]; then
 	echo "Number of Cores $(nproc)"
 	mkdir build || exit 1
-	cmake -B build -G "Visual Studio 17 2022" -A x64 -DPLATFORM=${PLATFORM} -DCMAKE_BUILD_TYPE="Release" ../ || exit 2
+	cmake -B build -G "Visual Studio 17 2022" -A x64 -DPLATFORM=${PLATFORM} -DCMAKE_BUILD_TYPE="Release" || exit 2
 	cmake --build build --target package --config "Release" -- -nologo -v:m -maxcpucount || exit 3
 	exit 0;
 	exit 1 || { echo "---> Hyperion compilation failed! Abort"; exit 5; }
