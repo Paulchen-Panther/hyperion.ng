@@ -192,11 +192,7 @@ if("${PLATFORM}" MATCHES "osx")
 	include_directories("/opt/X11/include/")
 	set(DEFAULT_OSX         ON )
 	set(DEFAULT_AUDIO       OFF)
-
-	# temporary disable USB_HID on universal build
-	if(MACOS_ARCHITECTURE STREQUAL HOST_SYSTEM_PROCESSOR)
-		set(DEFAULT_DEV_USB_HID ON )
-	endif()
+	set(DEFAULT_DEV_USB_HID ON )
 
 elseif ("${PLATFORM}" MATCHES "rpi")
 	set(DEFAULT_DISPMANX   ON)

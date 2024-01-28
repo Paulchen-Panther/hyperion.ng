@@ -51,11 +51,6 @@ if(ENABLE_DEV_TINKERFORGE)
 endif()
 
 if(ENABLE_DEV_USB_HID)
-	find_package(libusb-1.0 REQUIRED)
-	include_directories(
-		${CMAKE_SOURCE_DIR}/include/hidapi
-		${LIBUSB_1_INCLUDE_DIRS}
-	)
 	file (GLOB Leddevice_USB_HID_SOURCES "${CURRENT_SOURCE_DIR}/dev_hid/*.h" "${CURRENT_SOURCE_DIR}/dev_hid/*.cpp")
 endif()
 
@@ -135,11 +130,8 @@ if(ENABLE_DEV_WS281XPWM)
 endif()
 
 if(ENABLE_DEV_USB_HID)
-	if(APPLE)
-		target_link_libraries(leddevice ${LIBUSB_1_LIBRARIES} hidapi-mac)
-	else()
-		target_link_libraries(leddevice ${LIBUSB_1_LIBRARIES} hidapi-libusb)
-	endif()
+	target_link_libraries(leddevice hidapi)
+
 	if(NOT WIN32)
 		include(CheckCSourceCompiles)
 		# Glibc compatibilty check
@@ -159,7 +151,6 @@ if(ENABLE_DEV_USB_HID)
 endif()
 
 if(ENABLE_MDNS)
-
  	target_link_libraries(leddevice mdns)
 endif()
 
