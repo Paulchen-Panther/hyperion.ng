@@ -4,7 +4,7 @@
 [ -z "${BUILD_TYPE}" ] && BUILD_TYPE="Debug"
 [ -z "${TARGET_ARCH}" ] && TARGET_ARCH="linux/amd64"
 [ -z "${PLATFORM}" ] && PLATFORM="x11"
-[ -z "${OSX_ARCHITECTURE}" ] && OSX_ARCHITECTURE="x86_64"
+[ -z "${EXTRA_CMAKE_ARGS}" ] && EXTRA_CMAKE_ARGS=""
 
 # Determine cmake build type; tag builds are Release, else Debug (-dev appends to platform)
 if [[ $GITHUB_REF == *"refs/tags"* ]]; then
@@ -19,7 +19,7 @@ echo "Compile Hyperion on '${RUNNER_OS}' with build type '${BUILD_TYPE}' and pla
 if [[ "$RUNNER_OS" == 'macOS' ]]; then
 	echo "Number of Cores $(sysctl -n hw.ncpu)"
 	mkdir build || exit 1
-	cmake -B build -G Ninja -DPLATFORM=${PLATFORM} -DMACOS_ARCHITECTURE=${OSX_ARCHITECTURE} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_INSTALL_PREFIX:PATH=/usr/local || exit 2
+	cmake -B build -G Ninja -DPLATFORM=${PLATFORM} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_INSTALL_PREFIX:PATH=/usr/local ${EXTRA_CMAKE_ARGS} || exit 2
 	cmake --build build --target package --parallel $(sysctl -n hw.ncpu) || exit 3
 	cd ${GITHUB_WORKSPACE} && source /${GITHUB_WORKSPACE}/test/testrunner.sh || exit 4
 	exit 0;
@@ -27,7 +27,7 @@ if [[ "$RUNNER_OS" == 'macOS' ]]; then
 elif [[ $RUNNER_OS == "Windows" ]]; then
 	echo "Number of Cores $(nproc)"
 	mkdir build || exit 1
-	cmake -B build -G "Visual Studio 17 2022" -A x64 -DPLATFORM=${PLATFORM} -DCMAKE_BUILD_TYPE="Release" || exit 2
+	cmake -B build -G "Visual Studio 17 2022" -A x64 -DPLATFORM=${PLATFORM} -DCMAKE_BUILD_TYPE="Release" ${EXTRA_CMAKE_ARGS} || exit 2
 	cmake --build build --target package --config "Release" -- -nologo -v:m -maxcpucount || exit 3
 	exit 0;
 	exit 1 || { echo "---> Hyperion compilation failed! Abort"; exit 5; }
@@ -47,7 +47,7 @@ elif [[ "$RUNNER_OS" == 'Linux' ]]; then
 		-w "/source" \
 		$REGISTRY_URL:$DOCKER_TAG \
 		/bin/bash -c "mkdir build &&
-		cmake -B build -G Ninja -DPLATFORM=${PLATFORM} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} || exit 2 &&
+		cmake -B build -G Ninja -DPLATFORM=${PLATFORM} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} ${EXTRA_CMAKE_ARGS} || exit 2 &&
 		cmake --build build --target package --parallel $(nproc) || exit 3 &&
 		cp /source/build/Hyperion-* /deploy/ 2>/dev/null || : &&
 		cd /source && source /source/test/testrunner.sh || exit 5 &&

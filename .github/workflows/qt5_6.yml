@@ -160,12 +160,33 @@ jobs:
           sudo installer -pkg /Volumes/libjpeg-turbo-$LIBJPEG_TURBO_VERSION/libjpeg-turbo.pkg -target /
           hdiutil detach /Volumes/libjpeg-turbo-$LIBJPEG_TURBO_VERSION
 
+      - name: 📥 Compile libusb (Qt6 only)
+        working-directory: ./libusb
+        shell: bash
+        run: |
+          git clone https://github.com/libusb/libusb-cmake
+          cd libusb-cmake && mkdir build
+          cmake \
+            -G Ninja \
+            -B build \
+            -S . \
+            -DCMAKE_SKIP_INSTALL_ALL_DEPENDENCY=ON \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DCMAKE_OSX_ARCHITECTURES='x86_64;arm64' \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 \
+            -DCMAKE_INSTALL_LIBDIR='lib' \
+            -DLIBUSB_BUILD_EXAMPLES=OFF \
+            -DLIBUSB_BUILD_TESTING=OFF \
+            -DLIBUSB_ENABLE_DEBUG_LOGGING=OFF
+          cmake --build build && cmake --install build
+
       - name: 👷 Build
         shell: bash
         run: ./.github/scripts/build.sh
         env:
-          PLATFORM: osx
-          OSX_ARCHITECTURE: ${{ inputs.qt_version == '6' && 'universal' || 'x86_64' }}
+          PLATFORM: "osx"
+          EXTRA_CMAKE_ARGS: "${{ inputs.qt_version == '6' && '-DMACOS_ARCHITECTURE=universal' || '' }}"
 
       - name: 📦 Upload
         if: ${{ inputs.publish || inputs.event_name == 'pull_request' }}
@@ -236,7 +257,7 @@ jobs:
         shell: bash
         run: ./.github/scripts/build.sh
         env:
-          PLATFORM: windows
+          PLATFORM: "windows"
 
       - name: 📦 Upload
         if: ${{ inputs.publish || inputs.event_name == 'pull_request' }}

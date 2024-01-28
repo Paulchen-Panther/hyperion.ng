@@ -42,6 +42,7 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+set(LIBUSB_1_ROOT_DIR "${LIBUSB_1_ROOT_DIR}" CACHE PATH "Root directory to search for libusb-1")
 
 if(TARGET usb-1.0)
 	# in cache already
@@ -55,18 +56,24 @@ else()
 			/usr/local/include
 			/opt/local/include
 			/sw/include
+		HINTS
+			${LIBUSB_1_ROOT_DIR}
 		PATH_SUFFIXES
 			libusb-1.0
 	)
 
 	find_library(LIBUSB_1_LIBRARY
-	NAMES
-		usb-1.0 usb
-	PATHS
-		/usr/lib
-		/usr/local/lib
-		/opt/local/lib
-		/sw/lib
+		NAMES
+			libusb-1.0
+			usb-1.0
+			usb
+		PATHS
+			/usr/lib
+			/usr/local/lib
+			/opt/local/lib
+			/sw/lib
+		HINTS
+			${LIBUSB_1_ROOT_DIR}
 	)
 
 	if(LIBUSB_1_INCLUDE_DIR AND LIBUSB_1_LIBRARY)
