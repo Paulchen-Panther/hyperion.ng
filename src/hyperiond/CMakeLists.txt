@@ -12,7 +12,7 @@ if(WIN32)
 
 	# promote hyperiond as GUI app
 	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")
-elseif(CMAKE_HOST_APPLE)
+elseif(APPLE)
 	# include resource files for macos bundle (copy LICENSE file and correct line breaks)
 	configure_file(${CMAKE_SOURCE_DIR}/LICENSE ${CMAKE_BINARY_DIR}/LICENSE COPYONLY)
 	execute_process(COMMAND bash -c "perl -pi -e 's/\n/\r/g' ${CMAKE_BINARY_DIR}/LICENSE")
@@ -130,7 +130,7 @@ endif()
 ########### Install steps ###########
 #####################################
 
-if(CMAKE_HOST_APPLE)
+if(APPLE)
 	# set bundle information
 	set(MAC_BUNDLE_NAME "Hyperion")
 	set_target_properties(${PROJECT_NAME} PROPERTIES

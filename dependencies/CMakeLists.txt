@@ -2,25 +2,29 @@
 # HIDAPI
 #=============================================================================
 
-if(ENABLE_DEV_USB_HID AND (CMAKE_HOST_APPLE OR UNIX))
+if(ENABLE_DEV_USB_HID)
+	# Find libusb
 	find_package(libusb-1.0 REQUIRED)
-	add_library(hidapi STATIC)
-	target_link_libraries(hidapi usb-1.0)
 
-	if(APPLE)
-		find_library(COREFOUNDATION CoreFoundation REQUIRED)
-		find_library(IOKIT IOKit REQUIRED)
-		find_library(SECURITY Security REQUIRED)
-		target_sources(hidapi PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/build/hidapi/hid-mac.c")
-		target_link_libraries(hidapi ${COREFOUNDATION} ${IOKIT} ${SECURITY})
-	else()
-		set(THREADS_PREFER_PTHREAD_FLAG TRUE)
-		find_package(Threads REQUIRED)
-		target_sources(hidapi PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/build/hidapi/hid-libusb.c")
-		target_link_libraries(hidapi Threads::Threads)
+	# Build HIDAPI as static library
+	set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build statically version of HIDAPI")
+
+	# Use the libusb based implementation of HIDAPI (Linux only)
+	if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+		set(HIDAPI_WITH_HIDRAW "Build HIDRAW-based implementation of HIDAPI" OFF)
 	endif()
 
-	target_include_directories(hidapi PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/hidapi")
+	# Suppress warnings about "Compatibility with CMake < 3.5 will be removed from a future version of CMake"
+	set(CMAKE_WARN_DEPRECATED OFF CACHE BOOL "" FORCE)
+
+	# Install HIDAPI targets
+	set(HIDAPI_INSTALL_TARGETS ON CACHE BOOL "Enable the installation of HIDAPI targets")
+
+	# Disable build of HIDAPI tests
+	set(HIDAPI_BUILD_HIDTEST OFF CACHE BOOL "Enable small console test application hidtest")
+
+	# Add HIDAPI directory to the build
+	add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/external/hidapi")
 endif()
 
 #=============================================================================
@@ -32,8 +36,8 @@ if(ENABLE_DEV_TINKERFORGE)
 	target_sources(tinkerforge PRIVATE
 		${CMAKE_CURRENT_SOURCE_DIR}/include/tinkerforge/bricklet_led_strip.h
 		${CMAKE_CURRENT_SOURCE_DIR}/include/tinkerforge/ip_connection.h
-		${CMAKE_CURRENT_SOURCE_DIR}/build/tinkerforge/bricklet_led_strip.c
-		${CMAKE_CURRENT_SOURCE_DIR}/build/tinkerforge/ip_connection.c
+		${CMAKE_CURRENT_SOURCE_DIR}/libsrc/tinkerforge/bricklet_led_strip.c
+		${CMAKE_CURRENT_SOURCE_DIR}/libsrc/tinkerforge/ip_connection.c
 	)
 
 	target_include_directories(tinkerforge PUBLIC
@@ -46,19 +50,14 @@ endif()
 #=============================================================================
 
 if(ENABLE_DEV_WS281XPWM)
-	add_library(ws281x STATIC)
-	target_sources(ws281x PRIVATE
-		${CMAKE_CURRENT_SOURCE_DIR}/external/rpi_ws281x/mailbox.c
-		${CMAKE_CURRENT_SOURCE_DIR}/external/rpi_ws281x/ws2811.c
-		${CMAKE_CURRENT_SOURCE_DIR}/external/rpi_ws281x/pwm.c
-		${CMAKE_CURRENT_SOURCE_DIR}/external/rpi_ws281x/dma.c
-		${CMAKE_CURRENT_SOURCE_DIR}/external/rpi_ws281x/pcm.c
-		${CMAKE_CURRENT_SOURCE_DIR}/external/rpi_ws281x/rpihw.c
-	)
+	# Build rpi_ws281x as static library
+	set(BUILD_SHARED OFF CACHE BOOL "Build statically version of rpi_ws281x")
 
-	target_include_directories(ws281x PUBLIC
-		"${CMAKE_CURRENT_SOURCE_DIR}/external/rpi_ws281x"
-	)
+	# Disable build of rpi_ws281x test application
+	set(BUILD_TEST OFF CACHE BOOL "Build test application")
+
+	# Add rpi_ws281x directory to the build
+	add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/external/rpi_ws281x")
 endif()
 
 #=============================================================================
@@ -66,7 +65,7 @@ endif()
 #=============================================================================
 
 if (ENABLE_MDNS)
-	set(USE_SYSTEM_QMDNS_LIBS ${DEFAULT_USE_SYSTEM_QMDNS_LIBS} CACHE BOOL "use qmdnsengine library from system")
+	set(USE_SYSTEM_QMDNS_LIBS ${DEFAULT_USE_SYSTEM_QMDNS_LIBS} CACHE BOOL "Use QMdnsEngine library from system")
 
 	if(USE_SYSTEM_QMDNS_LIBS)
 		find_package(qmdnsengine REQUIRED)
@@ -118,7 +117,7 @@ endif()
 #=============================================================================
 
 if(ENABLE_FLATBUF_SERVER OR ENABLE_FLATBUF_CONNECT)
-	set(USE_SYSTEM_FLATBUFFERS_LIBS ${DEFAULT_USE_SYSTEM_FLATBUFFERS_LIBS} CACHE BOOL "use flatbuffers library from system")
+	set(USE_SYSTEM_FLATBUFFERS_LIBS ${DEFAULT_USE_SYSTEM_FLATBUFFERS_LIBS} CACHE BOOL "Use FlatBuffers library from system")
 
 	if(USE_SYSTEM_FLATBUFFERS_LIBS)
 		find_package(flatbuffers REQUIRED CONFIG NAMES flatbuffers Flatbuffers FlatBuffers)
@@ -253,7 +252,7 @@ endif()
 #=============================================================================
 
 if(ENABLE_PROTOBUF_SERVER)
-	set(USE_SYSTEM_PROTO_LIBS ${DEFAULT_USE_SYSTEM_PROTO_LIBS} CACHE BOOL "use protobuf library from system")
+	set(USE_SYSTEM_PROTO_LIBS ${DEFAULT_USE_SYSTEM_PROTO_LIBS} CACHE BOOL "Use Protocol Buffers library from system")
 
 	if(USE_SYSTEM_PROTO_LIBS)
 		find_package(Protobuf REQUIRED)
@@ -409,7 +408,7 @@ endif()
 #=============================================================================
 
 if(ENABLE_DEV_NETWORK)
-	set(USE_SYSTEM_MBEDTLS_LIBS ${DEFAULT_USE_SYSTEM_MBEDTLS_LIBS} CACHE BOOL "use mbedtls library from system")
+	set(USE_SYSTEM_MBEDTLS_LIBS ${DEFAULT_USE_SYSTEM_MBEDTLS_LIBS} CACHE BOOL "Use mbedTLS library from system")
 
 	if(USE_SYSTEM_MBEDTLS_LIBS)
 		find_package(mbedtls REQUIRED)
@@ -430,13 +429,13 @@ if(ENABLE_DEV_NETWORK)
 		set(BUILD_OR_SYSTEM "static")
 
 		# Disable build of mbedTLS tests
-		set(ENABLE_TESTING OFF CACHE BOOL "Disable mbedTLS tests")
+		set(ENABLE_TESTING OFF CACHE BOOL "Build mbedTLS tests")
 
 		# Disable fatal warnings
 		option(MBEDTLS_FATAL_WARNINGS "Compiler warnings treated as errors" OFF)
 
 		# Disable build of mbedTLS program building
-		set(ENABLE_PROGRAMS OFF CACHE BOOL "Disable mbedTLS programs")
+		set(ENABLE_PROGRAMS OFF CACHE BOOL "Build mbedTLS programs")
 
 		# Add mbedTLS directory to the build
 		add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/external/mbedtls")
