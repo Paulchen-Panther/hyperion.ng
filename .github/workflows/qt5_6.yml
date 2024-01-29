@@ -173,7 +173,7 @@ jobs:
         working-directory: libusb
         shell: bash
         run: |
-          mkdir build
+          mkdir build install
           cmake \
             -G Ninja \
             -B build \
@@ -183,18 +183,18 @@ jobs:
             -DBUILD_SHARED_LIBS=OFF \
             -DCMAKE_OSX_ARCHITECTURES='x86_64;arm64' \
             -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 \
-            -DCMAKE_INSTALL_LIBDIR='lib' \
+            -DCMAKE_INSTALL_PREFIX='install' \
             -DLIBUSB_BUILD_EXAMPLES=OFF \
             -DLIBUSB_BUILD_TESTING=OFF \
             -DLIBUSB_ENABLE_DEBUG_LOGGING=OFF
-          cmake --build build && cmake --install build
+          cmake --build build -- install
 
       - name: 👷 Build
         shell: bash
         run: ./.github/scripts/build.sh
         env:
           PLATFORM: "osx"
-          EXTRA_CMAKE_ARGS: "${{ inputs.qt_version == '6' && '-DMACOS_ARCHITECTURE=universal -DLIBUSB_1_ROOT_DIR=libusb' || '' }}"
+          EXTRA_CMAKE_ARGS: "${{ inputs.qt_version == '6' && '-DMACOS_ARCHITECTURE=universal -DLIBUSB_1_ROOT_DIR=libusb/install' || '' }}"
 
       - name: 📦 Upload
         if: ${{ inputs.publish || inputs.event_name == 'pull_request' }}

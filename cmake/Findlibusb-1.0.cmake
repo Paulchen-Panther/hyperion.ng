@@ -59,6 +59,8 @@ else()
 		HINTS
 			${LIBUSB_1_ROOT_DIR}
 		PATH_SUFFIXES
+			include/libusb-1.0
+			include
 			libusb-1.0
 	)
 
@@ -68,12 +70,14 @@ else()
 			usb-1.0
 			usb
 		PATHS
-			/usr/lib
-			/usr/local/lib
-			/opt/local/lib
-			/sw/lib
+			/usr
+			/usr/local
+			/opt/local
+			/sw
 		HINTS
 			${LIBUSB_1_ROOT_DIR}
+		PATH_SUFFIXES
+			lib
 	)
 
 	if(LIBUSB_1_INCLUDE_DIR AND LIBUSB_1_LIBRARY)
