@@ -104,9 +104,15 @@ jobs:
       QT6_VERSION: 6.6.1
 
     steps:
-      - name: ⬇ Checkout
+      - name: ⬇ Checkout Hyperion.ng
         uses: actions/checkout@v4
         with:
+          submodules: recursive
+
+      - name: ⬇ Checkout libusb (QT6 only)
+        uses: actions/checkout@v4
+        with:
+          path: libusb
           submodules: recursive
 
       - name: 🔧 Append Pull Request number to version (PR  only)
@@ -161,11 +167,10 @@ jobs:
           hdiutil detach /Volumes/libjpeg-turbo-$LIBJPEG_TURBO_VERSION
 
       - name: 📥 Compile libusb (Qt6 only)
-        working-directory: ./libusb
+        working-directory: libusb
         shell: bash
         run: |
-          git clone https://github.com/libusb/libusb-cmake
-          cd libusb-cmake && mkdir build
+          mkdir build
           cmake \
             -G Ninja \
             -B build \
@@ -186,7 +191,7 @@ jobs:
         run: ./.github/scripts/build.sh
         env:
           PLATFORM: "osx"
-          EXTRA_CMAKE_ARGS: "${{ inputs.qt_version == '6' && '-DMACOS_ARCHITECTURE=universal' || '' }}"
+          EXTRA_CMAKE_ARGS: "${{ inputs.qt_version == '6' && '-DMACOS_ARCHITECTURE=universal -D' || '' }}"
 
       - name: 📦 Upload
         if: ${{ inputs.publish || inputs.event_name == 'pull_request' }}
