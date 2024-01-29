@@ -187,7 +187,8 @@ jobs:
             -DLIBUSB_BUILD_EXAMPLES=OFF \
             -DLIBUSB_BUILD_TESTING=OFF \
             -DLIBUSB_ENABLE_DEBUG_LOGGING=OFF
-          cmake --build build -- install
+          cmake --build build
+          cmake --install build
 
       - name: 👷 Build
         shell: bash
