@@ -193,7 +193,7 @@ jobs:
         run: ./.github/scripts/build.sh
         env:
           PLATFORM: "osx"
-          EXTRA_CMAKE_ARGS: "${{ inputs.qt_version == '6' && '-DMACOS_ARCHITECTURE=universal -D' || '' }}"
+          EXTRA_CMAKE_ARGS: "${{ inputs.qt_version == '6' && '-DMACOS_ARCHITECTURE=universal -DLIBUSB_1_ROOT_DIR=libusb' || '' }}"
 
       - name: 📦 Upload
         if: ${{ inputs.publish || inputs.event_name == 'pull_request' }}
