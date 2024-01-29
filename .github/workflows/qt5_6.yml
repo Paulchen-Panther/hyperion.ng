@@ -110,6 +110,7 @@ jobs:
           submodules: recursive
 
       - name: ⬇ Checkout libusb (QT6 only)
+        if: ${{ inputs.qt_version == '6' }}
         uses: actions/checkout@v4
         with:
           path: libusb
@@ -167,6 +168,7 @@ jobs:
           hdiutil detach /Volumes/libjpeg-turbo-$LIBJPEG_TURBO_VERSION
 
       - name: 📥 Compile libusb (Qt6 only)
+        if: ${{ inputs.qt_version == '6' }}
         working-directory: libusb
         shell: bash
         run: |
