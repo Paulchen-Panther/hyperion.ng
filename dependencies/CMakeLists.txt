@@ -11,7 +11,7 @@ if(ENABLE_DEV_USB_HID)
 
 	# Use the libusb based implementation of HIDAPI (Linux only)
 	if(CMAKE_SYSTEM_NAME MATCHES "Linux")
-		set(HIDAPI_WITH_HIDRAW "Build HIDRAW-based implementation of HIDAPI" OFF)
+		set(HIDAPI_WITH_HIDRAW OFF CACHE BOOL "Build HIDRAW-based implementation of HIDAPI")
 	endif()
 
 	# Suppress warnings about "Compatibility with CMake < 3.5 will be removed from a future version of CMake"
