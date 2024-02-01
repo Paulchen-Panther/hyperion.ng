@@ -99,6 +99,41 @@ else()
 			IMPORTED_LOCATION "${LIBUSB_LIBRARY}"
 			INTERFACE_INCLUDE_DIRECTORIES "${LIBUSB_INCLUDE_DIR}"
 		)
+
+		# libusb version detection from: https://github.com/matwey/libopenvizsla/blob/master/cmake/FindLibUSB1.cmake
+		# modified by Hyperion Project
+		if(NOT CMAKE_CROSSCOMPILING)
+			file(WRITE "${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeTmp/src.c"
+				"#include <libusb.h>
+				#include <stdio.h>
+				int main() {
+					const struct libusb_version* v=libusb_get_version();
+					printf(\"%d.%d.%d%s\",v->major,v->minor,v->micro,v->rc);
+					return 0;
+				}"
+			)
+
+			try_run(RUN_RESULT COMPILE_RESULT
+				${CMAKE_BINARY_DIR}
+				${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeTmp/src.c
+				CMAKE_FLAGS -DINCLUDE_DIRECTORIES:STRING=${LIBUSB1_INCLUDE_DIRS} -DLINK_LIBRARIES:STRING=${LIBUSB1_LIBRARIES}
+				RUN_OUTPUT_VARIABLE LIBUSB_VERSION
+			)
+
+			if(RUN_RESULT EQUAL 0 AND COMPILE_RESULT)
+				define_property(TARGET PROPERTY LIBUSB_VERSION_PROPERTY
+					BRIEF_DOCS "Custom LibUSB version target property."
+					FULL_DOCS "Custom LibUSB version target property."
+				)
+
+				set_target_properties(libusb PROPERTIES
+					LIBUSB_VERSION_PROPERTY "${LIBUSB_VERSION}"
+				)
+			endif()
+
+			unset(RUN_RESULT)
+			unset(COMPILE_RESULT)
+		endif()
 	else()
 		message(FATAL_ERROR "Could not find libusb")
 	endif()
