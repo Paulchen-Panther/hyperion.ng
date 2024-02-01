@@ -170,7 +170,7 @@ cmake_dependent_option(ENABLE_AUDIO				"Enable the AUDIO grabber"					ON "NOT HY
 
 # Input options
 cmake_dependent_option(ENABLE_BOBLIGHT_SERVER	"Enable BOBLIGHT server"					ON "NOT HYPERION_LIGHT"																		OFF)
-cmake_dependent_option(ENABLE_CEC				"Enable the libcec and CEC control"			ON "NOT HYPERION_LIGHT;PLATFORM_MATCHES_X11"												OFF)
+cmake_dependent_option(ENABLE_CEC				"Enable the libcec and CEC control"			ON "NOT HYPERION_LIGHT;SYSTEM_MATCHES_LINUX"												OFF)
 cmake_dependent_option(ENABLE_FLATBUF_SERVER	"Enable Flatbuffers server"					ON "NOT HYPERION_LIGHT"																		OFF)
 cmake_dependent_option(ENABLE_PROTOBUF_SERVER	"Enable Protocol Buffers server"			ON "NOT HYPERION_LIGHT"																		OFF)
 

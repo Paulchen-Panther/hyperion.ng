@@ -97,8 +97,15 @@ jobs:
 ######################
 
   macOS:
-    name: 🍏 macOS ${{ inputs.qt_version == '6' && '(universal)' || '(x86_64)' }}
-    runs-on: macos-${{ inputs.qt_version == '6' && '14' || '13' }}
+    name: 🍏 macOS (${{ matrix.arrays.arch }})
+    runs-on: ${{ matrix.arrays.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        arrays: [
+          { arch: "x86_64", os: "macos-13" },
+          { arch: "arm64",  os: "macos-14" },
+        ]
     env:
       PYTHON_VERSION: 3.12
       LIBJPEG_TURBO_VERSION: 3.0.1
@@ -110,14 +117,6 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
-
-      - name: ⬇ Checkout libusb (QT6 only)
-        if: ${{ inputs.qt_version == '6' }}
-        uses: actions/checkout@v4
-        with:
-          repository: libusb/libusb-cmake
-          path: libusb
-          submodules: recursive
 
       - name: 🔧 Append Pull Request number to version (PR  only)
         if: ${{ inputs.event_name == 'pull_request' }}
@@ -132,26 +131,16 @@ jobs:
           allow-prereleases: true
           check-latest: true
 
-      - name: 📥 Install Qt5
-        if: ${{ inputs.qt_version == '5' }}
+      - name: 📥 Install Qt{{ inputs.qt_version }}, Ninja & libjpeg-turbo
         shell: bash
         run: |
           brew untap --force homebrew/core homebrew/cask
           brew update || true
-          brew install qt5 || true
-
-      - name: 📥 Install Qt6
-        if: ${{ inputs.qt_version == '6' }}
-        uses: jurplel/install-qt-action@v3
-        with:
-          version: ${{ env.QT6_VERSION }}
-          host: mac
-          target: desktop
-          arch: clang_64
-          modules: qtserialport
-          cache: true
-          cache-key-prefix: macOS-Qt-${{ env.QT6_VERSION }}
-          set-env: true
+          brew install qt@${{ inputs.qt_version }} ninja || true
+          wget --no-check-certificate https://github.com/libjpeg-turbo/libjpeg-turbo/releases/download/$LIBJPEG_TURBO_VERSION/libjpeg-turbo-$LIBJPEG_TURBO_VERSION.dmg
+          hdid libjpeg-turbo-$LIBJPEG_TURBO_VERSION.dmg
+          sudo installer -pkg /Volumes/libjpeg-turbo-$LIBJPEG_TURBO_VERSION/libjpeg-turbo.pkg -target /
+          hdiutil detach /Volumes/libjpeg-turbo-$LIBJPEG_TURBO_VERSION
 
       - name: 📥 Install Vulkan Headers (Qt6 only)
         if: ${{ inputs.qt_version == '6' }}
@@ -161,43 +150,11 @@ jobs:
           vulkan-use-cache: true
           vulkan-components: Vulkan-Headers
 
-      - name: 📥 Install Ninja & libjpeg-turbo
-        shell: bash
-        run: |
-          brew install ninja || true
-          wget --no-check-certificate https://github.com/libjpeg-turbo/libjpeg-turbo/releases/download/$LIBJPEG_TURBO_VERSION/libjpeg-turbo-$LIBJPEG_TURBO_VERSION.dmg
-          hdid libjpeg-turbo-$LIBJPEG_TURBO_VERSION.dmg
-          sudo installer -pkg /Volumes/libjpeg-turbo-$LIBJPEG_TURBO_VERSION/libjpeg-turbo.pkg -target /
-          hdiutil detach /Volumes/libjpeg-turbo-$LIBJPEG_TURBO_VERSION
-
-      - name: 📥 Compile libusb (Qt6 only)
-        if: ${{ inputs.qt_version == '6' }}
-        working-directory: libusb
-        shell: bash
-        run: |
-          mkdir build install
-          cmake \
-            -G Ninja \
-            -B build \
-            -S . \
-            -DCMAKE_SKIP_INSTALL_ALL_DEPENDENCY=ON \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DBUILD_SHARED_LIBS=OFF \
-            -DCMAKE_OSX_ARCHITECTURES='x86_64;arm64' \
-            -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 \
-            -DCMAKE_INSTALL_PREFIX='install' \
-            -DLIBUSB_BUILD_EXAMPLES=OFF \
-            -DLIBUSB_BUILD_TESTING=OFF \
-            -DLIBUSB_ENABLE_DEBUG_LOGGING=OFF
-          cmake --build build
-          cmake --install build
-
       - name: 👷 Build
         shell: bash
         run: ./.github/scripts/build.sh
         env:
           PLATFORM: "osx"
-          EXTRA_CMAKE_ARGS: "${{ inputs.qt_version == '6' && '-DMACOS_ARCHITECTURE=universal -DLIBUSB_ROOT_DIR=libusb/install' || '' }}"
 
       - name: 📦 Upload
         if: ${{ inputs.publish || inputs.event_name == 'pull_request' }}

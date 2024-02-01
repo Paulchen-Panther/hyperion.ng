@@ -42,7 +42,7 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-set(LIBUSB_ROOT_DIR "${LIBUSB_1_ROOT_DIR}" CACHE PATH "Root directory to search for libusb-1")
+set(LIBUSB_ROOT_DIR "${LIBUSB_ROOT_DIR}" CACHE PATH "Root directory to search for libusb")
 
 if(TARGET libusb)
 	# in cache already
@@ -75,7 +75,7 @@ else()
 			/opt/local
 			/sw
 		HINTS
-			${LIBUSB_1_ROOT_DIR}
+			${LIBUSB_ROOT_DIR}
 		PATH_SUFFIXES
 			lib
 	)
@@ -87,8 +87,8 @@ else()
 	if(LIBUSB_FOUND)
 		if(NOT LIBUSB_FIND_QUIETLY)
 			message(STATUS "Found libusb-1.0:")
-			message(STATUS " - Includes: ${LIBUSB_1_INCLUDE_DIRS}")
-			message(STATUS " - Libraries: ${LIBUSB_1_LIBRARIES}")
+			message(STATUS " - Includes: ${LIBUSB_INCLUDE_DIR}")
+			message(STATUS " - Libraries: ${LIBUSB_LIBRARY}")
 		endif()
 
 		add_library(libusb UNKNOWN IMPORTED GLOBAL)
