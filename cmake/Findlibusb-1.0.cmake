@@ -52,10 +52,11 @@ else()
 		NAMES
 			libusb.h
 		PATHS
-			/usr/include
-			/usr/local/include
-			/opt/local/include
-			/sw/include
+			/usr
+			/usr/local
+			/opt/local
+			/opt/homebrew
+			/sw
 		HINTS
 			${LIBUSB_ROOT_DIR}
 		PATH_SUFFIXES
@@ -73,6 +74,7 @@ else()
 			/usr
 			/usr/local
 			/opt/local
+			/opt/homebrew
 			/sw
 		HINTS
 			${LIBUSB_ROOT_DIR}
