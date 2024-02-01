@@ -23,14 +23,14 @@ if [[ "$RUNNER_OS" == 'macOS' ]]; then
 	exit 0;
 	exit 1 || { echo "---> Hyperion compilation failed! Abort"; exit 5; }
 elif [[ $RUNNER_OS == "Windows" ]]; then
-	echo "Number of Cores $(nproc)"
+	echo "Number of Cores $NUMBER_OF_PROCESSORS"
 	mkdir build || exit 1
 	cmake -B build -G "Visual Studio 17 2022" -A x64 -DPLATFORM=${PLATFORM} -DCMAKE_BUILD_TYPE="Release" ${EXTRA_CMAKE_ARGS} || exit 2
 	cmake --build build --target package --config "Release" -- -nologo -v:m -maxcpucount || exit 3
 	exit 0;
 	exit 1 || { echo "---> Hyperion compilation failed! Abort"; exit 5; }
 elif [[ "$RUNNER_OS" == 'Linux' ]]; then
-	echo "Number of Cores $NUMBER_OF_PROCESSORS"
+	echo "Number of Cores $(nproc)"
 	echo "Docker arguments used: DOCKER_IMAGE=${DOCKER_IMAGE}, DOCKER_TAG=${DOCKER_TAG}, TARGET_ARCH=${TARGET_ARCH}"
 	# verification bypass of external dependencies
 	# set GitHub Container Registry url

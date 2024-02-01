@@ -107,7 +107,7 @@ if(ENABLE_DEV_NETWORK)
 		mbedcrypto
 	)
 
-	get_target_property(MAJOR_VERSION mbedtls MBEDTLS_MAJOR_VERSION)
+	get_target_property(MAJOR_VERSION mbedtls MBEDTLS_MAJOR_VERSION_PROPERTY)
 	if(${MAJOR_VERSION} EQUAL "3")
 		target_compile_definitions(leddevice PRIVATE USE_MBEDTLS3)
 		if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")

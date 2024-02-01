@@ -4,6 +4,7 @@
 
 if(ENABLE_DEV_USB_HID)
 	# Find libusb
+	set(LIBUSB_FIND_QUIETLY ON)
 	find_package(libusb-1.0 QUIET REQUIRED)
 
 	# Build HIDAPI as static library
@@ -140,8 +141,6 @@ if(ENABLE_FLATBUF_SERVER OR ENABLE_FLATBUF_CONNECT)
 			set(DEFAULT_USE_SYSTEM_FLATBUFFERS_LIBS OFF PARENT_SCOPE)
 			set(USE_SYSTEM_FLATBUFFERS_LIBS OFF)
 		endif()
-
-		message(STATUS "Flatbuffers version used: ${flatbuffers_VERSION}")
 	endif()
 
 	if(NOT USE_SYSTEM_FLATBUFFERS_LIBS)
@@ -206,9 +205,18 @@ if(ENABLE_FLATBUF_SERVER OR ENABLE_FLATBUF_CONNECT)
 		get_build_interface_include_directory(TARGET flatbuffers OUTPUT FLATBUFFERS_INCLUDE_DIRS)
 		if(FLATBUFFERS_INCLUDE_DIRS AND EXISTS "${FLATBUFFERS_INCLUDE_DIRS}/../package.json")
 			file(STRINGS "${FLATBUFFERS_INCLUDE_DIRS}/../package.json" _FLATBUFFERS_VERSION_STRING REGEX "^[ \t\r\n]+\"version\":[ \t\r\n]+\"[0-9]+.[0-9]+.[0-9]+\",")
-			string(REGEX REPLACE "^[ \t\r\n]+\"version\":[ \t\r\n]+\"([0-9]+.[0-9]+.[0-9]+)\"," "\\1" FLATBUFFERS_PARSE_VERSION "${_FLATBUFFERS_VERSION_STRING}")
-			message(STATUS "Flatbuffers version used: ${FLATBUFFERS_PARSE_VERSION}")
+			string(REGEX REPLACE "^[ \t\r\n]+\"version\":[ \t\r\n]+\"([0-9]+.[0-9]+.[0-9]+)\"," "\\1" flatbuffers_VERSION "${_FLATBUFFERS_VERSION_STRING}")
 		endif ()
+	endif()
+
+	if(TARGET flatbuffers AND flatbuffers_VERSION)
+		define_property(TARGET PROPERTY FLATBUFFERS_VERSION_PROPERTY
+			BRIEF_DOCS "Custom FlatBuffers version target property."
+			FULL_DOCS "Custom FlatBuffers version target property."
+		)
+		set_target_properties(flatbuffers PROPERTIES
+			FLATBUFFERS_VERSION_PROPERTY "${flatbuffers_VERSION}"
+		)
 	endif()
 
 	function(compile_flatbuffer_schema FBS_GENERATED)
@@ -445,14 +453,18 @@ if(ENABLE_DEV_NETWORK)
 
 	# Define and set custom MBEDTLS_MAJOR_VERSION target property
 	if(TARGET mbedtls AND MBEDTLS_VERSION)
-		message(STATUS "Using ${BUILD_OR_SYSTEM} mbedtls library (build version \"${MBEDTLS_VERSION}\")")
-		string(REGEX MATCH "[0-9]+|-([A-Za-z0-9_.]+)" MAJOR_VERSION ${MBEDTLS_VERSION})
-		define_property(TARGET PROPERTY MBEDTLS_MAJOR_VERSION
+		string(REGEX MATCH "[0-9]+|-([A-Za-z0-9_.]+)" MBEDTLS_MAJOR_VERSION ${MBEDTLS_VERSION})
+		define_property(TARGET PROPERTY MBEDTLS_VERSION_PROPERTY
+			BRIEF_DOCS "Custom mbedTLS version target property."
+			FULL_DOCS "Custom mbedTLS version target property."
+		)
+		define_property(TARGET PROPERTY MBEDTLS_MAJOR_VERSION_PROPERTY
 			BRIEF_DOCS "Custom mbedTLS major version target property."
 			FULL_DOCS "Custom mbedTLS major version target property."
 		)
 		set_target_properties(mbedtls PROPERTIES
-			MBEDTLS_MAJOR_VERSION "${MAJOR_VERSION}"
+			MBEDTLS_VERSION_PROPERTY "${MBEDTLS_VERSION}"
+			MBEDTLS_MAJOR_VERSION_PROPERTY "${MBEDTLS_MAJOR_VERSION}"
 		)
 	endif()
 endif(ENABLE_DEV_NETWORK)

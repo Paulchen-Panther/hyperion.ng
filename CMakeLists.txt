@@ -223,7 +223,7 @@ option(ENABLE_PROFILER							"enable profiler capabilities - not for release cod
 configure_file("${PROJECT_SOURCE_DIR}/HyperionConfig.h.in" "${PROJECT_BINARY_DIR}/HyperionConfig.h")
 include_directories(${PROJECT_BINARY_DIR})
 
-# Header file cleanup job
+# Setup header file cleanup job
 if(NOT CMAKE_VERSION VERSION_LESS "3.15")
 	set_directory_properties(PROPERTIES ADDITIONAL_CLEAN_FILES ${CMAKE_BINARY_DIR}/HyperionConfig.h)
 else()
