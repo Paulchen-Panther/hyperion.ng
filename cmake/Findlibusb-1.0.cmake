@@ -87,12 +87,6 @@ else()
 	endif()
 
 	if(LIBUSB_FOUND)
-		if(NOT LIBUSB_FIND_QUIETLY)
-			message(STATUS "Found libusb-1.0:")
-			message(STATUS " - Includes: ${LIBUSB_INCLUDE_DIR}")
-			message(STATUS " - Libraries: ${LIBUSB_LIBRARY}")
-		endif()
-
 		add_library(libusb UNKNOWN IMPORTED GLOBAL)
 		set_target_properties(libusb PROPERTIES
 			IMPORTED_LINK_INTERFACE_LANGUAGES "C"
@@ -103,20 +97,20 @@ else()
 		# libusb version detection from: https://github.com/matwey/libopenvizsla/blob/master/cmake/FindLibUSB1.cmake
 		# modified by Hyperion Project
 		if(NOT CMAKE_CROSSCOMPILING)
-			file(WRITE "${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeTmp/src.c"
+			file(WRITE ${CMAKE_BINARY_DIR}/tmp/src.c
 				"#include <libusb.h>
 				#include <stdio.h>
 				int main() {
 					const struct libusb_version* v=libusb_get_version();
-					printf(\"%d.%d.%d%s\",v->major,v->minor,v->micro,v->rc);
+					printf(\"%d.%d.%d%s\",v->major,v->minor,v->micro);
 					return 0;
 				}"
 			)
 
 			try_run(RUN_RESULT COMPILE_RESULT
 				${CMAKE_BINARY_DIR}
-				${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeTmp/src.c
-				CMAKE_FLAGS -DINCLUDE_DIRECTORIES:STRING=${LIBUSB1_INCLUDE_DIRS} -DLINK_LIBRARIES:STRING=${LIBUSB1_LIBRARIES}
+				${CMAKE_BINARY_DIR}/tmp/src.c
+				CMAKE_FLAGS -DINCLUDE_DIRECTORIES:STRING=${LIBUSB_INCLUDE_DIR} -DLINK_LIBRARIES:STRING=${LIBUSB_LIBRARY}
 				RUN_OUTPUT_VARIABLE LIBUSB_VERSION
 			)
 
@@ -133,6 +127,12 @@ else()
 
 			unset(RUN_RESULT)
 			unset(COMPILE_RESULT)
+		endif()
+
+		if(NOT LIBUSB_FIND_QUIETLY)
+			message(STATUS "Found libusb-1.0:")
+			message(STATUS " - Includes: ${LIBUSB_INCLUDE_DIR}")
+			message(STATUS " - Libraries: ${LIBUSB_LIBRARY}")
 		endif()
 	else()
 		message(FATAL_ERROR "Could not find libusb")
