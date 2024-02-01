@@ -6,11 +6,9 @@
 [ -z "${PLATFORM}" ] && PLATFORM="x11"
 [ -z "${EXTRA_CMAKE_ARGS}" ] && EXTRA_CMAKE_ARGS=""
 
-# Determine cmake build type; tag builds are Release, else Debug (-dev appends to platform)
+# Determine cmake build type; tag builds are Release, else Debug
 if [[ $GITHUB_REF == *"refs/tags"* ]]; then
 	BUILD_TYPE=Release
-else
-	PLATFORM=${PLATFORM}-dev
 fi
 
 echo "Compile Hyperion on '${RUNNER_OS}' with build type '${BUILD_TYPE}' and platform '${PLATFORM}'"

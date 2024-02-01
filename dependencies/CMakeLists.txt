@@ -4,7 +4,7 @@
 
 if(ENABLE_DEV_USB_HID)
 	# Find libusb
-	find_package(libusb-1.0 REQUIRED)
+	find_package(libusb-1.0 QUIET REQUIRED)
 
 	# Build HIDAPI as static library
 	set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build statically version of HIDAPI")
@@ -65,8 +65,6 @@ endif()
 #=============================================================================
 
 if (ENABLE_MDNS)
-	set(USE_SYSTEM_QMDNS_LIBS ${DEFAULT_USE_SYSTEM_QMDNS_LIBS} CACHE BOOL "Use QMdnsEngine library from system")
-
 	if(USE_SYSTEM_QMDNS_LIBS)
 		find_package(qmdnsengine REQUIRED)
 	else()
@@ -117,8 +115,6 @@ endif()
 #=============================================================================
 
 if(ENABLE_FLATBUF_SERVER OR ENABLE_FLATBUF_CONNECT)
-	set(USE_SYSTEM_FLATBUFFERS_LIBS ${DEFAULT_USE_SYSTEM_FLATBUFFERS_LIBS} CACHE BOOL "Use FlatBuffers library from system")
-
 	if(USE_SYSTEM_FLATBUFFERS_LIBS)
 		find_package(flatbuffers REQUIRED CONFIG NAMES flatbuffers Flatbuffers FlatBuffers)
 
@@ -157,7 +153,7 @@ if(ENABLE_FLATBUF_SERVER OR ENABLE_FLATBUF_CONNECT)
 
 		# Disable Flatbuffers Compiler if cross compiling (and import or build nativly)
 		include (CMakeDependentOption)
-		CMAKE_DEPENDENT_OPTION(FLATBUFFERS_BUILD_FLATC "Enable the build of the flatbuffers compiler" OFF "CMAKE_CROSSCOMPILING" ON)
+		cmake_dependent_option(FLATBUFFERS_BUILD_FLATC "Enable the build of the flatbuffers compiler" OFF "CMAKE_CROSSCOMPILING" ON)
 
 		# Define the flatc import option
 		set(IMPORT_FLATC "" CACHE STRING "Import the Flatbuffers compiler (flatc_export.cmake) from a native build")
@@ -252,8 +248,6 @@ endif()
 #=============================================================================
 
 if(ENABLE_PROTOBUF_SERVER)
-	set(USE_SYSTEM_PROTO_LIBS ${DEFAULT_USE_SYSTEM_PROTO_LIBS} CACHE BOOL "Use Protocol Buffers library from system")
-
 	if(USE_SYSTEM_PROTO_LIBS)
 		find_package(Protobuf REQUIRED)
 		if(CMAKE_VERSION VERSION_GREATER 3.5.2)
@@ -278,7 +272,7 @@ if(ENABLE_PROTOBUF_SERVER)
 
 		# Disable Protobuf Compiler if cross compiling (and import or build nativly)
 		include (CMakeDependentOption)
-		CMAKE_DEPENDENT_OPTION(protobuf_BUILD_PROTOC_BINARIES "Build protobuf libraries and protoc compiler" OFF "CMAKE_CROSSCOMPILING" ON)
+		cmake_dependent_option(protobuf_BUILD_PROTOC_BINARIES "Build protobuf libraries and protoc compiler" OFF "CMAKE_CROSSCOMPILING" ON)
 
 		# Disable static linking of MSVC runtime libraries under Windows
 		if (WIN32)
@@ -408,8 +402,6 @@ endif()
 #=============================================================================
 
 if(ENABLE_DEV_NETWORK)
-	set(USE_SYSTEM_MBEDTLS_LIBS ${DEFAULT_USE_SYSTEM_MBEDTLS_LIBS} CACHE BOOL "Use mbedTLS library from system")
-
 	if(USE_SYSTEM_MBEDTLS_LIBS)
 		find_package(mbedtls REQUIRED)
 		if(NOT MBEDTLS_FOUND)

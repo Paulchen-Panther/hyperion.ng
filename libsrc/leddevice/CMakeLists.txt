@@ -136,7 +136,7 @@ if(ENABLE_DEV_USB_HID)
 
 	target_link_libraries(leddevice
 		${SECURITY}
-		usb-1.0
+		libusb
 		hidapi::hidapi
 	)
 

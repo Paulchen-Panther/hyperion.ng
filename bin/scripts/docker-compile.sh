@@ -73,7 +73,7 @@ echo "########################################################
 # docker-compile.sh -b, --type          # Release or Debug build
 # docker-compile.sh -p, --packages      # If true, build packages with CPack
 # docker-compile.sh     --qt5           # Build with Qt5, otherwise build with Qt6
-# docker-compile.sh -f, --platform      # cmake PLATFORM parameter, e.g. x11, amlogic-dev
+# docker-compile.sh -f, --platform      # cmake PLATFORM parameter, e.g. x11, amlogic
 # docker-compile.sh -l, --local         # Run build using local code files
 # docker-compile.sh -c, --incremental   # Run incremental build, i.e. do not delete files created during previous build
 # docker-compile.sh -v, --verbose       # Run the script in verbose mode
@@ -126,7 +126,7 @@ do
             shift
             BUILD_PLATFORM=$1
             ;;
-        --qt5) 
+        --qt5)
             BUILD_WITH_QT5=true
             ;;
         -l|--local)
@@ -214,7 +214,7 @@ if [ $ARCHITECTURE != $CURRENT_ARCHITECTURE ]; then
 	ENTRYPOINT_OPTION=
 
 	if [ $CURRENT_ARCHITECTURE != "amd64" ]; then
-		echo "---> Emulation builds can only be executed on linux/amd64, linux/x86_64 platforms, current architecture is ${CURRENT_ARCHITECTURE}"	
+		echo "---> Emulation builds can only be executed on linux/amd64, linux/x86_64 platforms, current architecture is ${CURRENT_ARCHITECTURE}"
 		exit 1
 	fi
 else

@@ -80,25 +80,28 @@ else()
 			lib
 	)
 
-	if(LIBUSB_1_INCLUDE_DIR AND LIBUSB_1_LIBRARY)
+	set(LIBUSB_1_INCLUDE_DIRS ${LIBUSB_1_INCLUDE_DIR})
+	set(LIBUSB_1_LIBRARIES ${LIBUSB_1_LIBRARY} )
+
+	if(LIBUSB_1_INCLUDE_DIRS AND LIBUSB_1_LIBRARIES)
 		set(LIBUSB_1_FOUND TRUE)
 	endif()
 
 	if(LIBUSB_1_FOUND)
-		if (NOT libusb_1_FIND_QUIETLY)
+		if (NOT LIBUSB_1_FIND_QUIETLY)
 			message(STATUS "Found libusb-1.0:")
-			message(STATUS " - Includes: ${LIBUSB_1_INCLUDE_DIR}")
-			message(STATUS " - Libraries: ${LIBUSB_1_LIBRARY}")
+			message(STATUS " - Includes: ${LIBUSB_1_INCLUDE_DIRS}")
+			message(STATUS " - Libraries: ${LIBUSB_1_LIBRARIES}")
 		endif()
 
-		add_library(usb-1.0 UNKNOWN IMPORTED)
-		set_target_properties(usb-1.0 PROPERTIES
+		add_library(libusb UNKNOWN IMPORTED GLOBAL)
+		set_target_properties(libusb PROPERTIES
 			IMPORTED_LINK_INTERFACE_LANGUAGES "C"
-			IMPORTED_LOCATION "${LIBUSB_1_LIBRARY}"
-			INTERFACE_INCLUDE_DIRECTORIES "${LIBUSB_1_INCLUDE_DIR}"
+			IMPORTED_LOCATION "${LIBUSB_1_LIBRARIES}"
+			INTERFACE_INCLUDE_DIRECTORIES "${LIBUSB_1_INCLUDE_DIRS}"
 		)
 	else()
-		if(libusb_1_FIND_REQUIRED)
+		if(LIBUSB_1_FIND_REQUIRED)
 			message(FATAL_ERROR "Could not find libusb")
 		endif()
 	endif()

@@ -45,6 +45,7 @@ endif()
 if(ENABLE_EFFECTENGINE)
 	add_subdirectory(effectengine)
 	add_subdirectory(python)
+	set(PYTHON_VERSION ${PYTHON_VERSION} PARENT_SCOPE)
 endif()
 
 if(ENABLE_EXPERIMENTAL)

@@ -7,9 +7,12 @@ add_library(python
 )
 
 if(NOT CMAKE_VERSION VERSION_LESS "3.12")
-	find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
+	find_package(Python3 COMPONENTS Interpreter Development QUIET REQUIRED)
+	set(PYTHON_VERSION ${Python3_VERSION} PARENT_SCOPE)
+
 else()
-	find_package (PythonLibs ${PYTHON_VERSION_STRING} EXACT)
+	find_package(PythonInterp 3.5 QUIET REQUIRED)
+	set(PYTHON_VERSION ${PYTHON_VERSION_STRING} PARENT_SCOPE)
 endif()
 
 target_link_libraries(python

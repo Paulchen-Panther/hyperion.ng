@@ -98,9 +98,9 @@ jobs:
 
   macOS:
     name: 🍏 macOS ${{ inputs.qt_version == '6' && '(universal)' || '(x86_64)' }}
-    runs-on: macos-latest
+    runs-on: macos-${{ inputs.qt_version == '6' && '14' || '13' }}
     env:
-      PYTHON_VERSION: 3.13
+      PYTHON_VERSION: 3.12
       LIBJPEG_TURBO_VERSION: 3.0.1
       QT6_VERSION: 6.6.1
 
@@ -197,7 +197,7 @@ jobs:
         run: ./.github/scripts/build.sh
         env:
           PLATFORM: "osx"
-          EXTRA_CMAKE_ARGS: "${{ inputs.qt_version == '6' && '-DMACOS_ARCHITECTURE=universal -DLIBUSB_1_ROOT_DIR=libusb/install' || '' }}"
+          EXTRA_CMAKE_ARGS: "${{ inputs.qt_version == '6' && '-DMACOS_ARCHITECTURE=universal -DLIBUSB_ROOT_DIR=libusb/install' || '' }}"
 
       - name: 📦 Upload
         if: ${{ inputs.publish || inputs.event_name == 'pull_request' }}

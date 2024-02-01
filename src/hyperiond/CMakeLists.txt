@@ -179,7 +179,7 @@ else()
 	install(FILES ${CMAKE_SOURCE_DIR}/effects/readme.txt DESTINATION "effects" COMPONENT "Hyperion")
 endif()
 
-if(ENABLE_DEPLOY_DEPENDENCIES AND NOT APPLE)
+if(ENABLE_DEPLOY_DEPENDENCIES)
 	if(EXISTS ${TARGET_FILE})
 		message(STATUS "Collecting Dependencies for target file: ${TARGET_FILE}")
 		include(${CMAKE_SOURCE_DIR}/cmake/RuntimeDependencies${CMAKE_HOST_SYSTEM_NAME}.cmake)

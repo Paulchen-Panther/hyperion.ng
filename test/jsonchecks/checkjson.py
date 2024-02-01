@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 import json, sys
 
-print("-- validate json files")
-
-retval  = 0 
+retval  = 0
 total   = 0
 errors  = 0
 for filename in sys.argv[1:]:
@@ -19,6 +17,6 @@ for filename in sys.argv[1:]:
 			retval = 1
 			errors += 1
 
-print("   checked files: %s success: %s errors: %s" % (total,(total-errors),errors))
+print("-- Checked json files: %s success: %s errors: %s" % (total,(total-errors),errors))
 
 sys.exit(retval)

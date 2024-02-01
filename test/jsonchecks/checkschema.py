@@ -9,8 +9,6 @@ from urllib.request import pathname2url
 def path2url(path):
     return urljoin('file:', pathname2url(path))
 
-print('-- validate json file')
-
 jsonFileName   = sys.argv[1]
 schemaFileName = sys.argv[2]
 
@@ -26,4 +24,5 @@ except Exception as e:
 	print('validation error: '+jsonFileName + ' '+schemaFileName+' ('+str(e)+')')
 	sys.exit(1)
 
+print("-- Successfully tested JSON file against JSON schema")
 sys.exit(0)

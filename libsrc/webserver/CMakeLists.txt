@@ -43,3 +43,9 @@ target_link_libraries(webserver
 if(ENABLE_MDNS)
 	target_link_libraries(webserver mdns)
 endif()
+
+if(NOT CMAKE_VERSION VERSION_LESS "3.15")
+	set_target_properties(webserver PROPERTIES
+		ADDITIONAL_CLEAN_FILES ${CMAKE_BINARY_DIR}/WebConfig.qrc
+	)
+endif()

@@ -98,6 +98,10 @@ target_link_libraries(hyperion-utils
 	Qt${QT_VERSION_MAJOR}::Network
 )
 
+target_include_directories(hyperion-utils PRIVATE
+	${CMAKE_SOURCE_DIR}/dependencies/include
+)
+
 if(ENABLE_EFFECTENGINE)
 	target_link_libraries(hyperion-utils python)
 endif()
