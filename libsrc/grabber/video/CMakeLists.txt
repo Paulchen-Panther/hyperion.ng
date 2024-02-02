@@ -22,17 +22,13 @@ add_library(${PROJECT_NAME}
 	${MediaFoundationSourceReaderCallBack}
 )
 
-target_link_libraries(${PROJECT_NAME} hyperion)
+target_link_libraries(${PROJECT_NAME}
+	hyperion
+)
 
 # Add Turbo JPEG library
-if(ENABLE_V4L2 OR ENABLE_MF)
-	find_package(TurboJPEG)
-	if(TURBOJPEG_FOUND)
-		target_compile_definitions(${PROJECT_NAME} PRIVATE HAVE_TURBO_JPEG)
-		message(STATUS "Using Turbo JPEG library: ${TurboJPEG_LIBRARY}")
-		target_link_libraries(${PROJECT_NAME} ${TurboJPEG_LIBRARY})
-		target_include_directories(${PROJECT_NAME} PUBLIC ${TurboJPEG_INCLUDE_DIRS})
-	else ()
-		message(STATUS "Turbo JPEG library not found, MJPEG camera format won't work.")
-	endif()
+find_package(TurboJPEG)
+if(TurboJPEG_FOUND)
+	target_compile_definitions(${PROJECT_NAME} PRIVATE HAVE_TURBO_JPEG)
+	target_link_libraries(${PROJECT_NAME} turbojpeg)
 endif()

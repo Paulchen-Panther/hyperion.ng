@@ -47,6 +47,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 #=============================================================================
+# Instruct CMake to run moc automatically when needed and auto prepare .qrc files
+#=============================================================================
+
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
+
+#=============================================================================
 # Append our cmake module path (for include, find, etc.)
 # Include the helper macros/functions
 # Include CMakeDependentOption
@@ -87,21 +94,8 @@ file(WRITE ${CMAKE_BINARY_DIR}/config/hyperion.config.json.default "${DEFAULT_JS
 include(GitVersion)
 
 #=============================================================================
-# Instruct CMake to run moc automatically when needed and auto prepare .qrc files
+# Set multicore compiling if available
 #=============================================================================
-
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTORCC ON)
-
-#=============================================================================
-# Set Multicore compiling if available
-#=============================================================================
-
-include(ProcessorCount)
-ProcessorCount(NCORES)
-if(NOT NCORES EQUAL 0)
-	set(CMAKE_BUILD_PARALLEL_LEVEL NCORES)
-endif()
 
 # Remove it or use #pragma to disable the warning function
 # if(CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_C_COMPILER_ID MATCHES "GNU")
@@ -132,9 +126,6 @@ if(CMAKE_SYSTEM MATCHES "Linux")
 endif()
 
 if("${PLATFORM}" MATCHES "osx")
-	FIRSTSUBDIR(SUBDIRPY "/usr/local/opt/python3/Frameworks/Python.framework/Versions")
-	set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${SUBDIRPY})
-	include_directories("/opt/X11/include/")
 	set(PLATFORM_MATCHES_OSX ON)
 elseif("${PLATFORM}" MATCHES "rpi")
 	set(PLATFORM_MATCHES_RPI ON)
@@ -211,13 +202,13 @@ option(USE_SYSTEM_MBEDTLS_LIBS					"Use mbedTLS library from system"												
 cmake_dependent_option(ENABLE_TESTS				"Compile additional test applications"		ON "DEBUG_BUILD"																			OFF)
 
 # Advanced features
-cmake_dependent_option(ENABLE_DEPLOY_DEPENDENCIES "Deploy with dependencies"				ON "NOT PLATFORM_MATCHES_OSX;SYSTEM_MATCHES_LINUX"											OFF)
+cmake_dependent_option(ENABLE_DEPLOY_DEPENDENCIES "Deploy with dependencies"				ON "NOT PLATFORM_MATCHES_OSX;SYSTEM_MATCHES_LINUX OR WIN32"									OFF)
 option(ENABLE_JSONCHECKS						"Validate json schema files"																											ON )
 option(ENABLE_EXPERIMENTAL						"Compile experimental features"																											OFF)
 option(ENABLE_PROFILER							"enable profiler capabilities - not for release code"																					OFF)
 
 #=============================================================================
-# Configure the predefined header file to pass the selected options to the code
+# Configure the predefined header file to pass selected options to the code
 #=============================================================================
 
 configure_file("${PROJECT_SOURCE_DIR}/HyperionConfig.h.in" "${PROJECT_BINARY_DIR}/HyperionConfig.h")
@@ -237,36 +228,23 @@ endif()
 if(ENABLE_JSONCHECKS)
 	if("${CMAKE_VERSION}" VERSION_LESS "3.12.0")
 		find_package(PythonInterp 3.5 QUIET REQUIRED)
-		set(PYTHON_VERSION ${PYTHON_VERSION_STRING})
 	else()
 		find_package(Python3 COMPONENTS Interpreter Development QUIET REQUIRED)
-		set(PYTHON_VERSION ${Python3_VERSION})
 		set(PYTHON_EXECUTABLE ${Python3_EXECUTABLE})
 	endif()
 
 	# check all json files
 	file(GLOB_RECURSE HYPERION_SCHEMAS RELATIVE ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/libsrc/*schema*.json)
-	set(JSON_FILES ${CMAKE_BINARY_DIR}/config/hyperion.config.json.default	${HYPERION_SCHEMAS})
+	set(JSON_FILES ${CMAKE_BINARY_DIR}/config/hyperion.config.json.default ${HYPERION_SCHEMAS})
 
 	execute_process(
 		COMMAND ${PYTHON_EXECUTABLE} test/jsonchecks/checkjson.py ${JSON_FILES}
 		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 		RESULT_VARIABLE CHECK_JSON_FAILED
 	)
+
 	if(${CHECK_JSON_FAILED})
-		message(FATAL_ERROR "Check of json files failed")
-	endif()
-
-	if(ENABLE_EFFECTENGINE)
-		execute_process(
-			COMMAND ${PYTHON_EXECUTABLE} test/jsonchecks/checkeffects.py effects effects/schema
-			WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-			RESULT_VARIABLE CHECK_EFFECTS_FAILED
-		)
-
-		if(${CHECK_EFFECTS_FAILED})
-			message(FATAL_ERROR "Check of json effect files failed")
-		endif()
+		message(FATAL_ERROR "Check of JSON files failed")
 	endif()
 
 	execute_process(
@@ -276,7 +254,7 @@ if(ENABLE_JSONCHECKS)
 	)
 
 	if(${CHECK_CONFIG_FAILED})
-		message(FATAL_ERROR "Check of json default config failed")
+		message(FATAL_ERROR "Check of JSON default config failed")
 	endif()
 endif()
 
@@ -299,37 +277,11 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
 endif()
 
 #=============================================================================
-#
-#=============================================================================
-
-# Don't create new dynamic tags (RUNPATH) and setup -rpath to search for shared libs in BINARY/../lib folder (only for Unix)
-if(ENABLE_DEPLOY_DEPENDENCIES)
-	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--disable-new-dtags")
-	set(CMAKE_SKIP_BUILD_RPATH OFF)
-	set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
-	set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib")
-	set(CMAKE_INSTALL_RPATH_USE_LINK_PATH ON)
-endif()
-
-#=============================================================================
-#
-#=============================================================================
-
-# Suppress superfluous randlib warnings about "*.a" having no symbols on MacOS
-if(CMAKE_HOST_APPLE)
-	set(CMAKE_C_ARCHIVE_CREATE   "<CMAKE_AR> Scr <TARGET> <LINK_FLAGS> <OBJECTS>")
-	set(CMAKE_CXX_ARCHIVE_CREATE "<CMAKE_AR> Scr <TARGET> <LINK_FLAGS> <OBJECTS>")
-	set(CMAKE_C_ARCHIVE_FINISH   "<CMAKE_RANLIB> -no_warning_for_no_symbols -c <TARGET>")
-	set(CMAKE_CXX_ARCHIVE_FINISH "<CMAKE_RANLIB> -no_warning_for_no_symbols -c <TARGET>")
-endif()
-
-#=============================================================================
-# QT related
-#=============================================================================
-
 # Allow to overwrite QT base directory
 # Either supply QTDIR as -DQTDIR=<path> to cmake or set and environment variable QTDIR pointing to the Qt installation
 # For Windows and OSX, the default Qt installation path are tried to resolved automatically
+#=============================================================================
+
 if(NOT DEFINED QTDIR)
 	if(DEFINED ENV{QTDIR})
 		set(QTDIR $ENV{QTDIR})
@@ -339,18 +291,18 @@ if(NOT DEFINED QTDIR)
 			if(NOT ${SUBDIRQT} STREQUAL "")
 				set(QTDIR "${SUBDIRQT}/msvc2019_64")
 			endif()
-		elseif ("${PLATFORM}" MATCHES "osx")
+		elseif(PLATFORM_MATCHES_OSX)
 			# QT6 x86_64 location
 			if(EXISTS /usr/local/opt/qt6)
 				set(QTDIR "/usr/local/opt/qt6")
 			# QT6 arm64 location
-			elseif (EXISTS /opt/homebrew/opt/qt@6)
+			elseif(EXISTS /opt/homebrew/opt/qt@6)
 				set(QTDIR "/opt/homebrew/opt/qt@6")
 			# QT5 x86_64 location
-			elseif (EXISTS /usr/local/opt/qt5)
+			elseif(EXISTS /usr/local/opt/qt5)
 				set(QTDIR "/usr/local/opt/qt5")
 			# QT5 arm64 location
-			elseif (EXISTS /opt/homebrew/opt/qt@5)
+			elseif(EXISTS /opt/homebrew/opt/qt@5)
 				set(QTDIR "/opt/homebrew/opt/qt@5")
 			endif()
 		endif()
@@ -362,12 +314,19 @@ if(DEFINED QTDIR)
 	list(PREPEND CMAKE_PREFIX_PATH ${QTDIR} "${QTDIR}/lib")
 endif()
 
+if(CMAKE_PREFIX_PATH)
+	message(STATUS "CMAKE_PREFIX_PATH used: ${CMAKE_PREFIX_PATH}")
+endif()
+
 # find QT libs
 find_package(QT NAMES Qt6 Qt5 COMPONENTS Core Gui Network Sql Widgets REQUIRED)
 message(STATUS "Found Qt Version: ${QT_VERSION}")
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
 	set(QT_MIN_VERSION "6.2.2")
+	if(CMAKE_HOST_APPLE)
+		set(OPENSSL_ROOT_DIR /usr/local/opt/openssl)
+	endif()
 else()
 	set(QT_MIN_VERSION "5.5.0")
 endif()
@@ -378,8 +337,20 @@ endif()
 
 find_package(Qt${QT_VERSION_MAJOR} ${QT_VERSION} COMPONENTS Core Gui Network Sql Widgets REQUIRED)
 
-if(CMAKE_HOST_APPLE AND (${QT_VERSION_MAJOR} GREATER_EQUAL 6))
-	set(OPENSSL_ROOT_DIR /usr/local/opt/openssl)
+#=============================================================================
+# To create Hyperion with all dependencies, it is possible to disable
+# the new linker option dtags with our option ENABLE_DEPLOY_DEPENDENCIES
+#=============================================================================
+
+# Linux and Windows only
+if(ENABLE_DEPLOY_DEPENDENCIES)
+	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--disable-new-dtags")
+	set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--disable-new-dtags")
+	set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -Wl,--disable-new-dtags")
+	set(CMAKE_SKIP_BUILD_RPATH OFF)
+	set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
+	set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib")
+	set(CMAKE_INSTALL_RPATH_USE_LINK_PATH ON)
 endif()
 
 #=============================================================================
@@ -387,9 +358,9 @@ endif()
 #=============================================================================
 
 add_subdirectory(dependencies)
+add_subdirectory(resources)
 add_subdirectory(libsrc)
 add_subdirectory(src)
-add_subdirectory(resources)
 if(ENABLE_TESTS)
 	add_subdirectory(test)
 endif()
@@ -404,13 +375,8 @@ add_custom_target(uninstall
 )
 
 #=============================================================================
-# Add Packaging
+# Add Packaging and print configuration summary
 #=============================================================================
 
 include(Packaging)
-
-#=============================================================================
-# Print configuration summary
-#=============================================================================
-
-PrintConfigurationSummary()
+include(Summary)

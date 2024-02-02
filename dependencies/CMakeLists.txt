@@ -4,7 +4,6 @@
 
 if(ENABLE_DEV_USB_HID)
 	# Find libusb
-	set(LIBUSB_FIND_QUIETLY ON)
 	find_package(libusb-1.0 QUIET REQUIRED)
 
 	# Build HIDAPI as static library
@@ -26,6 +25,11 @@ if(ENABLE_DEV_USB_HID)
 
 	# Add HIDAPI directory to the build
 	add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/external/hidapi")
+
+	# Set HIDAPI version to the parent scope
+	if(hidapi_VERSION)
+		set(hidapi_VERSION "${hidapi_VERSION}" PARENT_SCOPE)
+	endif()
 endif()
 
 #=============================================================================
@@ -332,6 +336,22 @@ if(ENABLE_PROTOBUF_SERVER)
 			# export the protoc compiler so it can be used when cross compiling
 			export(TARGETS protoc FILE "${CMAKE_BINARY_DIR}/protoc_export.cmake")
 		endif()
+	endif()
+
+	# protobuf version detection from: https://github.com/opencv/opencv/blob/4.x/cmake/OpenCVFindProtobuf.cmake
+	if(TARGET libprotobuf)
+		get_build_interface_include_directory(TARGET libprotobuf OUTPUT PROTOBUF_INCLUDE_DIR)
+		file(STRINGS "${PROTOBUF_INCLUDE_DIR}/google/protobuf/stubs/common.h" ver REGEX "#define GOOGLE_PROTOBUF_VERSION [0-9]+")
+		string(REGEX MATCHALL "[0-9]+" ver ${ver})
+		math(EXPR minor "${ver} / 1000 % 1000")
+		math(EXPR patch "${ver} % 1000")
+		define_property(TARGET PROPERTY PROTOBUF_VERSION_PROPERTY
+			BRIEF_DOCS "Custom Protocol Buffers version target property."
+			FULL_DOCS "Custom Protocol Buffers version target property."
+		)
+		set_target_properties(libprotobuf PROPERTIES
+			PROTOBUF_VERSION_PROPERTY "${minor}.${patch}"
+		)
 	endif()
 
 	function(protobuf_generate_cpp SRCS HDRS)

@@ -6,13 +6,25 @@ add_library(python
 	${CMAKE_SOURCE_DIR}/libsrc/python/PythonProgram.cpp
 )
 
-if(NOT CMAKE_VERSION VERSION_LESS "3.12")
-	find_package(Python3 COMPONENTS Interpreter Development QUIET REQUIRED)
-	set(PYTHON_VERSION ${Python3_VERSION} PARENT_SCOPE)
+define_property(TARGET PROPERTY PYTHON_VERSION_PROPERTY
+	BRIEF_DOCS "Python version property"
+	FULL_DOCS "Python version property"
+)
 
-else()
+define_property(TARGET PROPERTY PYTHON_STDLIB_LOCATION_PROPERTY
+	BRIEF_DOCS "Python stdlib location property"
+	FULL_DOCS "Python stdlib location property"
+)
+
+if(CMAKE_VERSION VERSION_LESS "3.12")
 	find_package(PythonInterp 3.5 QUIET REQUIRED)
-	set(PYTHON_VERSION ${PYTHON_VERSION_STRING} PARENT_SCOPE)
+	set_target_properties(python PROPERTIES PYTHON_VERSION_PROPERTY ${PYTHON_VERSION_STRING})
+	set_target_properties(python PROPERTIES PYTHON_STDLIB_LOCATION_PROPERTY ${Python_STDLIB})
+else()
+	find_package(Python3 COMPONENTS Interpreter Development QUIET REQUIRED)
+	set_target_properties(python PROPERTIES PYTHON_VERSION_PROPERTY ${Python3_VERSION})
+	set_target_properties(python PROPERTIES PYTHON_STDLIB_LOCATION_PROPERTY ${Python3_STDLIB})
+	set(PYTHON_EXECUTABLE ${Python3_EXECUTABLE})
 endif()
 
 target_link_libraries(python
@@ -31,3 +43,15 @@ target_compile_definitions(python PRIVATE
 	PYTHON_VERSION_MAJOR=$<$<BOOL:${Python3_FOUND}>:${Python3_VERSION_MAJOR}>$<$<BOOL:${PYTHONLIBS_FOUND}>:${PYTHON_VERSION_MAJOR}>
 	PYTHON_VERSION_MINOR=$<$<BOOL:${Python3_FOUND}>:${Python3_VERSION_MINOR}>$<$<BOOL:${PYTHONLIBS_FOUND}>:${PYTHON_VERSION_MINOR}>
 )
+
+if(ENABLE_JSONCHECKS)
+	execute_process(
+		COMMAND ${PYTHON_EXECUTABLE} test/jsonchecks/checkeffects.py effects effects/schema
+		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+		RESULT_VARIABLE CHECK_EFFECTS_FAILED
+	)
+
+	if(${CHECK_EFFECTS_FAILED})
+		message(FATAL_ERROR "Check of JSON effect files failed")
+	endif()
+endif()

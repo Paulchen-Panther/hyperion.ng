@@ -92,7 +92,7 @@ endif(OPENSSL_FOUND)
 if (ENABLE_MF)
     find_package(TurboJPEG)
 
-    if (TURBOJPEG_FOUND)
+    if (TurboJPEG_FOUND)
         find_file(TURBOJPEG_DLL
             NAMES "turbojpeg.dll"
             PATHS ${TurboJPEG_INCLUDE_DIRS}/.. ${TurboJPEG_INCLUDE_DIRS}/../bin
@@ -110,7 +110,7 @@ if (ENABLE_MF)
             DESTINATION "bin"
             COMPONENT "Hyperion"
         )
-    endif(TURBOJPEG_FOUND)
+    endif()
 endif(ENABLE_MF)
 
 # Create a qt.conf file in 'bin' to override hard-coded search paths in Qt plugins

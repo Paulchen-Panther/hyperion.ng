@@ -43,9 +43,8 @@ if(ENABLE_MDNS)
 endif()
 
 if(ENABLE_EFFECTENGINE)
-	add_subdirectory(effectengine)
 	add_subdirectory(python)
-	set(PYTHON_VERSION ${PYTHON_VERSION} PARENT_SCOPE)
+	add_subdirectory(effectengine)
 endif()
 
 if(ENABLE_EXPERIMENTAL)

@@ -46,8 +46,16 @@ set(LIBUSB_ROOT_DIR "${LIBUSB_ROOT_DIR}" CACHE PATH "Root directory to search fo
 
 if(TARGET libusb)
 	# in cache already
-	set(LIBUSB_FOUND TRUE)
+	set(LIBUSB_FOUND ON)
 else()
+	find_package(PkgConfig QUIET)
+	if(PkgConfig_FOUND)
+		pkg_check_modules(PC_LIBUSB QUIET libusb-1.0)
+		if(DEFINED PC_LIBUSB_VERSION AND NOT PC_LIBUSB_VERSION STREQUAL "")
+			set(LIBUSB_VERSION "${PC_LIBUSB_VERSION}")
+		endif()
+	endif()
+
 	find_path(LIBUSB_INCLUDE_DIR
 		NAMES
 			libusb.h
@@ -57,6 +65,7 @@ else()
 			/opt/local
 			/opt/homebrew
 			/sw
+			${PC_LIBUSB_INCLUDE_DIRS}
 		HINTS
 			${LIBUSB_ROOT_DIR}
 		PATH_SUFFIXES
@@ -76,6 +85,7 @@ else()
 			/opt/local
 			/opt/homebrew
 			/sw
+			${PC_LIBUSB_LIBRARY_DIRS}
 		HINTS
 			${LIBUSB_ROOT_DIR}
 		PATH_SUFFIXES
@@ -83,7 +93,7 @@ else()
 	)
 
 	if(LIBUSB_INCLUDE_DIR AND LIBUSB_LIBRARY)
-		set(LIBUSB_FOUND TRUE)
+		set(LIBUSB_FOUND ON)
 	endif()
 
 	if(LIBUSB_FOUND)
@@ -94,15 +104,14 @@ else()
 			INTERFACE_INCLUDE_DIRECTORIES "${LIBUSB_INCLUDE_DIR}"
 		)
 
-		# libusb version detection from: https://github.com/matwey/libopenvizsla/blob/master/cmake/FindLibUSB1.cmake
-		# modified by Hyperion Project
-		if(NOT CMAKE_CROSSCOMPILING)
+		if(NOT LIBUSB_VERSION AND NOT CMAKE_CROSSCOMPILING)
+			# C code from: https://github.com/matwey/libopenvizsla/blob/master/cmake/FindLibUSB1.cmake
 			file(WRITE ${CMAKE_BINARY_DIR}/tmp/src.c
 				"#include <libusb.h>
 				#include <stdio.h>
 				int main() {
 					const struct libusb_version* v=libusb_get_version();
-					printf(\"%d.%d.%d%s\",v->major,v->minor,v->micro);
+					printf(\"%u.%u.%u\",v->major,v->minor,v->micro);
 					return 0;
 				}"
 			)
@@ -111,28 +120,26 @@ else()
 				${CMAKE_BINARY_DIR}
 				${CMAKE_BINARY_DIR}/tmp/src.c
 				CMAKE_FLAGS -DINCLUDE_DIRECTORIES:STRING=${LIBUSB_INCLUDE_DIR} -DLINK_LIBRARIES:STRING=${LIBUSB_LIBRARY}
-				RUN_OUTPUT_VARIABLE LIBUSB_VERSION
+				RUN_OUTPUT_VARIABLE OUTPUT_RESULT
 			)
 
 			if(RUN_RESULT EQUAL 0 AND COMPILE_RESULT)
-				define_property(TARGET PROPERTY LIBUSB_VERSION_PROPERTY
-					BRIEF_DOCS "Custom LibUSB version target property."
-					FULL_DOCS "Custom LibUSB version target property."
-				)
-
-				set_target_properties(libusb PROPERTIES
-					LIBUSB_VERSION_PROPERTY "${LIBUSB_VERSION}"
-				)
+				set(LIBUSB_VERSION "${OUTPUT_RESULT}")
 			endif()
 
 			unset(RUN_RESULT)
 			unset(COMPILE_RESULT)
 		endif()
 
-		if(NOT LIBUSB_FIND_QUIETLY)
-			message(STATUS "Found libusb-1.0:")
-			message(STATUS " - Includes: ${LIBUSB_INCLUDE_DIR}")
-			message(STATUS " - Libraries: ${LIBUSB_LIBRARY}")
+		if(LIBUSB_VERSION)
+			define_property(TARGET PROPERTY LIBUSB_VERSION_PROPERTY
+				BRIEF_DOCS "Custom LibUSB version target property."
+				FULL_DOCS "Custom LibUSB version target property."
+			)
+
+			set_target_properties(libusb PROPERTIES
+				LIBUSB_VERSION_PROPERTY "${LIBUSB_VERSION}"
+			)
 		endif()
 	else()
 		message(FATAL_ERROR "Could not find libusb")

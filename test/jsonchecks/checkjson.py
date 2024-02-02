@@ -7,16 +7,14 @@ errors  = 0
 for filename in sys.argv[1:]:
 	with open(filename) as f:
 		total += 1
-		msg = "   check json %s ... " % filename
 		try:
 			data = f.read()
 			json.loads(data)
-			#print(msg + "ok")
 		except ValueError as e:
-			print(msg + 'invalid ('+str(e)+')')
+			print("-- Check json %s ... " % filename + 'invalid ('+str(e)+')')
 			retval = 1
 			errors += 1
 
-print("-- Checked json files: %s success: %s errors: %s" % (total,(total-errors),errors))
+print("-- Checked JSON files: %s | Success: %s | Errors: %s" % (total,(total-errors),errors))
 
 sys.exit(retval)
