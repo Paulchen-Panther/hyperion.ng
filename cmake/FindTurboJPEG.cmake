@@ -41,7 +41,7 @@ find_library(TurboJPEG_LIBRARY
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(TurboJPEG
 	FOUND_VAR
-		XCB_FOUND
+		TurboJPEG_FOUND
 	REQUIRED_VARS
 		TurboJPEG_LIBRARY
 		TurboJPEG_INCLUDE_DIR
