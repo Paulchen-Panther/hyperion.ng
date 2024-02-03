@@ -138,16 +138,6 @@ elseif("${PLATFORM}" STREQUAL "imx6")
 endif()
 
 #=============================================================================
-# Platform-specific tasks
-#=============================================================================
-
-# Search for Windows SDK and OpenSSL
-if(PLATFORM_MATCHES_WIN AND CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-	find_package(WindowsSDK QUIET REQUIRED)
-	find_package(OpenSSL REQUIRED)
-endif()
-
-#=============================================================================
 # Set the build options
 #=============================================================================
 
@@ -232,12 +222,18 @@ else()
 endif()
 
 #=============================================================================
-# To create Hyperion with all dependencies, it is possible to disable
-# the new linker option dtags with our option 'ENABLE_DEPLOY_DEPENDENCIES'
+# Platform-specific tasks
 #=============================================================================
 
-# Linux and Windows only
-if(ENABLE_DEPLOY_DEPENDENCIES)
+# Search for Windows SDK and OpenSSL
+if(PLATFORM_MATCHES_WIN AND CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+	find_package(WindowsSDK QUIET REQUIRED)
+	find_package(OpenSSL REQUIRED)
+endif()
+
+# If Hyperion is deployed with all dependencies under Linux
+# it is necessary to deactivate the new linker option dtag
+if(ENABLE_DEPLOY_DEPENDENCIES AND SYSTEM_MATCHES_LINUX)
 	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--disable-new-dtags")
 	set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--disable-new-dtags")
 	set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -Wl,--disable-new-dtags")

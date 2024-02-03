@@ -48,11 +48,13 @@ find_package_handle_standard_args(TurboJPEG
 )
 
 if(TurboJPEG_FOUND)
-	add_library(turbojpeg UNKNOWN IMPORTED GLOBAL)
-	set_target_properties(turbojpeg PROPERTIES
-		IMPORTED_LOCATION ${TurboJPEG_LIBRARY}
-		INTERFACE_INCLUDE_DIRECTORIES ${TurboJPEG_INCLUDE_DIR}
-	)
+	if(NOT TARGET turbojpeg)
+		add_library(turbojpeg UNKNOWN IMPORTED GLOBAL)
+		set_target_properties(turbojpeg PROPERTIES
+			IMPORTED_LOCATION ${TurboJPEG_LIBRARY}
+			INTERFACE_INCLUDE_DIRECTORIES ${TurboJPEG_INCLUDE_DIR}
+		)
+	endif()
 
 	if(TurboJPEG_VERSION)
 		define_property(TARGET PROPERTY TURBOJPEG_VERSION_PROPERTY
