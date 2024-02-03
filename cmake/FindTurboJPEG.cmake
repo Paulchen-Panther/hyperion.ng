@@ -3,12 +3,10 @@
 #  TurboJPEG_INCLUDE_DIR
 #  TurboJPEG_LIBRARY
 
-find_package(PkgConfig QUIET)
-if(PkgConfig_FOUND)
-	pkg_check_modules(PC_TurboJPEG QUIET libturbojpeg)
-	if(DEFINED PC_TurboJPEG_VERSION AND NOT PC_TurboJPEG_VERSION STREQUAL "")
-		set(TurboJPEG_VERSION "${PC_TurboJPEG_VERSION}")
-	endif()
+if(WIN32)
+	set(jpeg_library "turbojpeg-static")
+else()
+	set(jpeg_library "libturbojpeg turbojpeg")
 endif()
 
 find_path(TurboJPEG_INCLUDE_DIR
@@ -16,23 +14,16 @@ find_path(TurboJPEG_INCLUDE_DIR
 		turbojpeg.h
 	PATHS
 		"C:/libjpeg-turbo64"
-	HINTS
-		${PC_TurboJPEG_INCLUDEDIR}
-		${PC_TurboJPEG_INCLUDE_DIRS}
 	PATH_SUFFIXES
 		include
 )
 
 find_library(TurboJPEG_LIBRARY
 	NAMES
-		${PC_TurboJPEG_LIBRARIES}
+		libturbojpeg
 		turbojpeg
-		turbojpeg-static
 	PATHS
 		"C:/libjpeg-turbo64"
-	HINTS
-		${PC_TurboJPEG_LIBDIR}
-		${PC_TurboJPEG_LIBRARY_DIRS}
 	PATH_SUFFIXES
 		bin
 		lib
@@ -51,9 +42,15 @@ if(TurboJPEG_FOUND)
 	if(NOT TARGET turbojpeg)
 		add_library(turbojpeg UNKNOWN IMPORTED GLOBAL)
 		set_target_properties(turbojpeg PROPERTIES
-			IMPORTED_LOCATION ${TurboJPEG_LIBRARY}
-			INTERFACE_INCLUDE_DIRECTORIES ${TurboJPEG_INCLUDE_DIR}
+			INTERFACE_INCLUDE_DIRECTORIES "${TurboJPEG_INCLUDE_DIR}"
+			IMPORTED_LOCATION "${TurboJPEG_LIBRARY}"
 		)
+	endif()
+
+	# libjpeg-turbo version detection from: https://github.com/chengfzy/CPlusPlusStudy/blob/master/cmake/FindTurboJpeg.cmake
+	if(EXISTS "${TurboJPEG_INCLUDE_DIR}/jconfig.h")
+		file(STRINGS "${TurboJPEG_INCLUDE_DIR}/jconfig.h" TurboJpegVersion REGEX "LIBJPEG_TURBO_VERSION ")
+		string(REGEX REPLACE ".*VERSION *\(.*\).*" "\\1" TurboJPEG_VERSION "${TurboJpegVersion}")
 	endif()
 
 	if(TurboJPEG_VERSION)

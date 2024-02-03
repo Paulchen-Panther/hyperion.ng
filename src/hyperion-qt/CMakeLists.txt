@@ -4,7 +4,7 @@ project(hyperion-qt)
 if(WIN32)
 	# generate windows .rc file for this binary
 	string(REPLACE "/" "\\\\" WIN_RC_ICON_PATH ${CMAKE_SOURCE_DIR}/cmake/nsis/installer.ico)
-	configure_file(${CMAKE_SOURCE_DIR}/cmake/win/win.rc.in ${CMAKE_BINARY_DIR}/win.rc)
+	configure_file(${CMAKE_SOURCE_DIR}/cmake/windows/win.rc.in ${CMAKE_BINARY_DIR}/win.rc)
 	set(WIN_RC_FILE ${CMAKE_BINARY_DIR}/win.rc)
 endif()
 

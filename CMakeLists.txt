@@ -227,12 +227,12 @@ endif()
 
 # Search for Windows SDK and OpenSSL
 if(PLATFORM_MATCHES_WIN AND CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-	find_package(WindowsSDK QUIET REQUIRED)
+	find_package(WindowsSDK REQUIRED)
 	find_package(OpenSSL REQUIRED)
 endif()
 
 # If Hyperion is deployed with all dependencies under Linux
-# it is necessary to deactivate the new linker option dtag
+# it is necessary to deactivate the linker option dtag
 if(ENABLE_DEPLOY_DEPENDENCIES AND SYSTEM_MATCHES_LINUX)
 	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--disable-new-dtags")
 	set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--disable-new-dtags")
@@ -241,43 +241,6 @@ if(ENABLE_DEPLOY_DEPENDENCIES AND SYSTEM_MATCHES_LINUX)
 	set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
 	set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib")
 	set(CMAKE_INSTALL_RPATH_USE_LINK_PATH ON)
-endif()
-
-#=============================================================================
-# Check JSON files/schemas if the JSON check option 'ENABLE_JSONCHECKS' ON
-#=============================================================================
-
-if(ENABLE_JSONCHECKS)
-	if("${CMAKE_VERSION}" VERSION_LESS "3.12.0")
-		find_package(PythonInterp 3.5 QUIET REQUIRED)
-	else()
-		find_package(Python3 COMPONENTS Interpreter Development QUIET REQUIRED)
-		set(PYTHON_EXECUTABLE ${Python3_EXECUTABLE})
-	endif()
-
-	# check all json files
-	file(GLOB_RECURSE HYPERION_SCHEMAS RELATIVE ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/libsrc/*schema*.json)
-	set(JSON_FILES ${CMAKE_BINARY_DIR}/config/hyperion.config.json.default ${HYPERION_SCHEMAS})
-
-	execute_process(
-		COMMAND ${PYTHON_EXECUTABLE} test/jsonchecks/checkjson.py ${JSON_FILES}
-		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-		RESULT_VARIABLE CHECK_JSON_FAILED
-	)
-
-	if(${CHECK_JSON_FAILED})
-		message(FATAL_ERROR "Check of JSON files failed")
-	endif()
-
-	execute_process(
-		COMMAND ${PYTHON_EXECUTABLE} test/jsonchecks/checkschema.py ${CMAKE_BINARY_DIR}/config/hyperion.config.json.default libsrc/hyperion/hyperion.schema.json
-		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-		RESULT_VARIABLE CHECK_CONFIG_FAILED
-	)
-
-	if(${CHECK_CONFIG_FAILED})
-		message(FATAL_ERROR "Check of JSON default config failed")
-	endif()
 endif()
 
 #=============================================================================
@@ -337,6 +300,43 @@ if("${QT_VERSION}" VERSION_LESS "${QT_MIN_VERSION}")
 endif()
 
 find_package(Qt${QT_VERSION_MAJOR} ${QT_VERSION} COMPONENTS Core Gui Network Sql Widgets REQUIRED)
+
+#=============================================================================
+# Check JSON files/schemas if the JSON check option 'ENABLE_JSONCHECKS' ON
+#=============================================================================
+
+if(ENABLE_JSONCHECKS)
+	if("${CMAKE_VERSION}" VERSION_LESS "3.12.0")
+		find_package(PythonInterp 3.5 QUIET REQUIRED)
+	else()
+		find_package(Python3 COMPONENTS Interpreter Development QUIET REQUIRED)
+		set(PYTHON_EXECUTABLE ${Python3_EXECUTABLE})
+	endif()
+
+	# check all json files
+	file(GLOB_RECURSE HYPERION_SCHEMAS RELATIVE ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/libsrc/*schema*.json)
+	set(JSON_FILES ${CMAKE_BINARY_DIR}/config/hyperion.config.json.default ${HYPERION_SCHEMAS})
+
+	execute_process(
+		COMMAND ${PYTHON_EXECUTABLE} test/jsonchecks/checkjson.py ${JSON_FILES}
+		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+		RESULT_VARIABLE CHECK_JSON_FAILED
+	)
+
+	if(${CHECK_JSON_FAILED})
+		message(FATAL_ERROR "Check of JSON files failed")
+	endif()
+
+	execute_process(
+		COMMAND ${PYTHON_EXECUTABLE} test/jsonchecks/checkschema.py ${CMAKE_BINARY_DIR}/config/hyperion.config.json.default libsrc/hyperion/hyperion.schema.json
+		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+		RESULT_VARIABLE CHECK_CONFIG_FAILED
+	)
+
+	if(${CHECK_CONFIG_FAILED})
+		message(FATAL_ERROR "Check of JSON default config failed")
+	endif()
+endif()
 
 #=============================================================================
 # Add our Code

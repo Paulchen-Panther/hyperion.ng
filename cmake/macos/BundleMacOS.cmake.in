@@ -38,8 +38,6 @@ foreach(dependency ${DEPS_RESOLVED})
     endif()
 endforeach()
 
-
-
 foreach(plugin "platforms" "sqldrivers" "imageformats" "tls")
     if(EXISTS ${QT_INSTALL_PLUGINS}/${plugin})
         file(GLOB files "${QT_INSTALL_PLUGINS}/${plugin}/*.dylib")
