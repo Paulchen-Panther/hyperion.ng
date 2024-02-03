@@ -207,19 +207,22 @@ if(WIN32)
 	# This is necessary for starting the application from within the IDE
 	get_target_property(QT_QMAKE_EXECUTABLE Qt${QT_VERSION_MAJOR}::qmake IMPORTED_LOCATION)
 	get_filename_component(QT_BIN_DIR "${QT_QMAKE_EXECUTABLE}" DIRECTORY)
-	find_program(WINDEPLOYQT_EXECUTABLE windeployqt HINTS "${QT_BIN_DIR}")
-
 	if(NOT WINDEPLOYQT_EXECUTABLE)
-		find_program(WINDEPLOYQT_EXECUTABLE windeployqt)
+		find_program(WINDEPLOYQT_EXECUTABLE
+			NAMES
+				windeployqt
+			HINTS
+				${QT_BIN_DIR}
+		)
 	endif()
 
-	if(WINDEPLOYQT_EXECUTABLE AND NOT CMAKE_GITHUB_ACTION)
-		set(WINDEPLOYQT_PARAMS_RUNTIME --verbose 0 --no-compiler-runtime --no-opengl-sw --no-system-d3d-compiler)
-		message(STATUS "Found windeployqt: ${WINDEPLOYQT_EXECUTABLE} PATH_HINT:${QT_BIN_DIR}")
-		add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${WINDEPLOYQT_EXECUTABLE} ${WINDEPLOYQT_PARAMS_RUNTIME} "$<TARGET_FILE:${PROJECT_NAME}>")
+	if(WINDEPLOYQT_EXECUTABLE)
+		add_custom_command(
+			TARGET ${PROJECT_NAME} POST_BUILD
+			COMMAND ${WINDEPLOYQT_EXECUTABLE} --verbose 0 --no-compiler-runtime --no-opengl-sw --no-system-d3d-compiler "$<TARGET_FILE:${PROJECT_NAME}>"
+		)
 	endif()
 
-	find_package(OpenSSL REQUIRED)
 	if(OPENSSL_FOUND)
 		string(REGEX MATCHALL "[0-9]+" openssl_versions "${OPENSSL_VERSION}")
 		list(GET openssl_versions 0 openssl_version_major)
@@ -254,5 +257,5 @@ if(WIN32)
 			${OPENSSL_SSL} ${OPENSSL_CRYPTO}
 			$<TARGET_FILE_DIR:${PROJECT_NAME}>
 		)
-	endif(OPENSSL_FOUND)
-endif(WIN32)
+	endif()
+endif()

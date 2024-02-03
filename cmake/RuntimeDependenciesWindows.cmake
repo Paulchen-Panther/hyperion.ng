@@ -4,7 +4,12 @@ find_package(OpenSSL REQUIRED)
 # Find the windeployqt binaries
 get_target_property(QMAKE_EXECUTABLE Qt${QT_VERSION_MAJOR}::qmake IMPORTED_LOCATION)
 get_filename_component(QT_BIN_DIR "${QMAKE_EXECUTABLE}" DIRECTORY)
-find_program(WINDEPLOYQT_EXECUTABLE windeployqt HINTS "${QT_BIN_DIR}")
+find_program(WINDEPLOYQT_EXECUTABLE
+    NAMES
+        windeployqt
+    HINTS
+        ${QT_BIN_DIR}
+)
 
 # Collect the runtime libraries
 get_filename_component(COMPILER_PATH "${CMAKE_CXX_COMPILER}" DIRECTORY)
@@ -53,7 +58,7 @@ while (DEPENDENCIES)
 endwhile()
 
 # Copy libssl/libcrypto to 'hyperion'
-if (OPENSSL_FOUND)
+if(OPENSSL_FOUND)
     string(REGEX MATCHALL "[0-9]+" openssl_versions "${OPENSSL_VERSION}")
     list(GET openssl_versions 0 openssl_version_major)
     list(GET openssl_versions 1 openssl_version_minor)

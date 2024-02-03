@@ -79,6 +79,14 @@ if(USE_CCACHE)
 endif()
 
 #=============================================================================
+# Set output directories and add the project include directory
+#=============================================================================
+
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+include_directories(${CMAKE_SOURCE_DIR}/include)
+
+#=============================================================================
 # Parse semantic version of version file and write version to config
 # Determine branch name and build id
 #=============================================================================
@@ -94,17 +102,7 @@ file(WRITE ${CMAKE_BINARY_DIR}/config/hyperion.config.json.default "${DEFAULT_JS
 include(GitVersion)
 
 #=============================================================================
-# Set multicore compiling if available
-#=============================================================================
-
-# Remove it or use #pragma to disable the warning function
-# if(CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_C_COMPILER_ID MATCHES "GNU")
-# 	string(APPEND CMAKE_CXX_FLAGS " -Wno-psabi")
-# 	string(APPEND CMAKE_C_FLAGS " -Wno-psabi")
-# endif()
-
-#=============================================================================
-# Determine/Evaluate the current platform
+# Determine/Evaluate the current platform and set auxiliary variables
 #=============================================================================
 
 if(NOT DEFINED PLATFORM)
@@ -127,6 +125,8 @@ endif()
 
 if("${PLATFORM}" MATCHES "osx")
 	set(PLATFORM_MATCHES_OSX ON)
+elseif("${PLATFORM}" MATCHES "windows")
+	set(PLATFORM_MATCHES_WIN ON)
 elseif("${PLATFORM}" MATCHES "rpi")
 	set(PLATFORM_MATCHES_RPI ON)
 elseif("${PLATFORM}" MATCHES "^amlogic")
@@ -135,6 +135,16 @@ elseif("${PLATFORM}" MATCHES "^x11")
 	set(PLATFORM_MATCHES_X11 ON)
 elseif("${PLATFORM}" STREQUAL "imx6")
 	set(PLATFORM_STREQUAL_IMX6 ON)
+endif()
+
+#=============================================================================
+# Platform-specific tasks
+#=============================================================================
+
+# Search for Windows SDK and OpenSSL
+if(PLATFORM_MATCHES_WIN AND CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+	find_package(WindowsSDK QUIET REQUIRED)
+	find_package(OpenSSL REQUIRED)
 endif()
 
 #=============================================================================
@@ -147,7 +157,7 @@ get_cmake_property(START VARIABLES)
 option(HYPERION_LIGHT "Build Hyperion with a reduced set of functionality" OFF)
 
 # Grabber options
-cmake_dependent_option(ENABLE_AMLOGIC			"Enable the AMLOGIC video grabber"			ON "NOT HYPERION_LIGHT;PLATFORM_MATCHES_AML OR PLATFORM_MATCHES_X11"						OFF)
+cmake_dependent_option(ENABLE_AMLOGIC			"Enable the AMLOGIC video grabber"			ON "NOT HYPERION_LIGHT;PLATFORM_MATCHES_AML"												OFF)
 cmake_dependent_option(ENABLE_DISPMANX			"Enable the RPi dispmanx grabber"			ON "NOT HYPERION_LIGHT;PLATFORM_MATCHES_RPI"												OFF)
 cmake_dependent_option(ENABLE_DX				"Enable the DirectX grabber"				ON "NOT HYPERION_LIGHT;WIN32"																OFF)
 cmake_dependent_option(ENABLE_FB				"Enable the framebuffer grabber"			ON "NOT HYPERION_LIGHT;ENABLE_AMLOGIC OR SYSTEM_MATCHES_LINUX OR PLATFORM_STREQUAL_IMX6"	OFF)
@@ -222,7 +232,23 @@ else()
 endif()
 
 #=============================================================================
-# Check JSON files/schemas if the JSON check option above is ON
+# To create Hyperion with all dependencies, it is possible to disable
+# the new linker option dtags with our option 'ENABLE_DEPLOY_DEPENDENCIES'
+#=============================================================================
+
+# Linux and Windows only
+if(ENABLE_DEPLOY_DEPENDENCIES)
+	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--disable-new-dtags")
+	set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--disable-new-dtags")
+	set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -Wl,--disable-new-dtags")
+	set(CMAKE_SKIP_BUILD_RPATH OFF)
+	set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
+	set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib")
+	set(CMAKE_INSTALL_RPATH_USE_LINK_PATH ON)
+endif()
+
+#=============================================================================
+# Check JSON files/schemas if the JSON check option 'ENABLE_JSONCHECKS' ON
 #=============================================================================
 
 if(ENABLE_JSONCHECKS)
@@ -256,24 +282,6 @@ if(ENABLE_JSONCHECKS)
 	if(${CHECK_CONFIG_FAILED})
 		message(FATAL_ERROR "Check of JSON default config failed")
 	endif()
-endif()
-
-#=============================================================================
-# Set targets library/executable output directories and
-# add the project include directory as additional include path
-#=============================================================================
-
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-include_directories(${CMAKE_SOURCE_DIR}/include)
-
-#=============================================================================
-# Search for Windows SDK
-#=============================================================================
-
-if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-	find_package(WindowsSDK QUIET REQUIRED)
 endif()
 
 #=============================================================================
@@ -324,9 +332,6 @@ message(STATUS "Found Qt Version: ${QT_VERSION}")
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
 	set(QT_MIN_VERSION "6.2.2")
-	if(CMAKE_HOST_APPLE)
-		set(OPENSSL_ROOT_DIR /usr/local/opt/openssl)
-	endif()
 else()
 	set(QT_MIN_VERSION "5.5.0")
 endif()
@@ -336,22 +341,6 @@ if("${QT_VERSION}" VERSION_LESS "${QT_MIN_VERSION}")
 endif()
 
 find_package(Qt${QT_VERSION_MAJOR} ${QT_VERSION} COMPONENTS Core Gui Network Sql Widgets REQUIRED)
-
-#=============================================================================
-# To create Hyperion with all dependencies, it is possible to disable
-# the new linker option dtags with our option ENABLE_DEPLOY_DEPENDENCIES
-#=============================================================================
-
-# Linux and Windows only
-if(ENABLE_DEPLOY_DEPENDENCIES)
-	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--disable-new-dtags")
-	set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--disable-new-dtags")
-	set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -Wl,--disable-new-dtags")
-	set(CMAKE_SKIP_BUILD_RPATH OFF)
-	set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
-	set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib")
-	set(CMAKE_INSTALL_RPATH_USE_LINK_PATH ON)
-endif()
 
 #=============================================================================
 # Add our Code

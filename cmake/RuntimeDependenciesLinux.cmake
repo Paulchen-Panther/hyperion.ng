@@ -36,7 +36,7 @@ endif()
 # Extract dependencies ignoring the system ones
 get_prerequisites(${TARGET_FILE} DEPENDENCIES 0 1 "" "")
 
-message(STATUS "Dependencies for target file: ${DEPENDENCIES}")
+# message(STATUS "Dependencies for target file: ${DEPENDENCIES}")
 
 # Append symlink and non-symlink dependencies to the list
 set(PREREQUISITE_LIBS "")
@@ -57,7 +57,7 @@ endforeach()
 
 # Append the OpenSSL library to the list
 find_package(OpenSSL 1.0.0 REQUIRED)
-if (OPENSSL_FOUND)
+if(OPENSSL_FOUND)
     foreach(openssl_lib ${OPENSSL_LIBRARIES})
         get_prerequisites(${openssl_lib} openssl_deps 0 1 "" "")
 
@@ -81,7 +81,7 @@ if (OPENSSL_FOUND)
     endforeach()
 else()
     message( WARNING "OpenSSL NOT found (https webserver will not work)")
-endif(OPENSSL_FOUND)
+endif()
 
 # Detect the Qt plugin directory, source: https://github.com/lxde/lxqt-qtplugin/blob/master/src/CMakeLists.txt
 if ( TARGET Qt${QT_VERSION_MAJOR}::qmake )
@@ -122,7 +122,7 @@ if (QT_PLUGINS_DIR)
             endforeach()
         endif()
     endforeach()
-endif(QT_PLUGINS_DIR)
+endif()
 
 # Create a qt.conf file in 'share/hyperion/bin' to override hard-coded search paths in Qt plugins
 file(WRITE "${CMAKE_BINARY_DIR}/qt.conf" "[Paths]\nPlugins=../lib/\n")
@@ -155,7 +155,6 @@ if(ENABLE_EFFECTENGINE)
 
     # Copy Python modules to 'share/hyperion/lib/pythonMAJOR.MINOR' and ignore the unnecessary stuff listed below
     if (PYTHON_MODULES_DIR)
-
         install(
             DIRECTORY ${PYTHON_MODULES_DIR}/
             DESTINATION "share/hyperion/lib/python${PYTHON_VERSION_MAJOR_MINOR}"
@@ -169,5 +168,5 @@ if(ENABLE_EFFECTENGINE)
             PATTERN "test"                                  EXCLUDE # unittest module
             PATTERN "sitecustomize.py"                      EXCLUDE # site-specific configs
         )
-    endif(PYTHON_MODULES_DIR)
-endif(ENABLE_EFFECTENGINE)
+    endif()
+endif()
