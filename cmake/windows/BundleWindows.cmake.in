@@ -8,6 +8,7 @@ set(ENABLE_MF @ENABLE_MF@)
 set(ENABLE_DX @ENABLE_DX@)
 set(TurboJPEG_INCLUDE_DIR "@TurboJPEG_INCLUDE_DIR@")
 set(ENABLE_EFFECTENGINE @ENABLE_EFFECTENGINE@)
+set(PYTHON_VERSION "@PYTHON_VERSION@")
 set(CMAKE_CURRENT_BINARY_DIR "@CMAKE_CURRENT_BINARY_DIR@")
 
 # Find the windeployqt binaries
@@ -49,6 +50,10 @@ while(DEPENDENCIES)
 	list(REMOVE_AT DEPENDENCIES 0 1)
 endwhile()
 
+# Create a qt.conf file in 'bin' to override hard-coded search paths in Qt plugins
+file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/qt.conf" "[Paths]\nPlugins=../lib/\n")
+file(INSTALL FILES "${CMAKE_CURRENT_BINARY_DIR}/qt.conf" DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
+
 # Copy libssl/libcrypto to 'hyperion'
 if(OPENSSL_FOUND)
 	string(REGEX MATCHALL "[0-9]+" openssl_versions "${OPENSSL_VERSION}")
@@ -78,6 +83,8 @@ if(OPENSSL_FOUND)
 
 		file(INSTALL FILES ${${comp}} DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
 	endforeach()
+else()
+	message(WARNING "OpenSSL NOT found (https webserver will not work)")
 endif()
 
 # Copy libjpeg-turbo to 'hyperion'
@@ -97,11 +104,8 @@ if(ENABLE_MF AND NOT TurboJPEG_INCLUDE_DIR STREQUAL "")
 	endforeach()
 endif()
 
-# Create a qt.conf file in 'bin' to override hard-coded search paths in Qt plugins
-file(WRITE "${CMAKE_INSTALL_PREFIX}/bin/qt.conf" "[Paths]\nPlugins=../lib/\n")
-
 if(ENABLE_EFFECTENGINE)
-	set(PYTHON_EMBED_URL "https://www.python.org/ftp/python/@Python3_VERSION@/python-@Python3_VERSION@-embed-amd64.zip")
+	set(PYTHON_EMBED_URL "https://www.python.org/ftp/python/${PYTHON_VERSION}/python-${PYTHON_VERSION}-embed-amd64.zip")
 	get_filename_component(PYTHON_EMBED_ARCHIVE ${PYTHON_EMBED_URL} NAME)
 
 	# Download embed python package (release build only)
@@ -134,8 +138,11 @@ if(ENABLE_EFFECTENGINE)
 	endif()
 
 	# Copy python library and archive to 'hyperion'
-	set(PYTHON_LIB "python@Python3_VERSION_MAJOR@@Python3_VERSION_MINOR@.dll")
-	set(PYTHON_ZIP "python@Python3_VERSION_MAJOR@@Python3_VERSION_MINOR@.zip")
+	string(REGEX MATCHALL "[0-9]+" VERSION ${PYTHON_VERSION})
+	list(GET VERSION 0 PYTHON_VERSION_MAJOR)
+	list(GET VERSION 1 PYTHON_VERSION_MINOR)
+	set(PYTHON_LIB "python${PYTHON_VERSION_MAJOR}${PYTHON_VERSION_MINOR}.dll")
+	set(PYTHON_ZIP "python${PYTHON_VERSION_MAJOR}${PYTHON_VERSION_MINOR}.zip")
 	if(EXISTS "${CMAKE_CURRENT_BINARY_DIR}/python/${PYTHON_LIB}" AND EXISTS "${CMAKE_CURRENT_BINARY_DIR}/python/${PYTHON_ZIP}")
 		file(INSTALL
 			FILES

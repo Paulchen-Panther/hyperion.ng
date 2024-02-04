@@ -129,6 +129,11 @@ endif()
 ########### Install steps ###########
 #####################################
 
+if(UNIX AND ENABLE_EFFECTENGINE AND TARGET python)
+	get_target_property(PYTHON_VERSION python PYTHON_VERSION_PROPERTY)
+	get_target_property(PYTHON_MODULES_DIR python PYTHON_STDLIB_LOCATION_PROPERTY)
+endif()
+
 if(APPLE)
 	# set bundle information
 	set(MAC_BUNDLE_NAME "Hyperion")
@@ -148,9 +153,6 @@ if(APPLE)
 
 	install(TARGETS ${PROJECT_NAME} BUNDLE DESTINATION . COMPONENT "Hyperion")
 	get_target_property(QMAKE_EXECUTABLE Qt${QT_VERSION_MAJOR}::qmake IMPORTED_LOCATION)
-	if(ENABLE_EFFECTENGINE AND TARGET python)
-		get_target_property(PYTHON_MODULES_DIR python PYTHON_STDLIB_LOCATION_PROPERTY)
-	endif()
 	configure_file("${CMAKE_SOURCE_DIR}/cmake/macos/BundleMacOS.cmake.in" "${PROJECT_BINARY_DIR}/BundleMacOS.cmake" @ONLY)
     install(SCRIPT "${PROJECT_BINARY_DIR}/BundleMacOS.cmake" COMPONENT "Hyperion")
 elseif(NOT WIN32)
@@ -176,6 +178,13 @@ elseif(NOT WIN32)
 	install(FILES "${CMAKE_BINARY_DIR}/symlink_${PROJECT_NAME}" DESTINATION "bin" RENAME ${PROJECT_NAME} COMPONENT "Hyperion")
 	install(CODE "file (REMOVE ${CMAKE_BINARY_DIR}/symlink_${PROJECT_NAME})" COMPONENT "Hyperion")
 	install(FILES ${CMAKE_SOURCE_DIR}/bin/scripts/updateHyperionUser.sh DESTINATION "share/hyperion/scripts" COMPONENT "Hyperion")
+
+	if(ENABLE_DEPLOY_DEPENDENCIES)
+		set(TARGET_FILE ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${PROJECT_NAME}${CMAKE_EXECUTABLE_SUFFIX})
+		get_target_property(QMAKE_EXECUTABLE Qt${QT_VERSION_MAJOR}::qmake IMPORTED_LOCATION)
+		configure_file("${CMAKE_SOURCE_DIR}/cmake/linux/BundleLinux.cmake.in" "${PROJECT_BINARY_DIR}/BundleLinux.cmake" @ONLY)
+		install(SCRIPT "${PROJECT_BINARY_DIR}/BundleLinux.cmake" COMPONENT "Hyperion")
+	endif()
 else()
 	install(TARGETS ${PROJECT_NAME} DESTINATION "bin" COMPONENT "Hyperion")
 	install(FILES ${CMAKE_SOURCE_DIR}/effects/readme.txt DESTINATION "effects" COMPONENT "Hyperion")
@@ -188,22 +197,6 @@ else()
 	configure_file("${CMAKE_SOURCE_DIR}/cmake/windows/BundleWindows.cmake.in" "${PROJECT_BINARY_DIR}/BundleWindows.cmake" @ONLY)
 	install(SCRIPT "${PROJECT_BINARY_DIR}/BundleWindows.cmake" COMPONENT "Hyperion")
 endif()
-
-# if(ENABLE_DEPLOY_DEPENDENCIES)
-# 	if(EXISTS ${TARGET_FILE})
-# 		message(STATUS "Collecting Dependencies for target file: ${TARGET_FILE}")
-# 		include(${CMAKE_SOURCE_DIR}/cmake/RuntimeDependencies${CMAKE_HOST_SYSTEM_NAME}.cmake)
-# 	elseif(EXISTS "${CMAKE_SOURCE_DIR}/cmake/RuntimeDependencies${CMAKE_HOST_SYSTEM_NAME}.cmake")
-# 		# Run CMake after target was built
-# 		add_custom_command(
-# 			TARGET ${PROJECT_NAME} POST_BUILD
-# 			COMMAND "${CMAKE_COMMAND}" "-DTARGET_FILE=$<TARGET_FILE:${PROJECT_NAME}>"
-# 			ARGS ${CMAKE_SOURCE_DIR}
-# 			WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-# 			VERBATIM
-# 		)
-# 	endif()
-# endif()
 
 ######################################
 ########## Additional steps ##########

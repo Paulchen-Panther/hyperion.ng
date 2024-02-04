@@ -233,10 +233,12 @@ endif()
 # Platform-specific tasks
 #=============================================================================
 
-# Search for Windows SDK and OpenSSL
+# OpenSSL is required for https webserver
+find_package(OpenSSL REQUIRED)
+
+# Search for Windows SDK
 if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
 	find_package(WindowsSDK REQUIRED)
-	find_package(OpenSSL REQUIRED)
 endif()
 
 # If Hyperion is deployed with all dependencies under Linux
