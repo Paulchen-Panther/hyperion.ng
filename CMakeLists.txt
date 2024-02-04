@@ -84,6 +84,16 @@ endif()
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+	foreach(CONFIG_TYPE "RELEASE" "DEBUG" "RELWITHDEBINFO" "MINSIZEREL")
+		set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${CONFIG_TYPE} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+		set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${CONFIG_TYPE} ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
+		set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${CONFIG_TYPE} ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY})
+	endforeach()
+endif()
+
 include_directories(${CMAKE_SOURCE_DIR}/include)
 
 #=============================================================================
@@ -125,8 +135,6 @@ endif()
 
 if("${PLATFORM}" MATCHES "osx")
 	set(PLATFORM_MATCHES_OSX ON)
-elseif("${PLATFORM}" MATCHES "windows")
-	set(PLATFORM_MATCHES_WIN ON)
 elseif("${PLATFORM}" MATCHES "rpi")
 	set(PLATFORM_MATCHES_RPI ON)
 elseif("${PLATFORM}" MATCHES "^amlogic")
@@ -202,7 +210,7 @@ option(USE_SYSTEM_MBEDTLS_LIBS					"Use mbedTLS library from system"												
 cmake_dependent_option(ENABLE_TESTS				"Compile additional test applications"		ON "DEBUG_BUILD"																			OFF)
 
 # Advanced features
-cmake_dependent_option(ENABLE_DEPLOY_DEPENDENCIES "Deploy with dependencies"				ON "NOT PLATFORM_MATCHES_OSX;SYSTEM_MATCHES_LINUX OR WIN32"									OFF)
+cmake_dependent_option(ENABLE_DEPLOY_DEPENDENCIES "Deploy with dependencies"				ON "NOT PLATFORM_MATCHES_OSX;NOT WIN32;SYSTEM_MATCHES_LINUX"								OFF)
 option(ENABLE_JSONCHECKS						"Validate json schema files"																											ON )
 option(ENABLE_EXPERIMENTAL						"Compile experimental features"																											OFF)
 option(ENABLE_PROFILER							"enable profiler capabilities - not for release code"																					OFF)
@@ -226,7 +234,7 @@ endif()
 #=============================================================================
 
 # Search for Windows SDK and OpenSSL
-if(PLATFORM_MATCHES_WIN AND CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
 	find_package(WindowsSDK REQUIRED)
 	find_package(OpenSSL REQUIRED)
 endif()

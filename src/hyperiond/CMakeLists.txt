@@ -9,7 +9,6 @@ if(WIN32)
 	string(REPLACE "/" "\\\\" WIN_RC_ICON_PATH ${CMAKE_SOURCE_DIR}/cmake/nsis/installer.ico)
 	configure_file(${CMAKE_SOURCE_DIR}/cmake/windows/win.rc.in ${CMAKE_BINARY_DIR}/win.rc)
 	set(WIN_RC_FILE ${CMAKE_BINARY_DIR}/win.rc)
-
 	# promote hyperiond as GUI app
 	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")
 elseif(APPLE)
@@ -180,40 +179,43 @@ elseif(NOT WIN32)
 else()
 	install(TARGETS ${PROJECT_NAME} DESTINATION "bin" COMPONENT "Hyperion")
 	install(FILES ${CMAKE_SOURCE_DIR}/effects/readme.txt DESTINATION "effects" COMPONENT "Hyperion")
+
+	set(TARGET_FILE ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${PROJECT_NAME}${CMAKE_EXECUTABLE_SUFFIX})
+	get_target_property(QMAKE_EXECUTABLE Qt${QT_VERSION_MAJOR}::qmake IMPORTED_LOCATION)
+	if(ENABLE_MF AND TARGET turbojpeg)
+		get_target_property(TurboJPEG_INCLUDE_DIR turbojpeg INTERFACE_INCLUDE_DIRECTORIES)
+	endif()
+	configure_file("${CMAKE_SOURCE_DIR}/cmake/windows/BundleWindows.cmake.in" "${PROJECT_BINARY_DIR}/BundleWindows.cmake" @ONLY)
+	install(SCRIPT "${PROJECT_BINARY_DIR}/BundleWindows.cmake" COMPONENT "Hyperion")
 endif()
 
-if(ENABLE_DEPLOY_DEPENDENCIES)
-	if(EXISTS ${TARGET_FILE})
-		message(STATUS "Collecting Dependencies for target file: ${TARGET_FILE}")
-		include(${CMAKE_SOURCE_DIR}/cmake/RuntimeDependencies${CMAKE_HOST_SYSTEM_NAME}.cmake)
-	elseif(EXISTS "${CMAKE_SOURCE_DIR}/cmake/RuntimeDependencies${CMAKE_HOST_SYSTEM_NAME}.cmake")
-		# Run CMake after target was built
-		add_custom_command(
-			TARGET ${PROJECT_NAME} POST_BUILD
-			COMMAND "${CMAKE_COMMAND}" "-DTARGET_FILE=$<TARGET_FILE:${PROJECT_NAME}>"
-			ARGS ${CMAKE_SOURCE_DIR}
-			WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-			VERBATIM
-		)
-	endif()
-endif()
+# if(ENABLE_DEPLOY_DEPENDENCIES)
+# 	if(EXISTS ${TARGET_FILE})
+# 		message(STATUS "Collecting Dependencies for target file: ${TARGET_FILE}")
+# 		include(${CMAKE_SOURCE_DIR}/cmake/RuntimeDependencies${CMAKE_HOST_SYSTEM_NAME}.cmake)
+# 	elseif(EXISTS "${CMAKE_SOURCE_DIR}/cmake/RuntimeDependencies${CMAKE_HOST_SYSTEM_NAME}.cmake")
+# 		# Run CMake after target was built
+# 		add_custom_command(
+# 			TARGET ${PROJECT_NAME} POST_BUILD
+# 			COMMAND "${CMAKE_COMMAND}" "-DTARGET_FILE=$<TARGET_FILE:${PROJECT_NAME}>"
+# 			ARGS ${CMAKE_SOURCE_DIR}
+# 			WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+# 			VERBATIM
+# 		)
+# 	endif()
+# endif()
 
 ######################################
 ########## Additional steps ##########
 ######################################
 
-if(WIN32)
-	# Deploy Qt DLLs into the binary folder.
-	# This is necessary for starting the application from within the IDE
-	get_target_property(QT_QMAKE_EXECUTABLE Qt${QT_VERSION_MAJOR}::qmake IMPORTED_LOCATION)
-	get_filename_component(QT_BIN_DIR "${QT_QMAKE_EXECUTABLE}" DIRECTORY)
+# Deploy Qt DLLs into the binary folder.
+# This is necessary for starting the application from within the IDE
+if(WIN32 AND NOT DEFINED ENV{GITHUB_ACTIONS})
 	if(NOT WINDEPLOYQT_EXECUTABLE)
-		find_program(WINDEPLOYQT_EXECUTABLE
-			NAMES
-				windeployqt
-			HINTS
-				${QT_BIN_DIR}
-		)
+		get_target_property(QT_QMAKE_EXECUTABLE Qt${QT_VERSION_MAJOR}::qmake IMPORTED_LOCATION)
+		get_filename_component(QT_BIN_DIR ${QT_QMAKE_EXECUTABLE} DIRECTORY)
+		find_program(WINDEPLOYQT_EXECUTABLE NAMES windeployqt HINTS ${QT_BIN_DIR})
 	endif()
 
 	if(WINDEPLOYQT_EXECUTABLE)
@@ -224,11 +226,10 @@ if(WIN32)
 	endif()
 
 	if(OPENSSL_FOUND)
-		string(REGEX MATCHALL "[0-9]+" openssl_versions "${OPENSSL_VERSION}")
+		string(REGEX MATCHALL "[0-9]+" openssl_versions ${OPENSSL_VERSION})
 		list(GET openssl_versions 0 openssl_version_major)
 		list(GET openssl_versions 1 openssl_version_minor)
 
-		set(open_ssl_version_suffix)
 		if(openssl_version_major VERSION_EQUAL 1 AND openssl_version_minor VERSION_EQUAL 1)
 			set(open_ssl_version_suffix "-1_1")
 		else()
@@ -239,23 +240,20 @@ if(WIN32)
 			string(APPEND open_ssl_version_suffix "-x64")
 		endif()
 
-		find_file(OPENSSL_SSL
-			NAMES "libssl${open_ssl_version_suffix}.dll"
-			PATHS ${OPENSSL_INCLUDE_DIR}/.. ${OPENSSL_INCLUDE_DIR}/../bin
-			NO_DEFAULT_PATH
-		)
+		get_filename_component(OPENSSL_DIR "${OPENSSL_INCLUDE_DIR}" DIRECTORY)
+		foreach(comp "ssl" "crypto")
+			find_file(${comp}
+				NAMES
+					"lib${comp}${open_ssl_version_suffix}.dll"
+				PATHS
+					${OPENSSL_DIR}
+				PATH_SUFFIXES
+					bin
+			)
 
-		find_file(OPENSSL_CRYPTO
-			NAMES "libcrypto${open_ssl_version_suffix}.dll"
-			PATHS ${OPENSSL_INCLUDE_DIR}/.. ${OPENSSL_INCLUDE_DIR}/../bin
-			NO_DEFAULT_PATH
-		)
-
-		add_custom_command(
-			TARGET ${PROJECT_NAME} POST_BUILD
-			COMMAND ${CMAKE_COMMAND} -E copy
-			${OPENSSL_SSL} ${OPENSSL_CRYPTO}
-			$<TARGET_FILE_DIR:${PROJECT_NAME}>
-		)
+			add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+				COMMAND ${CMAKE_COMMAND} -E copy ${${comp}} $<TARGET_FILE_DIR:${PROJECT_NAME}>
+			)
+		endforeach()
 	endif()
 endif()
