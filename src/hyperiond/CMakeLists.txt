@@ -54,8 +54,10 @@ if(Qt${QT_VERSION_MAJOR}DBus_FOUND)
 	target_link_libraries(${PROJECT_NAME} "Qt${QT_VERSION_MAJOR}::DBus")
 endif()
 
-if(ENABLE_EFFECTENGINE)
+if(ENABLE_EFFECTENGINE AND TARGET python)
 	target_link_libraries(${PROJECT_NAME} effectengine python)
+	get_target_property(PYTHON_VERSION python PYTHON_VERSION_PROPERTY)
+	get_target_property(PYTHON_MODULES_DIR python PYTHON_STDLIB_LOCATION_PROPERTY)
 endif()
 
 if(ENABLE_FLATBUF_SERVER)
@@ -88,6 +90,9 @@ endif()
 
 if(ENABLE_MF)
 	target_link_libraries(${PROJECT_NAME} mf-grabber)
+	if(TARGET turbojpeg)
+		get_target_property(TurboJPEG_INCLUDE_DIR turbojpeg INTERFACE_INCLUDE_DIRECTORIES)
+	endif()
 endif (ENABLE_MF)
 
 if(ENABLE_AUDIO)
@@ -129,10 +134,7 @@ endif()
 ########### Install steps ###########
 #####################################
 
-if(UNIX AND ENABLE_EFFECTENGINE AND TARGET python)
-	get_target_property(PYTHON_VERSION python PYTHON_VERSION_PROPERTY)
-	get_target_property(PYTHON_MODULES_DIR python PYTHON_STDLIB_LOCATION_PROPERTY)
-endif()
+get_target_property(QMAKE_EXECUTABLE Qt${QT_VERSION_MAJOR}::qmake IMPORTED_LOCATION)
 
 if(APPLE)
 	# set bundle information
@@ -152,7 +154,6 @@ if(APPLE)
 	)
 
 	install(TARGETS ${PROJECT_NAME} BUNDLE DESTINATION . COMPONENT "Hyperion")
-	get_target_property(QMAKE_EXECUTABLE Qt${QT_VERSION_MAJOR}::qmake IMPORTED_LOCATION)
 	configure_file("${CMAKE_SOURCE_DIR}/cmake/macos/BundleMacOS.cmake.in" "${PROJECT_BINARY_DIR}/BundleMacOS.cmake" @ONLY)
     install(SCRIPT "${PROJECT_BINARY_DIR}/BundleMacOS.cmake" COMPONENT "Hyperion")
 elseif(NOT WIN32)
@@ -180,8 +181,6 @@ elseif(NOT WIN32)
 	install(FILES ${CMAKE_SOURCE_DIR}/bin/scripts/updateHyperionUser.sh DESTINATION "share/hyperion/scripts" COMPONENT "Hyperion")
 
 	if(ENABLE_DEPLOY_DEPENDENCIES)
-		set(TARGET_FILE ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${PROJECT_NAME}${CMAKE_EXECUTABLE_SUFFIX})
-		get_target_property(QMAKE_EXECUTABLE Qt${QT_VERSION_MAJOR}::qmake IMPORTED_LOCATION)
 		configure_file("${CMAKE_SOURCE_DIR}/cmake/linux/BundleLinux.cmake.in" "${PROJECT_BINARY_DIR}/BundleLinux.cmake" @ONLY)
 		install(SCRIPT "${PROJECT_BINARY_DIR}/BundleLinux.cmake" COMPONENT "Hyperion")
 	endif()
@@ -189,11 +188,6 @@ else()
 	install(TARGETS ${PROJECT_NAME} DESTINATION "bin" COMPONENT "Hyperion")
 	install(FILES ${CMAKE_SOURCE_DIR}/effects/readme.txt DESTINATION "effects" COMPONENT "Hyperion")
 
-	set(TARGET_FILE ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${PROJECT_NAME}${CMAKE_EXECUTABLE_SUFFIX})
-	get_target_property(QMAKE_EXECUTABLE Qt${QT_VERSION_MAJOR}::qmake IMPORTED_LOCATION)
-	if(ENABLE_MF AND TARGET turbojpeg)
-		get_target_property(TurboJPEG_INCLUDE_DIR turbojpeg INTERFACE_INCLUDE_DIRECTORIES)
-	endif()
 	configure_file("${CMAKE_SOURCE_DIR}/cmake/windows/BundleWindows.cmake.in" "${PROJECT_BINARY_DIR}/BundleWindows.cmake" @ONLY)
 	install(SCRIPT "${PROJECT_BINARY_DIR}/BundleWindows.cmake" COMPONENT "Hyperion")
 endif()
@@ -206,8 +200,7 @@ endif()
 # This is necessary for starting the application from within the IDE
 if(WIN32 AND NOT DEFINED ENV{GITHUB_ACTIONS})
 	if(NOT WINDEPLOYQT_EXECUTABLE)
-		get_target_property(QT_QMAKE_EXECUTABLE Qt${QT_VERSION_MAJOR}::qmake IMPORTED_LOCATION)
-		get_filename_component(QT_BIN_DIR ${QT_QMAKE_EXECUTABLE} DIRECTORY)
+		get_filename_component(QT_BIN_DIR ${QMAKE_EXECUTABLE} DIRECTORY)
 		find_program(WINDEPLOYQT_EXECUTABLE NAMES windeployqt HINTS ${QT_BIN_DIR})
 	endif()
 

@@ -1,8 +1,7 @@
-set(TARGET_FILE "@TARGET_FILE@")
+set(PROJECT_NAME "@PROJECT_NAME@")
 set(QMAKE_EXECUTABLE "@QMAKE_EXECUTABLE@")
 set(OPENSSL_FOUND @OPENSSL_FOUND@)
 set(OPENSSL_LIBRARIES "@OPENSSL_LIBRARIES@")
-set(ENABLE_EFFECTENGINE @ENABLE_EFFECTENGINE@)
 set(PYTHON_MODULES_DIR "@PYTHON_MODULES_DIR@")
 set(PYTHON_VERSION "@PYTHON_VERSION@")
 set(CMAKE_CURRENT_BINARY_DIR "@CMAKE_CURRENT_BINARY_DIR@")
@@ -38,7 +37,7 @@ set(SYSTEM_LIBS_SKIP
 
 # Extract dependencies ignoring the system ones
 include(GetPrerequisites)
-get_prerequisites(${TARGET_FILE} DEPENDENCIES 0 1 "" "")
+get_prerequisites(${CMAKE_INSTALL_PREFIX}/share/hyperion/bin/${PROJECT_NAME} DEPENDENCIES 0 1 "" "")
 
 # Append symlink and non-symlink dependencies to the list
 set(PREREQUISITE_LIBS "")
@@ -48,7 +47,7 @@ foreach(DEPENDENCY ${DEPENDENCIES})
 	if(${_index} GREATER -1)
 		continue() # Skip system libraries
 	else()
-		gp_resolve_item("${TARGET_FILE}" "${DEPENDENCY}" "" "" resolved_file)
+		gp_resolve_item("${CMAKE_INSTALL_PREFIX}/share/hyperion/bin/${PROJECT_NAME}" "${DEPENDENCY}" "" "" resolved_file)
 		get_filename_component(resolved_file ${resolved_file} ABSOLUTE)
 		gp_append_unique(PREREQUISITE_LIBS ${resolved_file})
 		get_filename_component(file_canonical ${resolved_file} REALPATH)

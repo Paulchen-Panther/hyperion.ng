@@ -48,12 +48,6 @@ on run argv
                 end tell
                 delay 1
             close
-
-            -- one last open and close so you can see everything looks correct
-            open
-                delay 5
-            close
-
         end tell
 
         delay 1
