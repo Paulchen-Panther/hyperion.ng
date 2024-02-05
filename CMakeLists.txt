@@ -149,8 +149,6 @@ endif()
 # Set the build options
 #=============================================================================
 
-get_cmake_property(START VARIABLES)
-
 # Build Hyperion with a reduced set of functionality, overwrites other options
 option(HYPERION_LIGHT "Build Hyperion with a reduced set of functionality" OFF)
 
@@ -232,9 +230,6 @@ endif()
 #=============================================================================
 # Platform-specific tasks
 #=============================================================================
-
-# OpenSSL is required for https webserver
-find_package(OpenSSL REQUIRED)
 
 # Search for Windows SDK
 if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")

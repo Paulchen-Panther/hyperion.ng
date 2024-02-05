@@ -1,8 +1,3 @@
-
-# Define the current source locations
-set(CURRENT_HEADER_DIR ${CMAKE_SOURCE_DIR}/include)
-set(CURRENT_SOURCE_DIR ${CMAKE_SOURCE_DIR}/libsrc)
-
 add_subdirectory(hyperion)
 add_subdirectory(commandline)
 add_subdirectory(blackborder)

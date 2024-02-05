@@ -152,7 +152,9 @@ jobs:
 
       - name: 👷 Build
         shell: bash
-        run: ./.github/scripts/build.sh
+        run: |
+          sudo pkill -9 XProtect >/dev/null || true; # see https://github.com/actions/runner-images/issues/7522
+          ./.github/scripts/build.sh
         env:
           PLATFORM: "osx"
 

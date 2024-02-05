@@ -134,6 +134,7 @@ endif()
 ########### Install steps ###########
 #####################################
 
+find_package(OpenSSL QUIET)
 get_target_property(QMAKE_EXECUTABLE Qt${QT_VERSION_MAJOR}::qmake IMPORTED_LOCATION)
 
 if(APPLE)
