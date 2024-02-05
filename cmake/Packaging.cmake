@@ -43,6 +43,7 @@ endif()
 set(CPACK_PACKAGE_NAME "Hyperion")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Hyperion is an open source ambient light implementation")
 set(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_SOURCE_DIR}/README.md")
+SET(CPACK_ARCHIVE_THREADS 0)
 
 # Replace "+", as cmake/rpm has an issue if "+" occurs in CPACK_PACKAGE_VERSION
 string(REPLACE "+" "." HYPERION_PACKAGE_VERSION ${HYPERION_VERSION})
