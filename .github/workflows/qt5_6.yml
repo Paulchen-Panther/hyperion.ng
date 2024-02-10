@@ -82,7 +82,7 @@ jobs:
             cmake --build build --target package --parallel $(nproc) &&
             cp /source/build/Hyperion-* /deploy/ 2>/dev/null"
         env:
-          DOCKER_IMAGE: 'ghcr.io/hyperion-project/${{ matrix.os.distribution }}'
+          DOCKER_IMAGE: ${{ matrix.os.distribution }}
           DOCKER_TAG: ${{ matrix.os.codename }}${{ inputs.qt_version == '6' && '-qt6' || '' }}
           BUILD_TYPE: ${{ inputs.event_name == 'pull_request' && 'debug' || 'release' }}
 
