@@ -183,6 +183,11 @@ jobs:
           echo '::endgroup::'
           choco config set cacheLocation --value "$Env:GITHUB_WORKSPACE/choco"
 
+      - name: 🔧 Set Chocolatey cache location
+        if: ${{ inputs.event_name == 'pull_request' }}
+        shell: bash
+        run: choco config set cacheLocation --value "$Env:GITHUB_WORKSPACE/choco"
+
       - name: 💾 Cache/Restore Chocolatey
         id: cache-chocolatey
         uses: actions/cache@v4
@@ -214,8 +219,7 @@ jobs:
           cache-key-prefix: 'cache-qt-windows'
 
       - name: 🛠️ Setup MSVC
-        shell: cmd
-        run: call "${{env.VCINSTALLDIR}}\Auxiliary\Build\vcvars64.bat"
+        uses: ilammy/msvc-dev-cmd@v1
 
       - name: 👷 Build
         uses: lukka/run-cmake@v10
