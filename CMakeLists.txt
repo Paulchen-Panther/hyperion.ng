@@ -65,16 +65,24 @@ include(HelperFunctions)
 include (CMakeDependentOption)
 
 #=============================================================================
-# Use ccache if available
+# Use buildcache (windows) or ccache (linux/macos) as compiler launcher
 #=============================================================================
 
-cmake_dependent_option(USE_CCACHE "Use CCache to speed up the compilation" OFF "UNIX" OFF)
-if(USE_CCACHE)
-	find_program(CCACHE_PROGRAM ccache)
-	mark_as_advanced(FORCE CCACHE_PROGRAM)
-	if(CCACHE_PROGRAM)
-		set(CMAKE_C_COMPILER_LAUNCHER "${CCACHE_PROGRAM}" CACHE STRING "C compiler launcher")
-		set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}" CACHE STRING "CXX compiler launcher")
+option(USE_COMPILER_CACHE "Enable compiler cache" OFF)
+if(USE_COMPILER_CACHE)
+	if(WIN32)
+		set(LAUNCHER "buildcache")
+	else()
+		set(LAUNCHER "ccache")
+	endif()
+
+	find_program(CACHE_PROG ${LAUNCHER} REQUIRED)
+	mark_as_advanced(CACHE_PROG)
+
+	if(CACHE_PROG)
+		message(STATUS "Building with ${LAUNCHER}: ${CACHE_PROG}")
+		set(CMAKE_C_COMPILER_LAUNCHER "${CACHE_PROG}" CACHE STRING "C compiler launcher")
+		set(CMAKE_CXX_COMPILER_LAUNCHER "${CACHE_PROG}" CACHE STRING "CXX compiler launcher")
 	endif()
 endif()
 

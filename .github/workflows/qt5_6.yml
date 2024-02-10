@@ -25,9 +25,6 @@ on:
         default: false
         required: false
 
-env:
-  ghcr: hyperion-project
-
 jobs:
 
 ######################
@@ -65,23 +62,30 @@ jobs:
           fetch-depth: 0
 
       - name: 🔧 Prepare
+        if: ${{ inputs.event_name == 'pull_request' }}
         shell: bash
         run: |
-          echo '::group::Append PR number to version (PR  only)'
-            if [[ "${{ inputs.event_name }}" = "pull_request" ]]; then
-              tr -d '\n' < .version > temp && mv temp .version
-              echo -n "+PR${{ inputs.pull_request_number }}" >> .version
-            fi
-          echo '::endgroup::'
+          tr -d '\n' < .version > temp && mv temp .version
+          echo -n "+PR${{ inputs.pull_request_number }}" >> .version
 
       - name: 👷 Build
         shell: bash
-        run: ./.github/scripts/build.sh
+        run: |
+          mkdir deploy
+          docker run --rm --platform=${{ matrix.os.architecture[1] }} \
+            -v "${{ github.workspace }}/deploy:/deploy" \
+            -v "${{ github.workspace }}:/source:rw" \
+            -w "/source" \
+            ghcr.io/hyperion-project/${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }} \
+            /bin/bash -c "mkdir build &&
+		        cmake -B build -G Ninja -DPLATFORM=${{ matrix.os.platform }} -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} &&
+		        cmake --build build --target package --parallel $(nproc) &&
+		        cp /source/build/Hyperion-* /deploy/ 2>/dev/null"
+
         env:
-          DOCKER_IMAGE: ${{ matrix.os.distribution }}
+          DOCKER_IMAGE: 'ghcr.io/hyperion-project/${{ matrix.os.distribution }}'
           DOCKER_TAG: ${{ matrix.os.codename }}${{ inputs.qt_version == '6' && '-qt6' || '' }}
-          PLATFORM: ${{ matrix.os.platform }}
-          TARGET_ARCH: ${{ matrix.os.architecture[1] }}
+          BUILD_TYPE: ${{ inputs.event_name == 'pull_request' && 'debug' || 'release' }}
 
       - name: 📦 Upload
         if: ${{ inputs.publish || inputs.event_name == 'pull_request' }}
@@ -99,6 +103,8 @@ jobs:
   macOS:
     name: 🍏 macOS (${{ matrix.arrays.arch }})
     runs-on: ${{ matrix.arrays.os }}
+    env:
+      packages: qt@${{ inputs.qt_version }} cmake ninja libusb jpeg-turbo vulkan-headers
     strategy:
       fail-fast: false
       matrix:
@@ -106,10 +112,6 @@ jobs:
           { arch: "x86_64", os: "macos-13" },
           { arch: "arm64",  os: "macos-14" }
         ]
-    env:
-      PYTHON_VERSION: 3.12
-      LIBJPEG_TURBO_VERSION: 3.0.1
-      QT6_VERSION: 6.6.1
 
     steps:
       - name: ⬇ Checkout Hyperion.ng
@@ -123,40 +125,30 @@ jobs:
         shell: bash
         run: tr -d '\n' < .version > temp && mv temp .version && echo -n "+PR${{ inputs.pull_request_number }}" >> .version
 
-      - name: 📥 Install Python
-        uses: actions/setup-python@v4
-        id: setup-python
+      - name: Cache Homebrew Packages
+        id: cache-homebrew
+        uses: actions/cache@v4
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          allow-prereleases: true
-          check-latest: true
+          path: $(brew --prefix)
+          key: ${{ matrix.arrays.arch }}-homebrew-packages-${{ hashFiles(env.packages) }}
+          restore-keys: ${{ matrix.arrays.arch }}-homebrew-packages-
 
-      - name: 📥 Install Qt${{ inputs.qt_version }}, Ninja, LibUSB & libjpeg-turbo
+      - name: 📥 Install dependencies
+        if: steps.cache-homebrew.outputs.cache-hit != 'true'
         shell: bash
         run: |
           brew untap --force homebrew/core homebrew/cask
           brew update || true
-          brew install qt@${{ inputs.qt_version }} ninja libusb || true
-          wget --no-check-certificate https://github.com/libjpeg-turbo/libjpeg-turbo/releases/download/$LIBJPEG_TURBO_VERSION/libjpeg-turbo-$LIBJPEG_TURBO_VERSION.dmg
-          hdid libjpeg-turbo-$LIBJPEG_TURBO_VERSION.dmg
-          sudo installer -pkg /Volumes/libjpeg-turbo-$LIBJPEG_TURBO_VERSION/libjpeg-turbo.pkg -target /
-          hdiutil detach /Volumes/libjpeg-turbo-$LIBJPEG_TURBO_VERSION
-
-      - name: 📥 Install Vulkan Headers (Qt6 only)
-        if: ${{ inputs.qt_version == '6' }}
-        uses: humbletim/setup-vulkan-sdk@v1.2.0
-        with:
-          vulkan-query-version: latest
-          vulkan-use-cache: true
-          vulkan-components: Vulkan-Headers
+          brew install ${{ env.packages }} || true
 
       - name: 👷 Build
-        shell: bash
-        run: |
-          sudo pkill -9 XProtect >/dev/null || true; # see https://github.com/actions/runner-images/issues/7522
-          ./.github/scripts/build.sh
+        uses: lukka/run-cmake@v10
+        with:
+          configurePreset: 'macos-${{ env.BUILD_TYPE }}'
+          buildPreset: 'macos-${{ env.BUILD_TYPE }}'
+          buildPresetAdditionalArgs: "['--target package']"
         env:
-          PLATFORM: "osx"
+          BUILD_TYPE: ${{ inputs.event_name == 'pull_request' && 'debug' || 'release' }}
 
       - name: 📦 Upload
         if: ${{ inputs.publish || inputs.event_name == 'pull_request' }}
@@ -191,14 +183,18 @@ jobs:
             tr -d '\n' < .version > temp && mv temp .version
             echo -n "+PR${{ inputs.pull_request_number }}" >> .version
           echo '::endgroup::'
+          choco config set cacheLocation --value "$Env:GITHUB_WORKSPACE/choco"
 
-      - name: 💾 Cache/Restore
-        uses: actions/cache@v3
+      - name: 💾 Cache/Restore Chocolatey
+        id: cache-chocolatey
+        uses: actions/cache@v4
         with:
-          path: C:\Users\runneradmin\AppData\Local\Temp\chocolatey
+          path: ${{ github.workspace }}/choco
           key: ${{ runner.os }}${{ inputs.qt_version == '6' && '-chocolatey-qt6' || '-chocolatey' }}
+          restore-keys: ${{ runner.os }}-chocolatey-
 
       - name: 📥 Install DirectX SDK, OpenSSL, Ninja, libjpeg-turbo ${{ inputs.qt_version == '6' && 'and Vulkan-SDK' || '' }}
+        if: steps.cache-chocolatey.outputs.cache-hit != 'true'
         shell: powershell
         run: |
           choco install --no-progress directx-sdk ${{env.VULKAN_SDK}} -y
@@ -225,10 +221,13 @@ jobs:
         run: call "${{env.VCINSTALLDIR}}\Auxiliary\Build\vcvars64.bat"
 
       - name: 👷 Build
-        shell: bash
-        run: ./.github/scripts/build.sh
+        uses: lukka/run-cmake@v10
+        with:
+          configurePreset: 'windows-${{ env.BUILD_TYPE }}'
+          buildPreset: 'windows-${{ env.BUILD_TYPE }}'
+          buildPresetAdditionalArgs: "['--target package']"
         env:
-          PLATFORM: "windows"
+          BUILD_TYPE: ${{ inputs.event_name == 'pull_request' && 'debug' || 'release' }}
 
       - name: 📦 Upload
         if: ${{ inputs.publish || inputs.event_name == 'pull_request' }}
