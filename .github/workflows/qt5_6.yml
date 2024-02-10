@@ -124,12 +124,18 @@ jobs:
         shell: bash
         run: tr -d '\n' < .version > temp && mv temp .version && echo -n "+PR${{ inputs.pull_request_number }}" >> .version
 
+      - name: 🔧 Prepare
+        shell: bash
+        run: echo "HOMEBREW_PREFIX=$(brew --prefix)" >> $GITHUB_ENV
+
       - name: 💾 Cache Homebrew Packages
         id: cache-homebrew
         uses: actions/cache@v4
         with:
-          path: $(brew --prefix)
+          path: ${{ env.HOMEBREW_PREFIX }}
           key: ${{ matrix.arrays.arch }}-homebrew-packages
+        env:
+          BREW_PREFIX: ${{ inputs.event_name == 'pull_request' && 'debug' || 'release' }}
 
       - name: 📥 Install dependencies
         if: steps.cache-homebrew.outputs.cache-hit != 'true'
@@ -186,7 +192,7 @@ jobs:
         id: cache-chocolatey
         uses: actions/cache@v4
         with:
-          path: ${{ github.workspace }}/choco
+          path: ${{ github.workspace }}\choco
           key: ${{ runner.os }}${{ inputs.qt_version == '6' && '-chocolatey-qt6' || '-chocolatey' }}
 
       - name: 📥 Install DirectX SDK, OpenSSL, Ninja, libjpeg-turbo ${{ inputs.qt_version == '6' && 'and Vulkan-SDK' || '' }}
