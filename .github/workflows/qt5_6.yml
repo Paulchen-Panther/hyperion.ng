@@ -124,7 +124,7 @@ jobs:
         shell: bash
         run: tr -d '\n' < .version > temp && mv temp .version && echo -n "+PR${{ inputs.pull_request_number }}" >> .version
 
-      - name: Cache Homebrew Packages
+      - name: 💾 Cache Homebrew Packages
         id: cache-homebrew
         uses: actions/cache@v4
         with:
@@ -140,11 +140,10 @@ jobs:
           brew install ${{ env.packages }} || true
 
       - name: 👷 Build
-        uses: lukka/run-cmake@v10
-        with:
-          configurePreset: 'macos-${{ env.BUILD_TYPE }}'
-          buildPreset: 'macos-${{ env.BUILD_TYPE }}'
-          buildPresetAdditionalArgs: "['--target package']"
+        shell: bash
+        run: |
+           cmake --preset macos-${{ env.BUILD_TYPE }}
+           cmake --build --preset macos-${{ env.BUILD_TYPE }} --target package
         env:
           BUILD_TYPE: ${{ inputs.event_name == 'pull_request' && 'debug' || 'release' }}
 
@@ -179,11 +178,8 @@ jobs:
             tr -d '\n' < .version > temp && mv temp .version
             echo -n "+PR${{ inputs.pull_request_number }}" >> .version
           echo '::endgroup::'
-          choco config set cacheLocation --value "$Env:GITHUB_WORKSPACE/choco"
 
       - name: 🔧 Set Chocolatey cache location
-        if: ${{ inputs.event_name == 'pull_request' }}
-        shell: bash
         run: choco config set cacheLocation --value "$Env:GITHUB_WORKSPACE/choco"
 
       - name: 💾 Cache/Restore Chocolatey
@@ -195,7 +191,6 @@ jobs:
 
       - name: 📥 Install DirectX SDK, OpenSSL, Ninja, libjpeg-turbo ${{ inputs.qt_version == '6' && 'and Vulkan-SDK' || '' }}
         if: steps.cache-chocolatey.outputs.cache-hit != 'true'
-        shell: powershell
         run: |
           choco install --no-progress directx-sdk ${{env.VULKAN_SDK}} -y
           choco install --no-progress ${{env.OPENSSL}} -y
@@ -220,14 +215,12 @@ jobs:
         uses: ilammy/msvc-dev-cmd@v1
 
       - name: 👷 Build
-        uses: lukka/run-cmake@v10
-        with:
-          configurePreset: 'windows-${{ env.BUILD_TYPE }}'
-          buildPreset: 'windows-${{ env.BUILD_TYPE }}'
-          buildPresetAdditionalArgs: "['--target package']"
+        shell: bash
+        run: |
+           cmake --preset windows-${{ env.BUILD_TYPE }}
+           cmake --build --preset windows-${{ env.BUILD_TYPE }} --target package
         env:
           BUILD_TYPE: ${{ inputs.event_name == 'pull_request' && 'debug' || 'release' }}
-          VCPKG_ROOT: # unset
 
       - name: 📦 Upload
         if: ${{ inputs.publish || inputs.event_name == 'pull_request' }}
