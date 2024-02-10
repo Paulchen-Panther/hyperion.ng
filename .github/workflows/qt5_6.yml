@@ -78,10 +78,9 @@ jobs:
             -w "/source" \
             ghcr.io/hyperion-project/${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }} \
             /bin/bash -c "mkdir build &&
-		        cmake -B build -G Ninja -DPLATFORM=${{ matrix.os.platform }} -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} &&
-		        cmake --build build --target package --parallel $(nproc) &&
-		        cp /source/build/Hyperion-* /deploy/ 2>/dev/null"
-
+            cmake -B build -G Ninja -DPLATFORM=${{ matrix.os.platform }} -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} &&
+            cmake --build build --target package --parallel $(nproc) &&
+            cp /source/build/Hyperion-* /deploy/ 2>/dev/null"
         env:
           DOCKER_IMAGE: 'ghcr.io/hyperion-project/${{ matrix.os.distribution }}'
           DOCKER_TAG: ${{ matrix.os.codename }}${{ inputs.qt_version == '6' && '-qt6' || '' }}
