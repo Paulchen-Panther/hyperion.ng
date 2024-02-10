@@ -164,8 +164,6 @@ jobs:
   windows:
     name: 🪟 Windows (x64)
     runs-on: windows-2022
-    env:
-      VCINSTALLDIR: 'C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC'
     steps:
       - name: ⬇ Checkout
         uses: actions/checkout@v4
@@ -229,6 +227,7 @@ jobs:
           buildPresetAdditionalArgs: "['--target package']"
         env:
           BUILD_TYPE: ${{ inputs.event_name == 'pull_request' && 'debug' || 'release' }}
+          VCPKG_ROOT: # unset
 
       - name: 📦 Upload
         if: ${{ inputs.publish || inputs.event_name == 'pull_request' }}
