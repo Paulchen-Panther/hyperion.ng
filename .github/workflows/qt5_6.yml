@@ -129,8 +129,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: $(brew --prefix)
-          key: ${{ matrix.arrays.arch }}-homebrew-packages-${{ hashFiles(env.packages) }}
-          restore-keys: ${{ matrix.arrays.arch }}-homebrew-packages-
+          key: ${{ matrix.arrays.arch }}-homebrew-packages
 
       - name: 📥 Install dependencies
         if: steps.cache-homebrew.outputs.cache-hit != 'true'
@@ -190,7 +189,6 @@ jobs:
         with:
           path: ${{ github.workspace }}/choco
           key: ${{ runner.os }}${{ inputs.qt_version == '6' && '-chocolatey-qt6' || '-chocolatey' }}
-          restore-keys: ${{ runner.os }}-chocolatey-
 
       - name: 📥 Install DirectX SDK, OpenSSL, Ninja, libjpeg-turbo ${{ inputs.qt_version == '6' && 'and Vulkan-SDK' || '' }}
         if: steps.cache-chocolatey.outputs.cache-hit != 'true'
