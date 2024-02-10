@@ -272,16 +272,28 @@ if(NOT DEFINED QTDIR)
 				set(QTDIR "${SUBDIRQT}/msvc2019_64")
 			endif()
 		elseif(PLATFORM_MATCHES_OSX)
+			foreach(qt_version 5 6)
+
+			endforeach()
+
 			# QT6 x86_64 location
 			if(EXISTS /usr/local/opt/qt6)
 				set(QTDIR "/usr/local/opt/qt6")
+			elseif(EXISTS /usr/local/opt/qt@6)
+				set(QTDIR "/usr/local/opt/qt@6")
 			# QT6 arm64 location
+			elseif(EXISTS /opt/homebrew/opt/qt6)
+				set(QTDIR "/opt/homebrew/opt/qt6")
 			elseif(EXISTS /opt/homebrew/opt/qt@6)
 				set(QTDIR "/opt/homebrew/opt/qt@6")
 			# QT5 x86_64 location
 			elseif(EXISTS /usr/local/opt/qt5)
 				set(QTDIR "/usr/local/opt/qt5")
+			elseif(EXISTS /usr/local/opt/qt@5)
+				set(QTDIR "/usr/local/opt/qt@5")
 			# QT5 arm64 location
+			elseif(EXISTS /opt/homebrew/opt/qt5)
+				set(QTDIR "/opt/homebrew/opt/qt5")
 			elseif(EXISTS /opt/homebrew/opt/qt@5)
 				set(QTDIR "/opt/homebrew/opt/qt@5")
 			endif()
@@ -291,7 +303,10 @@ endif()
 
 if(DEFINED QTDIR)
 	message(STATUS "Added QTDIR '${QTDIR}' to CMAKE_PREFIX_PATH")
-	list(PREPEND CMAKE_PREFIX_PATH ${QTDIR} "${QTDIR}/lib")
+	list(PREPEND CMAKE_PREFIX_PATH
+		${QTDIR}
+		${QTDIR}/lib
+	)
 endif()
 
 if(CMAKE_PREFIX_PATH)
