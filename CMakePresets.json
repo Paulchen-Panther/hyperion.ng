@@ -156,12 +156,14 @@
             "name": "macos-release",
             "displayName": "MacOS Release (clang)",
             "description": "Build with Clang as Release without Debug Symbols",
+            "targets": "all",
             "configurePreset": "macos-release"
         },
         {
             "name": "macos-debug",
             "displayName": "MacOS Debug (clang)",
             "description": "Build with Clang as Debug",
+            "targets": "all",
             "configurePreset": "macos-debug"
         },
         {
@@ -169,6 +171,7 @@
             "displayName": "Windows Release (msvc)",
             "description": "Build with MSVC's CL as Release without Debug Symbols",
             "configuration": "Release",
+            "targets": "all",
             "configurePreset": "windows-release"
         },
         {
@@ -176,18 +179,21 @@
             "displayName": "Windows Debug (msvc)",
             "description": "Build with MSVC's CL with Debug Symbols",
             "configuration": "Debug",
+            "targets": "all",
             "configurePreset": "windows-debug"
         },
         {
             "name": "linux-release",
             "displayName": "Linux Release (gcc)",
             "description": "Build with GCC as Release without Debug Symbols",
+            "targets": "all",
             "configurePreset": "linux-release"
         },
         {
             "name": "linux-debug",
             "displayName": "Linux Debug (gcc)",
             "description": "Build with GCC with Debug Symbols",
+            "targets": "all",
             "configurePreset": "linux-debug"
         }
     ]

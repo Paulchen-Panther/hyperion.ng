@@ -3,7 +3,7 @@ set(QMAKE_EXECUTABLE "@QMAKE_EXECUTABLE@")
 set(OPENSSL_FOUND @OPENSSL_FOUND@)
 set(PYTHON_MODULES_DIR "@PYTHON_MODULES_DIR@")
 set(PYTHON_VERSION "@PYTHON_VERSION@")
-set(CMAKE_CURRENT_BINARY_DIR "@CMAKE_CURRENT_BINARY_DIR@")
+set(CMAKE_BINARY_DIR "@CMAKE_BINARY_DIR@")
 
 set(SYSTEM_LIBS_SKIP
 	"libatomic"
@@ -36,7 +36,7 @@ set(SYSTEM_LIBS_SKIP
 
 # Extract dependencies ignoring the system ones
 include(GetPrerequisites)
-get_prerequisites(${CMAKE_INSTALL_PREFIX}/share/hyperion/bin/${PROJECT_NAME} DEPENDENCIES 0 1 "" "")
+get_prerequisites("${CMAKE_BINARY_DIR}/bin/${PROJECT_NAME}" DEPENDENCIES 0 1 "" "")
 
 # Append symlink and non-symlink dependencies to the list
 set(PREREQUISITE_LIBS "")
@@ -46,7 +46,7 @@ foreach(DEPENDENCY ${DEPENDENCIES})
 	if(${_index} GREATER -1)
 		continue() # Skip system libraries
 	else()
-		gp_resolve_item("${CMAKE_INSTALL_PREFIX}/share/hyperion/bin/${PROJECT_NAME}" "${DEPENDENCY}" "" "" resolved_file)
+		gp_resolve_item("${CMAKE_BINARY_DIR}/bin/${PROJECT_NAME}" "${DEPENDENCY}" "" "" resolved_file)
 		get_filename_component(resolved_file ${resolved_file} ABSOLUTE)
 		gp_append_unique(PREREQUISITE_LIBS ${resolved_file})
 		get_filename_component(file_canonical ${resolved_file} REALPATH)
@@ -56,7 +56,7 @@ endforeach()
 
 # Append the OpenSSL library to the list
 if(OPENSSL_FOUND)
-	foreach(openssl_lib "@OPENSSL_LIBRARIES@")
+	foreach(openssl_lib @OPENSSL_LIBRARIES@)
 		get_prerequisites(${openssl_lib} openssl_deps 0 1 "" "")
 		foreach(openssl_dep ${openssl_deps})
 			get_filename_component(resolved ${openssl_dep} NAME_WE)
@@ -122,8 +122,8 @@ endforeach()
 file(INSTALL FILES ${PREREQUISITE_LIBS} DESTINATION "${CMAKE_INSTALL_PREFIX}/share/hyperion/lib")
 
 # Create a qt.conf file in 'share/hyperion/bin' to override hard-coded search paths in Qt plugins
-file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/qt.conf" "[Paths]\nPlugins=../lib/\n")
-file(INSTALL FILES "${CMAKE_CURRENT_BINARY_DIR}/qt.conf" DESTINATION "${CMAKE_INSTALL_PREFIX}/share/hyperion/bin")
+file(WRITE "${CMAKE_BINARY_DIR}/qt.conf" "[Paths]\nPlugins=../lib/\n")
+file(INSTALL FILES "${CMAKE_BINARY_DIR}/qt.conf" DESTINATION "${CMAKE_INSTALL_PREFIX}/share/hyperion/bin")
 
 if(NOT PYTHON_MODULES_DIR STREQUAL "" AND NOT PYTHON_VERSION STREQUAL "")
 	# Copy Python modules to 'share/hyperion/lib/pythonMAJOR.MINOR' and ignore the unnecessary stuff listed below
