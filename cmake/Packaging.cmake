@@ -87,7 +87,7 @@ endif()
 
 # .deb files for apt
 # https://cmake.org/cmake/help/latest/cpack_gen/deb.html
-set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_SOURCE_DIR}/cmake/linux/package-scripts/preinst;${CMAKE_SOURCE_DIR}/cmake/linux/package-scripts/postinst;${CMAKE_SOURCE_DIR}/cmake/package-scripts/prerm")
+set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_SOURCE_DIR}/cmake/linux/package-scripts/preinst;${CMAKE_SOURCE_DIR}/cmake/linux/package-scripts/postinst;${CMAKE_SOURCE_DIR}/cmake/linux/package-scripts/prerm")
 set(CPACK_DEBIAN_PACKAGE_DEPENDS "libcec6 | libcec4 | libcec (>= 4.0)")
 set(CPACK_DEBIAN_PACKAGE_SECTION "Miscellaneous")
 
