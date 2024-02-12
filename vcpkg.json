@@ -1,0 +1,10 @@
+{
+  "dependencies": [
+    "qt5",
+    "qt5-serialport",
+    "python3",
+    "openssl",
+    "libjpeg-turbo",
+    "directxsdk"
+  ]
+}

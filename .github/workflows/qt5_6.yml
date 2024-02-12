@@ -61,12 +61,10 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
-      - name: 🔧 Prepare
+      - name: 🔧 Append PR number to version (PR  only)
         if: ${{ inputs.event_name == 'pull_request' }}
         shell: bash
-        run: |
-          tr -d '\n' < .version > temp && mv temp .version
-          echo -n "+PR${{ inputs.pull_request_number }}" >> .version
+        run: tr -d '\n' < .version > temp && mv temp .version && echo -n "+PR${{ inputs.pull_request_number }}" >> .version
 
       - name: 👷 Build
         shell: bash
@@ -76,10 +74,10 @@ jobs:
             -v "${{ github.workspace }}/deploy:/deploy" \
             -v "${{ github.workspace }}:/source:rw" \
             -w "/source" \
-            ghcr.io/hyperion-project/${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }} \
+            ghcr.io/paulchen-panther/${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }} \
             /bin/bash -c "mkdir build &&
-            cmake -B build -G Ninja -DPLATFORM=${{ matrix.os.platform }} -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} &&
-            cmake --build build --target package --parallel $(nproc) &&
+            cmake --preset linux-${{ env.BUILD_TYPE }} -DPLATFORM=${{ matrix.os.platform }} &&
+            cmake --build --preset linux-${{ env.BUILD_TYPE }} --target package --parallel $(nproc) &&
             cp /source/build/Hyperion-* /deploy/ 2>/dev/null"
         env:
           DOCKER_IMAGE: ${{ matrix.os.distribution }}
@@ -149,7 +147,7 @@ jobs:
         shell: bash
         run: |
            cmake --preset macos-${{ env.BUILD_TYPE }}
-           cmake --build --preset macos-${{ env.BUILD_TYPE }} --target package
+           cmake --build --preset macos-${{ env.BUILD_TYPE }} --target package --parallel $(sysctl -n hw.ncpu)
         env:
           BUILD_TYPE: ${{ inputs.event_name == 'pull_request' && 'debug' || 'release' }}
 
@@ -179,11 +177,7 @@ jobs:
       - name: 🔧 Prepare PR
         if: ${{ inputs.event_name == 'pull_request' }}
         shell: bash
-        run: |
-          echo '::group::Append PR number to version'
-            tr -d '\n' < .version > temp && mv temp .version
-            echo -n "+PR${{ inputs.pull_request_number }}" >> .version
-          echo '::endgroup::'
+        run: tr -d '\n' < .version > temp && mv temp .version && echo -n "+PR${{ inputs.pull_request_number }}" >> .version
 
       - name: 🔧 Set Chocolatey cache location
         run: choco config set cacheLocation --value "$Env:GITHUB_WORKSPACE/choco"
@@ -224,7 +218,7 @@ jobs:
         shell: bash
         run: |
            cmake --preset windows-${{ env.BUILD_TYPE }}
-           cmake --build --preset windows-${{ env.BUILD_TYPE }} --target package
+           cmake --build --preset windows-${{ env.BUILD_TYPE }} --target package -- -nologo -v:m -maxcpucount
         env:
           BUILD_TYPE: ${{ inputs.event_name == 'pull_request' && 'debug' || 'release' }}
 

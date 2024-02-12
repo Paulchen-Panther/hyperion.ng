@@ -24,6 +24,9 @@ else()
 	find_package(Python3 COMPONENTS Interpreter Development QUIET REQUIRED)
 	set_target_properties(python PROPERTIES PYTHON_VERSION_PROPERTY ${Python3_VERSION})
 	set_target_properties(python PROPERTIES PYTHON_STDLIB_LOCATION_PROPERTY ${Python3_STDLIB})
+	set(PYTHON_VERSION_MAJOR ${Python3_VERSION_MAJOR})
+	set(PYTHON_VERSION_MINOR ${Python3_VERSION_MINOR})
+	set(Python_STDLIB ${Python3_STDLIB})
 	set(PYTHON_EXECUTABLE ${Python3_EXECUTABLE})
 endif()
 
@@ -40,8 +43,8 @@ target_include_directories(python PUBLIC
 )
 
 target_compile_definitions(python PRIVATE
-	PYTHON_VERSION_MAJOR=$<$<BOOL:${Python3_FOUND}>:${Python3_VERSION_MAJOR}>$<$<BOOL:${PYTHONLIBS_FOUND}>:${PYTHON_VERSION_MAJOR}>
-	PYTHON_VERSION_MINOR=$<$<BOOL:${Python3_FOUND}>:${Python3_VERSION_MINOR}>$<$<BOOL:${PYTHONLIBS_FOUND}>:${PYTHON_VERSION_MINOR}>
+	PYTHON_VERSION_MAJOR=${PYTHON_VERSION_MAJOR}
+	PYTHON_VERSION_MINOR=${PYTHON_VERSION_MINOR}
 )
 
 if(ENABLE_JSONCHECKS)
@@ -53,5 +56,34 @@ if(ENABLE_JSONCHECKS)
 
 	if(${CHECK_EFFECTS_FAILED})
 		message(FATAL_ERROR "Check of JSON effect files failed")
+	endif()
+endif()
+
+if(VCPKG_TOOLCHAIN)
+	if(WIN32)
+		set(python_embeddable_zip "${CMAKE_CURRENT_BINARY_DIR}/python${PYTHON_VERSION_MAJOR}${PYTHON_VERSION_MINOR}.zip")
+		if(NOT EXISTS ${python_embeddable_zip})
+			file(GLOB_RECURSE STDLIB_FILES RELATIVE "${Python_STDLIB}" "${Python_STDLIB}/*")
+			list(FILTER STDLIB_FILES EXCLUDE REGEX "__pycache__")
+			list(FILTER STDLIB_FILES EXCLUDE REGEX "^config*/.*$")
+			list(FILTER STDLIB_FILES EXCLUDE REGEX "^idlelib/.*$")
+			list(FILTER STDLIB_FILES EXCLUDE REGEX "^lib2to3/.*$")
+			list(FILTER STDLIB_FILES EXCLUDE REGEX "^lib-dynload/.*$")
+			list(FILTER STDLIB_FILES EXCLUDE REGEX "^lib-tk/.*$")
+			list(FILTER STDLIB_FILES EXCLUDE REGEX "^tkinter/.*$")
+			list(FILTER STDLIB_FILES EXCLUDE REGEX "(^|/)tests?/.*$")
+			list(FILTER STDLIB_FILES EXCLUDE REGEX ".*\\.pyo$")
+
+			execute_process(
+				COMMAND "${CMAKE_COMMAND}" -E tar cf "${python_embeddable_zip}" --format=zip ${STDLIB_FILES}
+				WORKING_DIRECTORY "${Python_STDLIB}"
+			)
+		endif()
+
+		define_property(TARGET PROPERTY PYTHON_EMBEDDABLE_ZIP_FILE_PROPERTY
+			BRIEF_DOCS "Python embeddable zip file property"
+			FULL_DOCS "Python embeddable zip file property"
+		)
+		set_target_properties(python PROPERTIES PYTHON_EMBEDDABLE_ZIP_FILE_PROPERTY ${python_embeddable_zip})
 	endif()
 endif()

@@ -87,7 +87,7 @@ endif()
 
 # .deb files for apt
 # https://cmake.org/cmake/help/latest/cpack_gen/deb.html
-set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_SOURCE_DIR}/cmake/package-scripts/preinst;${CMAKE_SOURCE_DIR}/cmake/package-scripts/postinst;${CMAKE_SOURCE_DIR}/cmake/package-scripts/prerm")
+set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_SOURCE_DIR}/cmake/linux/package-scripts/preinst;${CMAKE_SOURCE_DIR}/cmake/linux/package-scripts/postinst;${CMAKE_SOURCE_DIR}/cmake/package-scripts/prerm")
 set(CPACK_DEBIAN_PACKAGE_DEPENDS "libcec6 | libcec4 | libcec (>= 4.0)")
 set(CPACK_DEBIAN_PACKAGE_SECTION "Miscellaneous")
 
@@ -97,9 +97,9 @@ set(CPACK_RPM_PACKAGE_RELEASE 1)
 set(CPACK_RPM_PACKAGE_LICENSE "MIT")
 set(CPACK_RPM_PACKAGE_GROUP "Applications")
 set(CPACK_RPM_PACKAGE_REQUIRES "libcec >= 4.0.0")
-set(CPACK_RPM_PRE_INSTALL_SCRIPT_FILE "${CMAKE_SOURCE_DIR}/cmake/package-scripts/preinst")
-set(CPACK_RPM_POST_INSTALL_SCRIPT_FILE "${CMAKE_SOURCE_DIR}/cmake/package-scripts/postinst")
-set(CPACK_RPM_PRE_UNINSTALL_SCRIPT_FILE "${CMAKE_SOURCE_DIR}/cmake/package-scripts/prerm")
+set(CPACK_RPM_PRE_INSTALL_SCRIPT_FILE "${CMAKE_SOURCE_DIR}/cmake/linux/package-scripts/preinst")
+set(CPACK_RPM_POST_INSTALL_SCRIPT_FILE "${CMAKE_SOURCE_DIR}/cmake/linux/package-scripts/postinst")
+set(CPACK_RPM_PRE_UNINSTALL_SCRIPT_FILE "${CMAKE_SOURCE_DIR}/cmake/linux/package-scripts/prerm")
 
 # .dmg for Apple macOS
 # https://cmake.org/cmake/help/latest/cpack_gen/dmg.html
@@ -112,16 +112,16 @@ endif(APPLE)
 
 # Windows NSIS
 # Use custom script based on cpack nsis template
-set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/nsis/template ${CMAKE_MODULE_PATH})
+set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/windows/nsis/template ${CMAKE_MODULE_PATH})
 
 # Some path transformations
 if(WIN32)
 	file(TO_NATIVE_PATH ${CPACK_PACKAGE_ICON} CPACK_PACKAGE_ICON)
 	string(REGEX REPLACE "\\\\" "\\\\\\\\" CPACK_PACKAGE_ICON ${CPACK_PACKAGE_ICON})
 endif()
-file(TO_NATIVE_PATH "${CMAKE_SOURCE_DIR}/cmake/nsis/installer.ico" NSIS_HYP_ICO)
-file(TO_NATIVE_PATH "${CMAKE_SOURCE_DIR}/cmake/nsis/header.bmp" NSIS_HYP_LOGO_HORI)
-file(TO_NATIVE_PATH "${CMAKE_SOURCE_DIR}/cmake/nsis/logo.bmp" NSIS_HYP_LOGO_VERT)
+file(TO_NATIVE_PATH "${CMAKE_SOURCE_DIR}/cmake/windows/nsis/installer.ico" NSIS_HYP_ICO)
+file(TO_NATIVE_PATH "${CMAKE_SOURCE_DIR}/cmake/windows/nsis/header.bmp" NSIS_HYP_LOGO_HORI)
+file(TO_NATIVE_PATH "${CMAKE_SOURCE_DIR}/cmake/windows/nsis/logo.bmp" NSIS_HYP_LOGO_VERT)
 string(REGEX REPLACE "\\\\" "\\\\\\\\" NSIS_HYP_ICO "${NSIS_HYP_ICO}")
 string(REGEX REPLACE "\\\\" "\\\\\\\\" NSIS_HYP_LOGO_VERT "${NSIS_HYP_LOGO_VERT}")
 string(REGEX REPLACE "\\\\" "\\\\\\\\" NSIS_HYP_LOGO_HORI "${NSIS_HYP_LOGO_HORI}")
@@ -140,7 +140,7 @@ set(CPACK_NSIS_MUI_FINISHPAGE_RUN "hyperiond.exe")
 set(CPACK_NSIS_BRANDING_TEXT "Hyperion-${HYPERION_VERSION}")
 
 # custom nsis plugin directory
-set(CPACK_NSIS_EXTRA_DEFS "!addplugindir ${CMAKE_SOURCE_DIR}/cmake/nsis/plugins")
+set(CPACK_NSIS_EXTRA_DEFS "!addplugindir ${CMAKE_SOURCE_DIR}/cmake/windows/nsis/plugins")
 
 # additional hyperiond startmenu link, won't be created if the user disables startmenu links
 set(CPACK_NSIS_CREATE_ICONS_EXTRA "CreateShortCut '$SMPROGRAMS\\\\$STARTMENU_FOLDER\\\\Hyperion (Console).lnk' '$INSTDIR\\\\bin\\\\hyperiond.exe' '-d -c'")
@@ -170,9 +170,6 @@ if(ENABLE_FLATBUF_CONNECT)
 	endif()
 	if(ENABLE_V4L2)
 		set(CPACK_COMPONENTS_ALL ${CPACK_COMPONENTS_ALL} "hyperion_v4l2")
-	endif()
-	if(ENABLE_AUDIO)
-		set(CPACK_COMPONENTS_ALL ${CPACK_COMPONENTS_ALL} "hyperion_audio")
 	endif()
 	if(ENABLE_X11)
 		set(CPACK_COMPONENTS_ALL ${CPACK_COMPONENTS_ALL} "hyperion_x11")

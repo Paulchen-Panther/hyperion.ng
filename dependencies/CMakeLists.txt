@@ -73,12 +73,18 @@ if (ENABLE_MDNS)
 	if(USE_SYSTEM_QMDNS_LIBS)
 		find_package(qmdnsengine REQUIRED)
 	else()
-		if(NOT CMAKE_OSX_ARCHITECTURES STREQUAL "" AND NOT MAKE_OSX_DEPLOYMENT_TARGET STREQUAL "")
-			string(REPLACE ";" "$<SEMICOLON>" CMAKE_OSX_ARCHITECTURES_ "${CMAKE_OSX_ARCHITECTURES}")
-			set(CMAKE_MACOS_EXTRA_ARGS
-				-DCMAKE_OSX_ARCHITECTURES:STRING=${CMAKE_OSX_ARCHITECTURES_}
+		string(REPLACE ";" "$<SEMICOLON>" CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}")
+		if(NOT CMAKE_OSX_ARCHITECTURES STREQUAL "" AND NOT CMAKE_OSX_DEPLOYMENT_TARGET STREQUAL "")
+			string(REPLACE ";" "$<SEMICOLON>" CMAKE_OSX_ARCHITECTURES "${CMAKE_OSX_ARCHITECTURES}")
+			set(CMAKE_EXTRA_ARGS
+				-DCMAKE_OSX_ARCHITECTURES:STRING=${CMAKE_OSX_ARCHITECTURES}
 				-DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=${CMAKE_OSX_DEPLOYMENT_TARGET}
 			)
+		endif()
+
+		get_property(isMultiConfig GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+		if(NOT isMultiConfig)
+			list(APPEND ${CMAKE_EXTRA_ARGS} "-DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}")
 		endif()
 
 		include(ExternalProject)
@@ -93,14 +99,13 @@ if (ENABLE_MDNS)
 								-DBIN_INSTALL_DIR:STRING=lib
 								-DLIB_INSTALL_DIR:STRING=lib
 								-DINCLUDE_INSTALL_DIR:STRING=include
-								-DCMAKE_PREFIX_PATH:PATH=${CMAKE_PREFIX_PATH}
+								-DCMAKE_PREFIX_PATH:STRING=${CMAKE_PREFIX_PATH}
 								-DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER}
 								-DCMAKE_CXX_COMPILER:FILEPATH=${CMAKE_CXX_COMPILER}
 								-DCMAKE_C_FLAGS:STRING=${CMAKE_C_FLAGS}
 								-DCMAKE_CXX_FLAGS:STRING=${CMAKE_CXX_FLAGS}
-								-DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
 								-Wno-dev # We don't want to be warned over unused variables
-								${CMAKE_MACOS_EXTRA_ARGS}
+								${CMAKE_EXTRA_ARGS}
 			INSTALL_DIR			${CMAKE_BINARY_DIR}
 			BUILD_BYPRODUCTS    <INSTALL_DIR>/lib/${CMAKE_STATIC_LIBRARY_PREFIX}qmdnsengine${CMAKE_STATIC_LIBRARY_SUFFIX}
 		)
@@ -170,11 +175,6 @@ if(ENABLE_FLATBUF_SERVER OR ENABLE_FLATBUF_CONNECT)
 				include(${IMPORT_FLATC})
 			else()
 				# ... or build flatc nativly
-				set(FLATBUFFERS_COMPILER flatc${CMAKE_EXECUTABLE_SUFFIX})
-
-				get_property(isMultiConfig GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
-
-
 				include(ExternalProject)
 				ExternalProject_Add(flatc-host
 					PREFIX				${CMAKE_BINARY_DIR}/dependencies/external/flatc-host
@@ -191,13 +191,13 @@ if(ENABLE_FLATBUF_SERVER OR ENABLE_FLATBUF_CONNECT)
 										-DCMAKE_CXX_FLAGS:STRING=${CMAKE_CXX_FLAGS}
 										-DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
 										-Wno-dev # We don't want to be warned over unused variables
-					BUILD_BYPRODUCTS    <BINARY_DIR>/flatc
+					BUILD_BYPRODUCTS    <BINARY_DIR>/flatc${CMAKE_EXECUTABLE_SUFFIX}
 				)
 
 				add_executable(flatc IMPORTED GLOBAL)
 				ExternalProject_Get_Property(flatc-host BINARY_DIR)
 				set_target_properties(flatc PROPERTIES
-					IMPORTED_LOCATION "${BINARY_DIR}/flatc"
+					IMPORTED_LOCATION "${BINARY_DIR}/flatc${CMAKE_EXECUTABLE_SUFFIX}"
 				)
 				add_dependencies(flatc flatc-host)
 			endif()
@@ -304,7 +304,6 @@ if(ENABLE_PROTOBUF_SERVER)
 			else()
 				# ... or build protoc nativly
 				include(ExternalProject)
-				get_property(isMultiConfig GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 				ExternalProject_Add(protoc-host
 					PREFIX				${CMAKE_BINARY_DIR}/dependencies/external/protoc-host
 					BUILD_ALWAYS		OFF
@@ -322,13 +321,13 @@ if(ENABLE_PROTOBUF_SERVER)
 										-DCMAKE_CXX_FLAGS:STRING=${CMAKE_CXX_FLAGS}
 										-DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
 										-Wno-dev # We don't want to be warned over unused variables
-					BUILD_BYPRODUCTS    <BINARY_DIR>/protoc
+					BUILD_BYPRODUCTS    <BINARY_DIR>/protoc${CMAKE_EXECUTABLE_SUFFIX}
 				)
 
 				add_executable(protoc IMPORTED GLOBAL)
 				ExternalProject_Get_Property(protoc-host BINARY_DIR)
 				set_target_properties(protoc PROPERTIES
-					IMPORTED_LOCATION "${BINARY_DIR}/protoc"
+					IMPORTED_LOCATION "${BINARY_DIR}/protoc${CMAKE_EXECUTABLE_SUFFIX}"
 				)
 				add_dependencies(protoc protoc-host)
 			endif()

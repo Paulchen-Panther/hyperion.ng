@@ -11,14 +11,14 @@ execute_process(
 )
 
 execute_process(
-	COMMAND sh -c "git symbolic-ref --short HEAD"
+	COMMAND git symbolic-ref --short HEAD
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 	OUTPUT_VARIABLE VERSION_ID
 	ERROR_QUIET
 )
 
 execute_process(
-	COMMAND sh -c "git config --get remote.origin.url"
+	COMMAND git config --get remote.origin.url
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 	OUTPUT_VARIABLE GIT_REMOTE_PATH
 	ERROR_QUIET

@@ -10,8 +10,7 @@
             "name": "base",
             "description": "Base settings that apply to all configurations",
             "hidden": true,
-            "binaryDir": "${sourceDir}/build",
-            "generator": "Ninja"
+            "binaryDir": "${sourceDir}/build"
         },
         {
             "name": "ccache",
@@ -63,6 +62,7 @@
         {
             "name": "clang",
             "hidden": true,
+            "generator": "Ninja",
             "cacheVariables": {
                 "CMAKE_C_COMPILER": "/usr/bin/clang",
                 "CMAKE_CXX_COMPILER": "/usr/bin/clang++"
@@ -71,14 +71,14 @@
         {
             "name": "msvc",
             "hidden": true,
-            "cacheVariables": {
-                "CMAKE_C_COMPILER": "cl",
-                "CMAKE_CXX_COMPILER": "cl"
-            }
+            "generator": "Visual Studio 17 2022",
+            "architecture": "x64",
+            "toolset": "host=x64"
         },
         {
             "name": "gcc",
             "hidden": true,
+            "generator": "Ninja",
             "cacheVariables": {
                 "CMAKE_C_COMPILER": "/usr/bin/gcc",
                 "CMAKE_CXX_COMPILER": "/usr/bin/g++"
@@ -110,7 +110,7 @@
             "name": "windows-release",
             "displayName": "Windows Release (msvc)",
             "description": "Build with MSVC's CL as Release without Debug Symbols",
-            "inherits": ["base", "release", "msvc"],
+            "inherits": ["base", "msvc"],
             "condition": {
                 "type": "equals",
                 "lhs": "${hostSystemName}",
@@ -121,7 +121,7 @@
             "name": "windows-debug",
             "displayName": "Windows Debug (msvc)",
             "description": "Build with MSVC's CL with Debug Symbols",
-            "inherits": ["base", "debug", "msvc"],
+            "inherits": ["base", "msvc"],
             "condition": {
                 "type": "equals",
                 "lhs": "${hostSystemName}",
@@ -168,12 +168,14 @@
             "name": "windows-release",
             "displayName": "Windows Release (msvc)",
             "description": "Build with MSVC's CL as Release without Debug Symbols",
+            "configuration": "Release",
             "configurePreset": "windows-release"
         },
         {
             "name": "windows-debug",
             "displayName": "Windows Debug (msvc)",
             "description": "Build with MSVC's CL with Debug Symbols",
+            "configuration": "Debug",
             "configurePreset": "windows-debug"
         },
         {

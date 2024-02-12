@@ -262,7 +262,7 @@ endif()
 # For Windows and OSX, the default Qt installation path are tried to resolved automatically
 #=============================================================================
 
-if(NOT DEFINED QTDIR)
+if(NOT DEFINED QTDIR AND NOT VCPKG_TOOLCHAIN)
 	if(DEFINED ENV{QTDIR})
 		set(QTDIR $ENV{QTDIR})
 	else()

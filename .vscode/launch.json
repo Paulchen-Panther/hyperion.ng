@@ -12,7 +12,11 @@
       "args": ["-d"],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
-      "environment": [],
+      "environment": [
+        {
+          "name": "QT_DEBUG_PLUGINS", "value": "1"
+        }
+      ],
       "externalConsole": false,
       "MIMode": "gdb",
       "setupCommands": [
@@ -31,7 +35,11 @@
       "args": ["-d"],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
-      "environment": [],
+      "environment": [
+        {
+          "name": "QT_DEBUG_PLUGINS", "value": "1"
+        }
+      ],
       "console": "internalConsole"
     },
     {
@@ -42,7 +50,11 @@
       "args": ["-d"],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
-      "environment": [],
+      "environment": [
+        {
+          "name": "QT_DEBUG_PLUGINS", "value": "1"
+        }
+      ],
       "console": "internalConsole",
       "MIMode": "lldb"
     }

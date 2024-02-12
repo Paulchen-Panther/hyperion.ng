@@ -1,7 +1,6 @@
 set(PROJECT_NAME "@PROJECT_NAME@")
 set(QMAKE_EXECUTABLE "@QMAKE_EXECUTABLE@")
 set(OPENSSL_FOUND @OPENSSL_FOUND@)
-set(OPENSSL_LIBRARIES "@OPENSSL_LIBRARIES@")
 set(PYTHON_MODULES_DIR "@PYTHON_MODULES_DIR@")
 set(PYTHON_VERSION "@PYTHON_VERSION@")
 set(CMAKE_CURRENT_BINARY_DIR "@CMAKE_CURRENT_BINARY_DIR@")
@@ -57,7 +56,7 @@ endforeach()
 
 # Append the OpenSSL library to the list
 if(OPENSSL_FOUND)
-	foreach(openssl_lib ${OPENSSL_LIBRARIES})
+	foreach(openssl_lib "@OPENSSL_LIBRARIES@")
 		get_prerequisites(${openssl_lib} openssl_deps 0 1 "" "")
 		foreach(openssl_dep ${openssl_deps})
 			get_filename_component(resolved ${openssl_dep} NAME_WE)
