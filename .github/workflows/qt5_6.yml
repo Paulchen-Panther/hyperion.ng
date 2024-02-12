@@ -180,9 +180,9 @@ jobs:
         run: tr -d '\n' < .version > temp && mv temp .version && echo -n "+PR${{ inputs.pull_request_number }}" >> .version
 
       - name: 🔧 Set Chocolatey cache location
-        run: choco config set cacheLocation --value "$Env:GITHUB_WORKSPACE/choco"
+        run: choco config set cacheLocation --value "${{ github.workspace }}\choco"
 
-      - name: 💾 Cache/Restore Chocolatey
+      - name: 💾 Restore Chocolatey cache
         id: cache-chocolatey
         uses: actions/cache@v4
         with:
@@ -190,7 +190,6 @@ jobs:
           key: ${{ runner.os }}${{ inputs.qt_version == '6' && '-chocolatey-qt6' || '-chocolatey' }}
 
       - name: 📥 Install DirectX SDK, OpenSSL, Ninja, libjpeg-turbo ${{ inputs.qt_version == '6' && 'and Vulkan-SDK' || '' }}
-        if: steps.cache-chocolatey.outputs.cache-hit != 'true'
         run: |
           choco install --no-progress directx-sdk ${{env.VULKAN_SDK}} -y
           choco install --no-progress ${{env.OPENSSL}} -y
