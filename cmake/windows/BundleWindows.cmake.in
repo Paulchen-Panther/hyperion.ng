@@ -56,39 +56,6 @@ if(NOT VCPKG_TOOLCHAIN)
 	file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/qt.conf" "[Paths]\nPlugins=../lib/\n")
 	file(INSTALL FILES "${CMAKE_CURRENT_BINARY_DIR}/qt.conf" DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
 
-	# Copy libssl/libcrypto to 'hyperion'
-	if(OPENSSL_FOUND)
-		string(REGEX MATCHALL "[0-9]+" openssl_versions "@OPENSSL_VERSION@")
-		list(GET openssl_versions 0 openssl_version_major)
-		list(GET openssl_versions 1 openssl_version_minor)
-
-		if (openssl_version_major VERSION_EQUAL 1 AND openssl_version_minor VERSION_EQUAL 1)
-			set(open_ssl_version_suffix "-1_1")
-		else()
-			set(open_ssl_version_suffix "-3")
-		endif()
-
-		if(@CMAKE_SIZEOF_VOID_P@ EQUAL 8)
-			string(APPEND open_ssl_version_suffix "-x64")
-		endif()
-
-		get_filename_component(OPENSSL_DIR "@OPENSSL_INCLUDE_DIR@" DIRECTORY)
-		foreach(comp "ssl" "crypto")
-			find_file(${comp}
-				NAMES
-					"lib${comp}${open_ssl_version_suffix}.dll"
-				PATHS
-					${OPENSSL_DIR}
-				PATH_SUFFIXES
-					bin
-			)
-
-			file(INSTALL FILES ${${comp}} DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
-		endforeach()
-	else()
-		message(WARNING "OpenSSL NOT found (https webserver will not work)")
-	endif()
-
 	# Copy libjpeg-turbo to 'hyperion'
 	if(ENABLE_MF AND NOT TurboJPEG_INCLUDE_DIR STREQUAL "")
 		get_filename_component(TURBOJPEG_DIR "${TurboJPEG_INCLUDE_DIR}" DIRECTORY)

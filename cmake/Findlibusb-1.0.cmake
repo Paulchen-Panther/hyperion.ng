@@ -51,6 +51,9 @@ else()
 	find_package(PkgConfig QUIET)
 	if(PkgConfig_FOUND)
 		pkg_check_modules(PC_LIBUSB QUIET libusb-1.0)
+		if(NOT PC_LIBUSB_FOUND)
+			pkg_check_modules(PC_LIBUSB QUIET libusb)
+		endif()
 		if(DEFINED PC_LIBUSB_VERSION AND NOT PC_LIBUSB_VERSION STREQUAL "")
 			set(LIBUSB_VERSION "${PC_LIBUSB_VERSION}")
 		endif()
@@ -58,8 +61,9 @@ else()
 
 	find_path(LIBUSB_INCLUDE_DIR
 		NAMES
-			libusb.h
+			libusb.h usb.h
 		PATHS
+			$ENV{ProgramFiles}/LibUSB-Win32
 			/usr
 			/usr/local
 			/opt/local
@@ -69,9 +73,9 @@ else()
 		HINTS
 			${LIBUSB_ROOT_DIR}
 		PATH_SUFFIXES
-			include/libusb-1.0
 			include
 			libusb-1.0
+			include/libusb-1.0
 	)
 
 	find_library(LIBUSB_LIBRARY
@@ -80,6 +84,7 @@ else()
 			usb-1.0
 			usb
 		PATHS
+			$ENV{ProgramFiles}/LibUSB-Win32
 			/usr
 			/usr/local
 			/opt/local
@@ -90,6 +95,9 @@ else()
 			${LIBUSB_ROOT_DIR}
 		PATH_SUFFIXES
 			lib
+			lib/msvc
+			lib/msvc_x64
+			lib/gcc
 	)
 
 	if(LIBUSB_INCLUDE_DIR AND LIBUSB_LIBRARY)
@@ -97,12 +105,14 @@ else()
 	endif()
 
 	if(LIBUSB_FOUND)
-		add_library(libusb UNKNOWN IMPORTED GLOBAL)
-		set_target_properties(libusb PROPERTIES
-			IMPORTED_LINK_INTERFACE_LANGUAGES "C"
-			IMPORTED_LOCATION "${LIBUSB_LIBRARY}"
-			INTERFACE_INCLUDE_DIRECTORIES "${LIBUSB_INCLUDE_DIR}"
-		)
+		if(NOT TARGET libusb)
+			add_library(libusb UNKNOWN IMPORTED GLOBAL)
+			set_target_properties(libusb PROPERTIES
+				IMPORTED_LINK_INTERFACE_LANGUAGES "C"
+				IMPORTED_LOCATION "${LIBUSB_LIBRARY}"
+				INTERFACE_INCLUDE_DIRECTORIES "${LIBUSB_INCLUDE_DIR}"
+			)
+		endif()
 
 		if(NOT LIBUSB_VERSION AND NOT CMAKE_CROSSCOMPILING)
 			# C code from: https://github.com/matwey/libopenvizsla/blob/master/cmake/FindLibUSB1.cmake

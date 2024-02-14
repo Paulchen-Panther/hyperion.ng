@@ -5,6 +5,7 @@
     "python3",
     "openssl",
     "libjpeg-turbo",
+    "libusb",
     "directxsdk"
   ]
 }

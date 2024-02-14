@@ -188,7 +188,7 @@ cmake_dependent_option(ENABLE_DEV_NETWORK		"Enable the Network devices"				ON ""
 cmake_dependent_option(ENABLE_DEV_SERIAL		"Enable the Serial devices"					ON ""																						OFF)
 cmake_dependent_option(ENABLE_DEV_SPI			"Enable the SPI device"						ON "SYSTEM_MATCHES_LINUX"																	OFF)
 cmake_dependent_option(ENABLE_DEV_TINKERFORGE	"Enable the TINKERFORGE device"				ON "SYSTEM_MATCHES_LINUX"																	OFF)
-cmake_dependent_option(ENABLE_DEV_USB_HID		"Enable the libusb and hid devices"			ON "SYSTEM_MATCHES_LINUX OR PLATFORM_MATCHES_OSX"											OFF)
+cmake_dependent_option(ENABLE_DEV_USB_HID		"Enable the libusb and hid devices"			ON ""																						OFF)
 cmake_dependent_option(ENABLE_DEV_WS281XPWM		"Enable the WS281x-PWM device"				ON "PLATFORM_MATCHES_RPI OR PLATFORM_MATCHES_X11"											OFF)
 
 # Services options

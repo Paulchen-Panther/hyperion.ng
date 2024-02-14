@@ -1,36 +1,87 @@
-#=============================================================================
-# HIDAPI
-#=============================================================================
+# =============================================================================
+# HIDAPI & libusb
+# =============================================================================
 
 if(ENABLE_DEV_USB_HID)
-	# Find libusb
-	find_package(libusb-1.0 QUIET REQUIRED)
+	# Build HIDAPI and libusb as static library
+	set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build statically version of HIDAPI and libusb")
 
-	# Build HIDAPI as static library
-	set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build statically version of HIDAPI")
+	# Suppress warnings about "Compatibility with CMake < 3.5 will be removed from a future version of CMake"
+	set(CMAKE_WARN_DEPRECATED OFF CACHE BOOL "" FORCE)
+
+	#=============================================================================
+	# libusb
+	#=============================================================================
+
+	# Install libusb targets
+	set(LIBUSB_INSTALL_TARGETS ON CACHE BOOL "Enable the installation of libusb targets")
+
+	# Disable build of libusb examples
+	set(LIBUSB_BUILD_EXAMPLES OFF CACHE BOOL "Build libusb examples")
+
+	# Disable build of libusb tests
+	set(LIBUSB_BUILD_TESTING OFF CACHE BOOL "Build libusb Tests")
+
+	# Add libusb-cmake directory to the build
+	add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/external/libusb-cmake" EXCLUDE_FROM_ALL)
+
+	#=============================================================================
+	# HIDAPI
+	#=============================================================================
 
 	# Use the libusb based implementation of HIDAPI (Linux only)
 	if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 		set(HIDAPI_WITH_HIDRAW OFF CACHE BOOL "Build HIDRAW-based implementation of HIDAPI")
 	endif()
 
-	# Suppress warnings about "Compatibility with CMake < 3.5 will be removed from a future version of CMake"
-	set(CMAKE_WARN_DEPRECATED OFF CACHE BOOL "" FORCE)
-
 	# Install HIDAPI targets
 	set(HIDAPI_INSTALL_TARGETS ON CACHE BOOL "Enable the installation of HIDAPI targets")
 
 	# Disable build of HIDAPI tests
-	set(HIDAPI_BUILD_HIDTEST OFF CACHE BOOL "Enable small console test application hidtest")
+	set(HIDAPI_BUILD_HIDTEST OFF CACHE BOOL "Disable small console test application hidtest")
 
 	# Add HIDAPI directory to the build
-	add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/external/hidapi")
+	add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/external/hidapi" EXCLUDE_FROM_ALL)
 
-	# Set HIDAPI version to the parent scope
+	# Set HIDAPI version to the parent scope for configure summary
 	if(hidapi_VERSION)
 		set(hidapi_VERSION "${hidapi_VERSION}" PARENT_SCOPE)
 	endif()
 endif()
+
+#=============================================================================
+# HIDAPI
+#=============================================================================
+
+# if(ENABLE_DEV_USB_HID)
+# 	# Find libusb
+# 	find_package(libusb-1.0 REQUIRED)
+
+# 	# Build HIDAPI as static library
+# 	set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build statically version of HIDAPI")
+
+# 	# Use the libusb based implementation of HIDAPI (Linux only)
+# 	if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+# 		set(HIDAPI_WITH_HIDRAW OFF CACHE BOOL "Build HIDRAW-based implementation of HIDAPI")
+# 	endif()
+
+# 	# Suppress warnings about "Compatibility with CMake < 3.5 will be removed from a future version of CMake"
+# 	set(CMAKE_WARN_DEPRECATED OFF CACHE BOOL "" FORCE)
+
+# 	# Install HIDAPI targets
+# 	set(HIDAPI_INSTALL_TARGETS ON CACHE BOOL "Enable the installation of HIDAPI targets")
+
+# 	# Disable build of HIDAPI tests
+# 	set(HIDAPI_BUILD_HIDTEST OFF CACHE BOOL "Enable small console test application hidtest")
+
+# 	# Add HIDAPI directory to the build
+# 	add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/external/hidapi")
+
+# 	# Set HIDAPI version to the parent scope for configure summary
+# 	if(hidapi_VERSION)
+# 		set(hidapi_VERSION "${hidapi_VERSION}" PARENT_SCOPE)
+# 	endif()
+# endif()
 
 #=============================================================================
 # Tinkerforge

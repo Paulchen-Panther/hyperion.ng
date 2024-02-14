@@ -156,8 +156,6 @@ endif()
 ########### Install steps ###########
 #####################################
 
-find_package(OpenSSL QUIET)
-
 if(APPLE)
 	# set bundle information
 	set(MAC_BUNDLE_NAME "Hyperion")
