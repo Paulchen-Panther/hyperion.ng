@@ -126,7 +126,7 @@ jobs:
         id: cache-homebrew
         uses: actions/cache@v4
         with:
-          path: ${{ ${{ matrix.arrays.arch }} == 'x86_64' && '/usr/local' || '/opt/homebrew' }}
+          path: ${{ matrix.arrays.arch == 'x86_64' && '/usr/local' || '/opt/homebrew' }}
           key: ${{ runner.os }}-${{ matrix.arrays.arch }}-homebrew-packages-${{ inputs.qt_version }}
 
       - name: 📥 Install dependencies
