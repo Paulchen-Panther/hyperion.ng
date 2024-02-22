@@ -1,6 +1,6 @@
 name: Pre-build Dependencies
 
-on:
+on: [ workflow_dispatch ]
 
 ######################
 ###### Linux #########
