@@ -14,7 +14,7 @@ if(ENABLE_FLATBUF_CONNECT)
 
 	target_link_libraries(flatbufconnect
 		hyperion-utils
-		flatbuffers
+		FlatBuffers
 	)
 
 	target_include_directories(flatbufconnect PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
@@ -31,7 +31,7 @@ if(ENABLE_FLATBUF_SERVER)
 
 	target_link_libraries(flatbufserver
 		hyperion-utils
-		flatbuffers
+		FlatBuffers
 	)
 
 	target_include_directories(flatbufserver PRIVATE ${CMAKE_CURRENT_BINARY_DIR})

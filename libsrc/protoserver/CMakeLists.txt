@@ -12,7 +12,7 @@ add_library(protoclient
 target_link_libraries(protoclient
 	hyperion
 	hyperion-utils
-	libprotobuf
+	ProtoBuf
 	Qt${QT_VERSION_MAJOR}::Gui
 )
 

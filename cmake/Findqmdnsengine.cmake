@@ -15,12 +15,12 @@ find_library(QMDNS_LIBRARIES
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(qmdnsengine
-	FOUND_VAR QMDNSENGINE_FOUND
+	FOUND_VAR qmdnsengine_FOUND
 	REQUIRED_VARS QMDNS_INCLUDE_DIR QMDNS_LIBRARIES
 )
 
-if(QMDNSENGINE_FOUND)
-    add_library(qmdnsengine STATIC IMPORTED GLOBAL)
+if(qmdnsengine_FOUND AND NOT TARGET qmdnsengine)
+    add_library(qmdnsengine STATIC IMPORTED)
     set_target_properties(qmdnsengine PROPERTIES
         IMPORTED_LOCATION ${QMDNS_LIBRARIES}
         INTERFACE_INCLUDE_DIRECTORIES ${QMDNS_INCLUDE_DIR}

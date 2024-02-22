@@ -35,39 +35,47 @@ if(mbedtls_LIBRARY AND NOT mbedx509_LIBRARY AND NOT mbedcrypto_LIBRARY)
 endif()
 
 if(MBEDTLS_INCLUDES_X509 AND MBEDTLS_INCLUDES_CRYPTO)
-	find_package_handle_standard_args(mbedtls
-		FOUND_VAR MBEDTLS_FOUND
+	find_package_handle_standard_args(MbedTLS
+		FOUND_VAR MbedTLS_FOUND
 		REQUIRED_VARS mbedtls_INCLUDE_DIR mbedtls_LIBRARY
 	)
 
 	mark_as_advanced(mbedtls_INCLUDE_DIR mbedtls_LIBRARY)
 	list(APPEND COMPONENTS tls)
 else()
-	find_package_handle_standard_args(mbedtls
-		FOUND_VAR MBEDTLS_FOUND
+	find_package_handle_standard_args(MbedTLS
+		FOUND_VAR MbedTLS_FOUND
 		REQUIRED_VARS mbedtls_INCLUDE_DIR mbedtls_LIBRARY mbedx509_LIBRARY mbedcrypto_LIBRARY
 	)
 
   	mark_as_advanced(mbedtls_INCLUDE_DIR mbedtls_LIBRARY mbedx509_LIBRARY mbedcrypto_LIBRARY)
-	  list(APPEND COMPONENTS tls x509 crypto)
+	list(APPEND COMPONENTS tls x509 crypto)
 endif()
 
-if(MBEDTLS_FOUND)
+if(MbedTLS_FOUND)
 	foreach(COMP IN LISTS COMPONENTS)
-		if(NOT TARGET mbed${COMP})
+		if(NOT TARGET MbedTLS::mbed${COMP})
 			if(IS_ABSOLUTE "${mbed${COMP}_LIBRARY}")
-				add_library(mbed${COMP} UNKNOWN IMPORTED GLOBAL)
-				set_property(TARGET mbed${COMP} PROPERTY IMPORTED_LOCATION "${mbed${COMP}_LIBRARY}")
+				add_library(MbedTLS::mbed${COMP} UNKNOWN IMPORTED)
+				set_target_properties(MbedTLS::mbed${COMP} PROPERTIES
+					IMPORTED_LOCATION "${mbed${COMP}_LIBRARY}"
+				)
 			else()
-				add_library(mbed${COMP} INTERFACE IMPORTED GLOBAL)
-				set_property(TARGET mbed${COMP} PROPERTY IMPORTED_LIBNAME "${mbed${COMP}_LIBRARY}")
+				add_library(MbedTLS::mbed${COMP} INTERFACE IMPORTED)
+				set_target_properties(MbedTLS::mbed${COMP} PROPERTIES
+					IMPORTED_LIBNAME "${mbed${COMP}_LIBRARY}"
+				)
 			endif()
 		endif()
 	endforeach()
 
-	set_target_properties(mbedtls PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${mbedtls_INCLUDE_DIR}")
+	set_target_properties(MbedTLS::mbedtls PROPERTIES
+		INTERFACE_INCLUDE_DIRECTORIES "${mbedtls_INCLUDE_DIR}"
+	)
 
 	if(NOT MBEDTLS_INCLUDES_X509 AND NOT MBEDTLS_INCLUDES_CRYPTO)
-		set_property(TARGET mbedtls PROPERTY INTERFACE_LINK_LIBRARIES mbedcrypto mbedx509)
+		set_target_properties(MbedTLS::mbedtls PROPERTIES
+			INTERFACE_LINK_LIBRARIES MbedTLS::mbedcrypto MbedTLS::mbedx509
+		)
 	endif()
 endif()

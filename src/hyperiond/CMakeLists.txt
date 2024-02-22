@@ -237,7 +237,7 @@ if(WIN32 AND NOT DEFINED ENV{GITHUB_ACTIONS})
 		if(TARGET Qt${QT_VERSION_MAJOR}::windeployqt)
 			set(WINDEPLOYQT_PARAMS --verbose 0 --no-compiler-runtime --no-opengl-sw --no-system-d3d-compiler)
 			add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-				COMMAND "$<TARGET_FILE:Qt${QT_VERSION_MAJOR}::windeployqt>" ${WINDEPLOYQT_PARAMS} "$<TARGET_FILE:${PROJECT_NAME}>"
+				COMMAND Qt${QT_VERSION_MAJOR}::windeployqt> ${WINDEPLOYQT_PARAMS} "$<TARGET_FILE:${PROJECT_NAME}>"
 			)
 		endif()
 

@@ -1,0 +1,61 @@
+name: Pre-build Dependencies
+
+on:
+
+######################
+###### Linux #########
+######################
+
+jobs:
+  Linux:
+    name: ${{ matrix.os.distribution }} ${{ matrix.os.codename }} Qt ${{ matrix.qt_version }} (${{ matrix.os.architecture[0] }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        qt_version: ['5', '6']
+        os: [
+          { distribution: debian, codename: buster,   architecture: [ amd64, linux/amd64  ], platform: x11 },
+          { distribution: debian, codename: buster,   architecture: [ armv6, linux/arm/v6 ], platform: rpi },
+          { distribution: debian, codename: buster,   architecture: [ armv7, linux/arm/v7 ], platform: rpi },
+          { distribution: debian, codename: buster,   architecture: [ arm64, linux/arm64  ], platform: rpi },
+          { distribution: debian, codename: bullseye, architecture: [ amd64, linux/amd64  ], platform: x11 },
+          { distribution: debian, codename: bullseye, architecture: [ armv7, linux/arm/v7 ], platform: rpi },
+          { distribution: debian, codename: bullseye, architecture: [ arm64, linux/arm64  ], platform: rpi }
+        ]
+        isQt5:
+          - ${{ matrix.qt_version == '5' }}
+        exclude:
+          - isQt5: true
+            os: { distribution: debian, codename: bullseye }
+          - isQt5: false
+            os: { distribution: debian, codename: buster }
+
+    steps:
+      - name: ⬇ Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: 👷 Build
+        shell: bash
+        run: |
+          docker run --rm --platform=${{ matrix.os.architecture[1] }} \
+            -v "${{ github.workspace }}:/source:rw" \
+            -w "/source" \
+            ghcr.io/hyperion-project/${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }} \
+            /bin/bash -c "cmake --preset linux-release -DPLATFORM=${{ matrix.os.platform }} -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/build &&
+            cmake --build --preset linux-release --target dependencies/install --parallel $(nproc)"
+        env:
+          DOCKER_IMAGE: ${{ matrix.os.distribution }}
+          DOCKER_TAG: ${{ matrix.os.codename }}${{ matrix.qt_version == '6' && '-qt6' || '' }}
+
+      - name: 💾 Restore pre-build dependencies
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ${{ github.workspace }}/build/bin
+            ${{ github.workspace }}/build/include
+            ${{ github.workspace }}/build/lib
+          key: ${{ matrix.os.distribution }}_${{ matrix.os.codename }}_${{ matrix.os.architecture[0] }}_qt${{ inputs.qt_version }}_${{ hashFiles('.git/modules/dependencies/external/**/HEAD') }}

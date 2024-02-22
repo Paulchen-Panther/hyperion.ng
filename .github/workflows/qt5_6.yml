@@ -66,6 +66,16 @@ jobs:
         shell: bash
         run: tr -d '\n' < .version > temp && mv temp .version && echo -n "+PR${{ inputs.pull_request_number }}" >> .version
 
+      - name: 💾 Restore pre-build dependencies
+        id: cache-dependencies
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ${{ github.workspace }}/build/bin
+            ${{ github.workspace }}/build/include
+            ${{ github.workspace }}/build/lib
+          key: ${{ matrix.os.distribution }}_${{ matrix.os.codename }}_${{ matrix.os.architecture[0] }}_qt${{ inputs.qt_version }}_${{ hashFiles('.git/modules/dependencies/external/**/HEAD') }}
+
       - name: 👷 Build
         shell: bash
         run: |
@@ -74,15 +84,15 @@ jobs:
             -v "${{ github.workspace }}/deploy:/deploy" \
             -v "${{ github.workspace }}:/source:rw" \
             -w "/source" \
-            ghcr.io/paulchen-panther/${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }} \
-            /bin/bash -c "mkdir build &&
-            cmake --preset linux-${{ env.BUILD_TYPE }} -DPLATFORM=${{ matrix.os.platform }} &&
+            ghcr.io/hyperion-project/${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }} \
+            /bin/bash -c "cmake --preset linux-${{ env.BUILD_TYPE }} -DPLATFORM=${{ matrix.os.platform }} ${{ env.EXTRA_ARGS }} &&
             cmake --build --preset linux-${{ env.BUILD_TYPE }} --target package --parallel $(nproc) &&
             cp /source/build/Hyperion-* /deploy/ 2>/dev/null"
         env:
           DOCKER_IMAGE: ${{ matrix.os.distribution }}
           DOCKER_TAG: ${{ matrix.os.codename }}${{ inputs.qt_version == '6' && '-qt6' || '' }}
           BUILD_TYPE: ${{ inputs.event_name == 'pull_request' && 'debug' || 'release' }}
+          EXTRA_ARGS:
 
       - name: 📦 Upload
         if: ${{ inputs.publish || inputs.event_name == 'pull_request' }}

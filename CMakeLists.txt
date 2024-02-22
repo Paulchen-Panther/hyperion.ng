@@ -207,6 +207,7 @@ cmake_dependent_option(ENABLE_QT_EXT			"Enable standalone Qt grabber"				ON "ENA
 cmake_dependent_option(ENABLE_OSX_EXT			"Enable standalone OSX grabber"				ON "ENABLE_OSX;ENABLE_FLATBUF_CONNECT"														OFF)
 
 # 3rd party
+option(USE_SYSTEM_LIBUSB_LIBS					"Use LibUSB library from system"																										OFF)
 option(USE_SYSTEM_QMDNS_LIBS					"Use QMdnsEngine library from system"																									OFF)
 option(USE_SYSTEM_FLATBUFFERS_LIBS				"Use FlatBuffers library from system"																									OFF)
 option(USE_SYSTEM_PROTO_LIBS					"Use Protocol Buffers library from system"																								OFF)
@@ -334,7 +335,7 @@ find_package(Qt${QT_VERSION_MAJOR} ${QT_VERSION} COMPONENTS Core Gui Network Sql
 #=============================================================================
 
 if(ENABLE_JSONCHECKS)
-	if("${CMAKE_VERSION}" VERSION_LESS "3.12.0")
+	if(${CMAKE_VERSION} VERSION_LESS "3.12.0")
 		find_package(PythonInterp 3.5 QUIET REQUIRED)
 	else()
 		find_package(Python3 COMPONENTS Interpreter Development QUIET REQUIRED)

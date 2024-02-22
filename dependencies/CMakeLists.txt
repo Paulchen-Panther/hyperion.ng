@@ -1,33 +1,75 @@
 # =============================================================================
-# HIDAPI & libusb
+# LibUSB
 # =============================================================================
 
 if(ENABLE_DEV_USB_HID)
-	# Build HIDAPI and libusb as static library
-	set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build statically version of HIDAPI and libusb")
+	if(USE_SYSTEM_LIBUSB_LIBS)
+		find_package(LibUSB QUIT)
+		if(NOT LibUSB_FOUND)
+			message(STATUS "Could not find LibUSB system library. Building from source.")
+			set(USE_SYSTEM_LIBUSB_LIBS OFF CACHE INTERNAL "Use LibUSB library from system")
+		endif()
+	endif()
+
+	if(NOT USE_SYSTEM_LIBUSB_LIBS)
+		# Build LibUSB as static library
+		set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build statically version of LibUSB")
+
+		# Suppress warnings about "Compatibility with CMake < 3.5 will be removed from a future version of CMake"
+		set(CMAKE_WARN_DEPRECATED OFF CACHE BOOL "" FORCE)
+
+		# Disable build of LibUSB tests
+		set(LIBUSB_BUILD_TESTING OFF CACHE BOOL "Build libusb Tests")
+
+		# Disable build of LibUSB examples
+		set(LIBUSB_BUILD_EXAMPLES OFF CACHE BOOL "Build libusb examples")
+
+		# Add LibUSB directory to the build
+		add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/external/libusb-cmake")
+	endif()
+
+	if(TARGET usb-1.0)
+		if(NOT TARGET libusb)
+			add_library(libusb INTERFACE IMPORTED GLOBAL)
+			target_link_libraries(libusb INTERFACE usb-1.0)
+		endif()
+
+		# static libusb version detection
+		get_build_interface_include_directory(TARGET usb-1.0 OUTPUT LIBUSB_INCLUDE_DIR)
+		if(LIBUSB_INCLUDE_DIR AND EXISTS "${LIBUSB_INCLUDE_DIR}/version.h")
+			file(READ "${LIBUSB_INCLUDE_DIR}/version.h" VERSIONHEADERDATA)
+			string(REGEX MATCH "#define LIBUSB_MAJOR ([0-9]*)" _ ${VERSIONHEADERDATA})
+			set(LIBUSB_VERSION_MAJOR ${CMAKE_MATCH_1})
+			string(REGEX MATCH "#define LIBUSB_MINOR ([0-9]*)" _ ${VERSIONHEADERDATA})
+			set(LIBUSB_VERSION_MINOR ${CMAKE_MATCH_1})
+			string(REGEX MATCH "#define LIBUSB_MICRO ([0-9]*)" _ ${VERSIONHEADERDATA})
+			set(LIBUSB_VERSION_MICRO ${CMAKE_MATCH_1})
+			set(LibUSB_VERSION "${LIBUSB_VERSION_MAJOR}.${LIBUSB_VERSION_MINOR}.${LIBUSB_VERSION_MICRO}")
+		endif()
+
+		if(LibUSB_VERSION)
+			define_property(TARGET PROPERTY LIBUSB_VERSION_PROPERTY
+				BRIEF_DOCS "Custom LibUSB version target property."
+				FULL_DOCS "Custom LibUSB version target property."
+			)
+
+			set_target_properties(libusb PROPERTIES
+				LIBUSB_VERSION_PROPERTY ${LibUSB_VERSION}
+			)
+		endif()
+	endif()
+endif()
+
+# =============================================================================
+# HIDAPI
+# =============================================================================
+
+if(ENABLE_DEV_USB_HID)
+	# Build HIDAPI as static library
+	set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build statically version of HIDAPI")
 
 	# Suppress warnings about "Compatibility with CMake < 3.5 will be removed from a future version of CMake"
-	set(CMAKE_WARN_DEPRECATED OFF CACHE BOOL "" FORCE)
-
-	#=============================================================================
-	# libusb
-	#=============================================================================
-
-	# Install libusb targets
-	set(LIBUSB_INSTALL_TARGETS ON CACHE BOOL "Enable the installation of libusb targets")
-
-	# Disable build of libusb examples
-	set(LIBUSB_BUILD_EXAMPLES OFF CACHE BOOL "Build libusb examples")
-
-	# Disable build of libusb tests
-	set(LIBUSB_BUILD_TESTING OFF CACHE BOOL "Build libusb Tests")
-
-	# Add libusb-cmake directory to the build
-	add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/external/libusb-cmake" EXCLUDE_FROM_ALL)
-
-	#=============================================================================
-	# HIDAPI
-	#=============================================================================
+	set(CMAKE_WARN_DEPRECATED OFF CACHE INTERNAL "")
 
 	# Use the libusb based implementation of HIDAPI (Linux only)
 	if(CMAKE_SYSTEM_NAME MATCHES "Linux")
@@ -41,47 +83,13 @@ if(ENABLE_DEV_USB_HID)
 	set(HIDAPI_BUILD_HIDTEST OFF CACHE BOOL "Disable small console test application hidtest")
 
 	# Add HIDAPI directory to the build
-	add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/external/hidapi" EXCLUDE_FROM_ALL)
+	add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/external/hidapi")
 
 	# Set HIDAPI version to the parent scope for configure summary
 	if(hidapi_VERSION)
 		set(hidapi_VERSION "${hidapi_VERSION}" PARENT_SCOPE)
 	endif()
 endif()
-
-#=============================================================================
-# HIDAPI
-#=============================================================================
-
-# if(ENABLE_DEV_USB_HID)
-# 	# Find libusb
-# 	find_package(libusb-1.0 REQUIRED)
-
-# 	# Build HIDAPI as static library
-# 	set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build statically version of HIDAPI")
-
-# 	# Use the libusb based implementation of HIDAPI (Linux only)
-# 	if(CMAKE_SYSTEM_NAME MATCHES "Linux")
-# 		set(HIDAPI_WITH_HIDRAW OFF CACHE BOOL "Build HIDRAW-based implementation of HIDAPI")
-# 	endif()
-
-# 	# Suppress warnings about "Compatibility with CMake < 3.5 will be removed from a future version of CMake"
-# 	set(CMAKE_WARN_DEPRECATED OFF CACHE BOOL "" FORCE)
-
-# 	# Install HIDAPI targets
-# 	set(HIDAPI_INSTALL_TARGETS ON CACHE BOOL "Enable the installation of HIDAPI targets")
-
-# 	# Disable build of HIDAPI tests
-# 	set(HIDAPI_BUILD_HIDTEST OFF CACHE BOOL "Enable small console test application hidtest")
-
-# 	# Add HIDAPI directory to the build
-# 	add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/external/hidapi")
-
-# 	# Set HIDAPI version to the parent scope for configure summary
-# 	if(hidapi_VERSION)
-# 		set(hidapi_VERSION "${hidapi_VERSION}" PARENT_SCOPE)
-# 	endif()
-# endif()
 
 #=============================================================================
 # Tinkerforge
@@ -120,54 +128,42 @@ endif()
 # QMdnsEngine
 #=============================================================================
 
-if (ENABLE_MDNS)
+if(ENABLE_MDNS)
 	if(USE_SYSTEM_QMDNS_LIBS)
-		find_package(qmdnsengine REQUIRED)
-	else()
-		string(REPLACE ";" "$<SEMICOLON>" CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}")
-		if(NOT CMAKE_OSX_ARCHITECTURES STREQUAL "" AND NOT CMAKE_OSX_DEPLOYMENT_TARGET STREQUAL "")
-			string(REPLACE ";" "$<SEMICOLON>" CMAKE_OSX_ARCHITECTURES "${CMAKE_OSX_ARCHITECTURES}")
-			set(CMAKE_EXTRA_ARGS
-				-DCMAKE_OSX_ARCHITECTURES:STRING=${CMAKE_OSX_ARCHITECTURES}
-				-DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=${CMAKE_OSX_DEPLOYMENT_TARGET}
+		find_package(qmdnsengine CONFIG QUIET)
+		if(NOT qmdnsengine_FOUND)
+			find_package(qmdnsengine REQUIRED)
+		endif()
+	endif()
+
+	if(NOT USE_SYSTEM_QMDNS_LIBS)
+		# Build QMdnsEngine as static library
+		set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build statically version of QMdnsEngine")
+
+		# Suppress warnings about "Compatibility with CMake < 3.5 will be removed from a future version of CMake"
+		set(CMAKE_WARN_DEPRECATED OFF CACHE BOOL "" FORCE)
+
+		# Add QMdnsEngine directory to the build
+		add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/external/qmdnsengine")
+	endif()
+
+	if(TARGET qmdnsengine)
+		if(NOT TARGET qmdns)
+			add_library(qmdns INTERFACE IMPORTED GLOBAL)
+			target_link_libraries(qmdns INTERFACE qmdnsengine)
+		endif()
+
+		get_target_property(qmdnsengine_VERSION qmdnsengine VERSION)
+		if(qmdnsengine_VERSION)
+			define_property(TARGET PROPERTY QMDNSENGINE_VERSION_PROPERTY
+				BRIEF_DOCS "Custom QMdnsEngine version target property."
+				FULL_DOCS "Custom QMdnsEngine version target property."
+			)
+
+			set_target_properties(qmdns PROPERTIES
+				QMDNSENGINE_VERSION_PROPERTY ${qmdnsengine_VERSION}
 			)
 		endif()
-
-		get_property(isMultiConfig GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
-		if(NOT isMultiConfig)
-			list(APPEND ${CMAKE_EXTRA_ARGS} "-DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}")
-		endif()
-
-		include(ExternalProject)
-		ExternalProject_Add(qmdns
-			PREFIX				${CMAKE_CURRENT_BINARY_DIR}/external/qmdnsengine
-			BUILD_ALWAYS		OFF
-			DOWNLOAD_COMMAND	""
-			BINARY_DIR			${CMAKE_CURRENT_BINARY_DIR}/external/qmdnsengine/bin
-			SOURCE_DIR			${CMAKE_SOURCE_DIR}/dependencies/external/qmdnsengine
-			CMAKE_ARGS			-DBUILD_SHARED_LIBS:BOOL=OFF
-								-DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_BINARY_DIR}
-								-DBIN_INSTALL_DIR:STRING=lib
-								-DLIB_INSTALL_DIR:STRING=lib
-								-DINCLUDE_INSTALL_DIR:STRING=include
-								-DCMAKE_PREFIX_PATH:STRING=${CMAKE_PREFIX_PATH}
-								-DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER}
-								-DCMAKE_CXX_COMPILER:FILEPATH=${CMAKE_CXX_COMPILER}
-								-DCMAKE_C_FLAGS:STRING=${CMAKE_C_FLAGS}
-								-DCMAKE_CXX_FLAGS:STRING=${CMAKE_CXX_FLAGS}
-								-Wno-dev # We don't want to be warned over unused variables
-								${CMAKE_EXTRA_ARGS}
-			INSTALL_DIR			${CMAKE_BINARY_DIR}
-			BUILD_BYPRODUCTS    <INSTALL_DIR>/lib/${CMAKE_STATIC_LIBRARY_PREFIX}qmdnsengine${CMAKE_STATIC_LIBRARY_SUFFIX}
-		)
-
-		add_library(qmdnsengine STATIC IMPORTED GLOBAL)
-		add_dependencies(qmdnsengine qmdns)
-		ExternalProject_Get_Property(qmdns INSTALL_DIR)
-		set_target_properties(qmdnsengine PROPERTIES
-			IMPORTED_LOCATION "${INSTALL_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}qmdnsengine${CMAKE_STATIC_LIBRARY_SUFFIX}"
-			INTERFACE_INCLUDE_DIRECTORIES "${INSTALL_DIR}/include"
-		)
 	endif()
 endif()
 
@@ -177,29 +173,15 @@ endif()
 
 if(ENABLE_FLATBUF_SERVER OR ENABLE_FLATBUF_CONNECT)
 	if(USE_SYSTEM_FLATBUFFERS_LIBS)
-		find_package(flatbuffers REQUIRED CONFIG NAMES flatbuffers Flatbuffers FlatBuffers)
-
-		if(TARGET flatbuffers::flatbuffers AND NOT TARGET flatbuffers)
-			add_library(flatbuffers INTERFACE IMPORTED GLOBAL)
-			set_target_properties(flatbuffers PROPERTIES
-				INTERFACE_LINK_LIBRARIES flatbuffers::flatbuffers
-				INTERFACE_INCLUDE_DIRECTORIES $<TARGET_PROPERTY:flatbuffers::flatbuffers,INTERFACE_INCLUDE_DIRECTORIES>
-			)
+		find_package(Flatbuffers CONFIG QUIET NAMES flatbuffers Flatbuffers FlatBuffers)
+		if(NOT Flatbuffers_FOUND)
+			find_package(Flatbuffers REQUIRED)
 		endif()
 
 		if(TARGET flatbuffers::flatc AND NOT TARGET flatc)
 			add_executable(flatc IMPORTED GLOBAL)
-			get_target_property(FLATBUFFERS_FLATC_EXECUTABLE flatbuffers::flatc IMPORTED_LOCATION_RELEASE)
-			set_target_properties(flatc PROPERTIES
-				IMPORTED_LOCATION "${FLATBUFFERS_FLATC_EXECUTABLE}"
-			)
-		endif()
-
-		if(NOT TARGET flatbuffers OR NOT TARGET flatc)
-			# Fallback: build flatbuffers static libray inside project
-			message(STATUS "Could not find Flatbuffers system library, build static Flatbuffers library")
-			set(DEFAULT_USE_SYSTEM_FLATBUFFERS_LIBS OFF PARENT_SCOPE)
-			set(USE_SYSTEM_FLATBUFFERS_LIBS OFF)
+			get_target_property(FLATC_EXECUTABLE flatbuffers::flatc IMPORTED_LOCATION_RELEASE)
+			set_target_properties(flatc PROPERTIES IMPORTED_LOCATION ${FLATC_EXECUTABLE})
 		endif()
 	endif()
 
@@ -232,12 +214,11 @@ if(ENABLE_FLATBUF_SERVER OR ENABLE_FLATBUF_CONNECT)
 					BUILD_ALWAYS		OFF
 					DOWNLOAD_COMMAND	""
 					INSTALL_COMMAND     ""
-					SOURCE_DIR			${CMAKE_SOURCE_DIR}/dependencies/external/flatbuffers
+					SOURCE_DIR			${CMAKE_CURRENT_SOURCE_DIR}/external/flatbuffers
 					CMAKE_ARGS          -DFLATBUFFERS_BUILD_FLATLIB:BOOL=OFF
 										-DFLATBUFFERS_INSTALL:BOOL=OFF
 										-DBUILD_SHARED_LIBS:BOOL=${BUILD_SHARED_LIBS}
 										-DFLATBUFFERS_BUILD_TESTS:BOOL=${FLATBUFFERS_BUILD_TESTS}
-										-DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_BINARY_DIR}
 										-DCMAKE_CXX_COMPILER:FILEPATH=${CMAKE_CXX_COMPILER}
 										-DCMAKE_CXX_FLAGS:STRING=${CMAKE_CXX_FLAGS}
 										-DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
@@ -245,10 +226,10 @@ if(ENABLE_FLATBUF_SERVER OR ENABLE_FLATBUF_CONNECT)
 					BUILD_BYPRODUCTS    <BINARY_DIR>/flatc${CMAKE_EXECUTABLE_SUFFIX}
 				)
 
-				add_executable(flatc IMPORTED GLOBAL)
+				add_executable(flatc IMPORTED GOBAL)
 				ExternalProject_Get_Property(flatc-host BINARY_DIR)
 				set_target_properties(flatc PROPERTIES
-					IMPORTED_LOCATION "${BINARY_DIR}/flatc${CMAKE_EXECUTABLE_SUFFIX}"
+					IMPORTED_LOCATION ${BINARY_DIR}/flatc${CMAKE_EXECUTABLE_SUFFIX}
 				)
 				add_dependencies(flatc flatc-host)
 			endif()
@@ -256,22 +237,43 @@ if(ENABLE_FLATBUF_SERVER OR ENABLE_FLATBUF_CONNECT)
 			# export the flatc compiler so it can be used when cross compiling
 			export(TARGETS flatc FILE "${CMAKE_BINARY_DIR}/flatc_export.cmake")
 		endif()
-
-		get_build_interface_include_directory(TARGET flatbuffers OUTPUT FLATBUFFERS_INCLUDE_DIRS)
-		if(FLATBUFFERS_INCLUDE_DIRS AND EXISTS "${FLATBUFFERS_INCLUDE_DIRS}/../package.json")
-			file(STRINGS "${FLATBUFFERS_INCLUDE_DIRS}/../package.json" _FLATBUFFERS_VERSION_STRING REGEX "^[ \t\r\n]+\"version\":[ \t\r\n]+\"[0-9]+.[0-9]+.[0-9]+\",")
-			string(REGEX REPLACE "^[ \t\r\n]+\"version\":[ \t\r\n]+\"([0-9]+.[0-9]+.[0-9]+)\"," "\\1" flatbuffers_VERSION "${_FLATBUFFERS_VERSION_STRING}")
-		endif ()
 	endif()
 
-	if(TARGET flatbuffers AND flatbuffers_VERSION)
-		define_property(TARGET PROPERTY FLATBUFFERS_VERSION_PROPERTY
-			BRIEF_DOCS "Custom FlatBuffers version target property."
-			FULL_DOCS "Custom FlatBuffers version target property."
-		)
-		set_target_properties(flatbuffers PROPERTIES
-			FLATBUFFERS_VERSION_PROPERTY "${flatbuffers_VERSION}"
-		)
+	if(TARGET flatbuffers::flatbuffers OR TARGET FlatBuffers::FlatBuffers)
+		if(NOT TARGET FlatBuffers)
+			add_library(FlatBuffers INTERFACE IMPORTED GLOBAL)
+			if(TARGET flatbuffers::flatbuffers)
+				target_link_libraries(FlatBuffers INTERFACE flatbuffers::flatbuffers)
+			else()
+				target_link_libraries(FlatBuffers INTERFACE FlatBuffers::FlatBuffers)
+			endif()
+		endif()
+
+		if(TARGET flatbuffers::flatbuffers)
+			get_build_interface_include_directory(TARGET flatbuffers::flatbuffers OUTPUT FLATBUFFERS_INCLUDE_DIR)
+		else()
+			get_build_interface_include_directory(TARGET FlatBuffers::FlatBuffers OUTPUT FLATBUFFERS_INCLUDE_DIR)
+		endif()
+
+		# static flatbuffers version detection from: https://github.com/hyperledger-archives/iroha-ametsuchi/blob/master/cmake/Modules/Findflatbuffers.cmake
+		if(FLATBUFFERS_INCLUDE_DIR AND EXISTS "${FLATBUFFERS_INCLUDE_DIR}/flatbuffers/base.h")
+			file(STRINGS "${FLATBUFFERS_INCLUDE_DIR}/flatbuffers/base.h" flatbuffers_version_str REGEX "#define FLATBUFFERS_VERSION_[A-Z]+ ")
+			string(REGEX REPLACE ".*#define FLATBUFFERS_VERSION_MAJOR ([0-9]+).*" "\\1" flatbuffers_MAJOR_VERSION "${flatbuffers_version_str}")
+			string(REGEX REPLACE ".*#define FLATBUFFERS_VERSION_MINOR ([0-9]+).*" "\\1" flatbuffers_MINOR_VERSION "${flatbuffers_version_str}")
+			string(REGEX REPLACE ".*#define FLATBUFFERS_VERSION_REVISION ([0-9]+).*" "\\1" flatbuffers_REVISION_VERSION "${flatbuffers_version_str}")
+			set(Flatbuffers_VERSION "${flatbuffers_MAJOR_VERSION}.${flatbuffers_MINOR_VERSION}.${flatbuffers_REVISION_VERSION}")
+		endif()
+
+		if(Flatbuffers_VERSION)
+			define_property(TARGET PROPERTY FLATBUFFERS_VERSION_PROPERTY
+				BRIEF_DOCS "Custom FlatBuffers version target property."
+				FULL_DOCS "Custom FlatBuffers version target property."
+			)
+
+			set_target_properties(FlatBuffers PROPERTIES
+				FLATBUFFERS_VERSION_PROPERTY ${Flatbuffers_VERSION}
+			)
+		endif()
 	endif()
 
 	function(compile_flatbuffer_schema FBS_GENERATED)
@@ -290,7 +292,7 @@ if(ENABLE_FLATBUF_SERVER OR ENABLE_FLATBUF_CONNECT)
 
 			add_custom_command(
 				OUTPUT ${OUT_FILE}
-				COMMAND $<TARGET_FILE:flatc>
+				COMMAND "$<TARGET_FILE:flatc>"
 				ARGS -c --no-includes --gen-mutable --gen-object-api -o "${CMAKE_CURRENT_BINARY_DIR}" "${ABS_FIL}"
 				DEPENDS ${ABS_FIL} flatc
 				COMMENT "Running flatbuffers compiler on ${FIL}"
@@ -312,16 +314,20 @@ endif()
 
 if(ENABLE_PROTOBUF_SERVER)
 	if(USE_SYSTEM_PROTO_LIBS)
-		find_package(Protobuf REQUIRED)
-		if(CMAKE_VERSION VERSION_GREATER 3.5.2)
-			set(PROTOBUF_INCLUDE_DIRS ${Protobuf_INCLUDE_DIRS})
-			set(PROTOBUF_PROTOC_EXECUTABLE ${Protobuf_PROTOC_EXECUTABLE})
-			set(PROTOBUF_LIBRARIES ${Protobuf_LIBRARIES})
+		find_package(Protobuf CONFIG QUIET NAMES protobuf Protobuf ProtoBuf)
+		if(NOT Protobuf_FOUND)
+			find_package(Protobuf REQUIRED)
+		endif()
+
+		if(TARGET protobuf::protoc AND NOT TARGET protoc)
+			add_executable(protoc IMPORTED GLOBAL)
+			get_target_property(PROTOC_EXECUTABLE protobuf::protoc IMPORTED_LOCATION_RELEASE)
+			set_target_properties(protoc PROPERTIES IMPORTED_LOCATION ${PROTOC_EXECUTABLE})
 		endif()
 	endif()
 
 	if(NOT USE_SYSTEM_PROTO_LIBS)
-		# Build Ptobuf as static library
+		# Build Protobuf as static library
 		set(protobuf_BUILD_SHARED_LIBS OFF CACHE BOOL "Build protobuf shared")
 
 		# Disable build of Protobuf tests
@@ -336,6 +342,9 @@ if(ENABLE_PROTOBUF_SERVER)
 		# Disable Protobuf Compiler if cross compiling (and import or build nativly)
 		include (CMakeDependentOption)
 		cmake_dependent_option(protobuf_BUILD_PROTOC_BINARIES "Build protobuf libraries and protoc compiler" OFF "CMAKE_CROSSCOMPILING" ON)
+
+		# Override debug prefix
+		set(protobuf_DEBUG_POSTFIX "" CACHE STRING "Default debug postfix" FORCE)
 
 		# Disable static linking of MSVC runtime libraries under Windows
 		if (WIN32)
@@ -360,14 +369,13 @@ if(ENABLE_PROTOBUF_SERVER)
 					BUILD_ALWAYS		OFF
 					DOWNLOAD_COMMAND	""
 					INSTALL_COMMAND     ""
-					SOURCE_DIR			${CMAKE_SOURCE_DIR}/dependencies/external/protobuf
+					SOURCE_DIR			${CMAKE_CURRENT_SOURCE_DIR}/external/protobuf
 					CMAKE_ARGS          -Dprotobuf_BUILD_LIBPROTOC:BOOL=OFF
 										-Dprotobuf_INSTALL:BOOL=OFF
 										-Dprotobuf_BUILD_TESTS:BOOL=${protobuf_BUILD_TESTS}
 										-Dprotobuf_BUILD_SHARED_LIBS:BOOL=${protobuf_BUILD_SHARED_LIBS}
 										-Dprotobuf_WITH_ZLIB:BOOL=${protobuf_WITH_ZLIB}
 										-DABSL_PROPAGATE_CXX_STD:BOOL=${ABSL_PROPAGATE_CXX_STD}
-										-DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_BINARY_DIR}
 										-DCMAKE_CXX_COMPILER:FILEPATH=${CMAKE_CXX_COMPILER}
 										-DCMAKE_CXX_FLAGS:STRING=${CMAKE_CXX_FLAGS}
 										-DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
@@ -378,7 +386,7 @@ if(ENABLE_PROTOBUF_SERVER)
 				add_executable(protoc IMPORTED GLOBAL)
 				ExternalProject_Get_Property(protoc-host BINARY_DIR)
 				set_target_properties(protoc PROPERTIES
-					IMPORTED_LOCATION "${BINARY_DIR}/protoc${CMAKE_EXECUTABLE_SUFFIX}"
+					IMPORTED_LOCATION ${BINARY_DIR}/protoc${CMAKE_EXECUTABLE_SUFFIX}
 				)
 				add_dependencies(protoc protoc-host)
 			endif()
@@ -388,20 +396,32 @@ if(ENABLE_PROTOBUF_SERVER)
 		endif()
 	endif()
 
-	# protobuf version detection from: https://github.com/opencv/opencv/blob/4.x/cmake/OpenCVFindProtobuf.cmake
-	if(TARGET libprotobuf)
-		get_build_interface_include_directory(TARGET libprotobuf OUTPUT PROTOBUF_INCLUDE_DIR)
-		file(STRINGS "${PROTOBUF_INCLUDE_DIR}/google/protobuf/stubs/common.h" ver REGEX "#define GOOGLE_PROTOBUF_VERSION [0-9]+")
-		string(REGEX MATCHALL "[0-9]+" ver ${ver})
-		math(EXPR minor "${ver} / 1000 % 1000")
-		math(EXPR patch "${ver} % 1000")
-		define_property(TARGET PROPERTY PROTOBUF_VERSION_PROPERTY
-			BRIEF_DOCS "Custom Protocol Buffers version target property."
-			FULL_DOCS "Custom Protocol Buffers version target property."
-		)
-		set_target_properties(libprotobuf PROPERTIES
-			PROTOBUF_VERSION_PROPERTY "${minor}.${patch}"
-		)
+	if(TARGET protobuf::libprotobuf)
+		if(NOT TARGET ProtoBuf)
+			add_library(ProtoBuf INTERFACE IMPORTED GLOBAL)
+			target_link_libraries(ProtoBuf INTERFACE protobuf::libprotobuf)
+		endif()
+
+		# static protobuf version detection from: https://github.com/opencv/opencv/blob/4.x/cmake/OpenCVFindProtobuf.cmake
+		get_build_interface_include_directory(TARGET protobuf::libprotobuf OUTPUT PROTOBUF_INCLUDE_DIR)
+		if(PROTOBUF_INCLUDE_DIR AND EXISTS "${PROTOBUF_INCLUDE_DIR}/google/protobuf/stubs/common.h")
+			file(STRINGS "${PROTOBUF_INCLUDE_DIR}/google/protobuf/stubs/common.h" ver REGEX "#define GOOGLE_PROTOBUF_VERSION [0-9]+")
+			string(REGEX MATCHALL "[0-9]+" ver ${ver})
+			math(EXPR minor "${ver} / 1000 % 1000")
+			math(EXPR patch "${ver} % 1000")
+			set(Protobuf_VERSION "${minor}.${patch}")
+		endif()
+
+		if(Protobuf_VERSION)
+			define_property(TARGET PROPERTY PROTOBUF_VERSION_PROPERTY
+				BRIEF_DOCS "Custom Protocol Buffers version target property."
+				FULL_DOCS "Custom Protocol Buffers version target property."
+			)
+
+			set_target_properties(ProtoBuf PROPERTIES
+				PROTOBUF_VERSION_PROPERTY ${Protobuf_VERSION}
+			)
+		endif()
 	endif()
 
 	function(protobuf_generate_cpp SRCS HDRS)
@@ -446,7 +466,7 @@ if(ENABLE_PROTOBUF_SERVER)
 			add_custom_command(
 				OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${FIL_WE}.pb.cc"
 						"${CMAKE_CURRENT_BINARY_DIR}/${FIL_WE}.pb.h"
-				COMMAND $<TARGET_FILE:protoc>
+				COMMAND "$<TARGET_FILE:protoc>"
 				ARGS --cpp_out ${CMAKE_CURRENT_BINARY_DIR} ${_protobuf_include_path} ${ABS_FIL}
 				DEPENDS ${ABS_FIL} protoc
 				COMMENT "Running C++ protocol buffer compiler on ${FIL}"
@@ -476,65 +496,70 @@ if(ENABLE_PROTOBUF_SERVER)
 endif()
 
 #=============================================================================
-# mbedTLS
+# MbedTLS
 #=============================================================================
 
 if(ENABLE_DEV_NETWORK)
 	if(USE_SYSTEM_MBEDTLS_LIBS)
-		find_package(mbedtls REQUIRED)
-		if(NOT MBEDTLS_FOUND)
-			message(STATUS "Could NOT find mbedTLS system libraries, build static mbedTLS libraries")
-			# Fallback: build mbedTLS static libray inside project
-			set(DEFAULT_USE_SYSTEM_MBEDTLS_LIBS OFF PARENT_SCOPE)
-			set(USE_SYSTEM_MBEDTLS_LIBS OFF)
-		else()
-			set(BUILD_OR_SYSTEM "system")
+		find_package(MbedTLS CONFIG QUIET NAMES mbedtls mbedTLS MbedTLS)
+		if(NOT MbedTLS_FOUND)
+			find_package(MbedTLS REQUIRED)
 		endif()
 	endif()
 
 	if(NOT USE_SYSTEM_MBEDTLS_LIBS)
-		# Build mbedTLS as static library
-		set(USE_SHARED_MBEDTLS_LIBRARY OFF CACHE BOOL "Disable mbedTLS shared libraries")
-		set(USE_STATIC_MBEDTLS_LIBRARY ON CACHE BOOL "Enable mbedTLS static libraries")
-		set(BUILD_OR_SYSTEM "static")
+		# Build MbedTLS as static library
+		set(USE_SHARED_MBEDTLS_LIBRARY OFF CACHE BOOL "Disable MbedTLS shared libraries")
+		set(USE_STATIC_MBEDTLS_LIBRARY ON CACHE BOOL "Enable MbedTLS static libraries")
 
-		# Disable build of mbedTLS tests
-		set(ENABLE_TESTING OFF CACHE BOOL "Build mbedTLS tests")
+		# Disable build of MbedTLS tests
+		set(ENABLE_TESTING OFF CACHE BOOL "Build MbedTLS tests")
 
 		# Disable fatal warnings
 		option(MBEDTLS_FATAL_WARNINGS "Compiler warnings treated as errors" OFF)
 
-		# Disable build of mbedTLS program building
-		set(ENABLE_PROGRAMS OFF CACHE BOOL "Build mbedTLS programs")
+		# Disable build of MbedTLS program building
+		set(ENABLE_PROGRAMS OFF CACHE BOOL "Build MbedTLS programs")
 
-		# Add mbedTLS directory to the build
+		# Enable export
+		set(DISABLE_PACKAGE_CONFIG_AND_INSTALL OFF CACHE INTERNAL "Disable package configuration, target export and installation")
+
+		# Add MbedTLS directory to the build
 		add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/external/mbedtls")
 	endif()
 
-	# Get current target include directory and get mbedtls version
-	get_build_interface_include_directory(TARGET mbedtls OUTPUT MBEDTLS_INCLUDE_DIR)
-	if(EXISTS "${MBEDTLS_INCLUDE_DIR}/mbedtls/build_info.h")
-		file(STRINGS ${MBEDTLS_INCLUDE_DIR}/mbedtls/build_info.h _MBEDTLS_VERSION_LINE REGEX "^#define[ \t]+MBEDTLS_VERSION_STRING[\t ].*")
-		string(REGEX REPLACE ".*MBEDTLS_VERSION_STRING[\t ]+\"(.*)\"" "\\1" MBEDTLS_VERSION ${_MBEDTLS_VERSION_LINE})
-	elseif(EXISTS "${MBEDTLS_INCLUDE_DIR}/mbedtls/version.h")
-		file(STRINGS "${MBEDTLS_INCLUDE_DIR}/mbedtls/version.h" _MBEDTLS_VERSION_STRING REGEX "^#[\t ]*define[\t ]+MBEDTLS_VERSION_STRING[\t ]+\"[0-9]+.[0-9]+.[0-9]+\"")
-		string(REGEX REPLACE "^.*MBEDTLS_VERSION_STRING.*([0-9]+.[0-9]+.[0-9]+).*" "\\1" MBEDTLS_VERSION "${_MBEDTLS_VERSION_STRING}")
-	endif()
-
 	# Define and set custom MBEDTLS_MAJOR_VERSION target property
-	if(TARGET mbedtls AND MBEDTLS_VERSION)
-		string(REGEX MATCH "[0-9]+|-([A-Za-z0-9_.]+)" MBEDTLS_MAJOR_VERSION ${MBEDTLS_VERSION})
-		define_property(TARGET PROPERTY MBEDTLS_VERSION_PROPERTY
-			BRIEF_DOCS "Custom mbedTLS version target property."
-			FULL_DOCS "Custom mbedTLS version target property."
-		)
-		define_property(TARGET PROPERTY MBEDTLS_MAJOR_VERSION_PROPERTY
-			BRIEF_DOCS "Custom mbedTLS major version target property."
-			FULL_DOCS "Custom mbedTLS major version target property."
-		)
-		set_target_properties(mbedtls PROPERTIES
-			MBEDTLS_VERSION_PROPERTY "${MBEDTLS_VERSION}"
-			MBEDTLS_MAJOR_VERSION_PROPERTY "${MBEDTLS_MAJOR_VERSION}"
-		)
+	if(TARGET MbedTLS::mbedtls)
+		if(NOT TARGET MbedTLS)
+			add_library(MbedTLS INTERFACE IMPORTED GLOBAL)
+			target_link_libraries(MbedTLS INTERFACE MbedTLS::mbedtls)
+		endif()
+
+		# static mbedtls version detection
+		get_build_interface_include_directory(TARGET MbedTLS::mbedtls OUTPUT MBEDTLS_INCLUDE_DIR)
+		if(EXISTS "${MBEDTLS_INCLUDE_DIR}/mbedtls/build_info.h")
+			file(STRINGS ${MBEDTLS_INCLUDE_DIR}/mbedtls/build_info.h _MBEDTLS_VERSION_LINE REGEX "^#define[ \t]+MBEDTLS_VERSION_STRING[\t ].*")
+			string(REGEX REPLACE ".*MBEDTLS_VERSION_STRING[\t ]+\"(.*)\"" "\\1" MbedTLS_VERSION ${_MBEDTLS_VERSION_LINE})
+		elseif(EXISTS "${MBEDTLS_INCLUDE_DIR}/mbedtls/version.h")
+			file(STRINGS "${MBEDTLS_INCLUDE_DIR}/mbedtls/version.h" _MBEDTLS_VERSION_STRING REGEX "^#[\t ]*define[\t ]+MBEDTLS_VERSION_STRING[\t ]+\"[0-9]+.[0-9]+.[0-9]+\"")
+			string(REGEX REPLACE "^.*MBEDTLS_VERSION_STRING.*([0-9]+.[0-9]+.[0-9]+).*" "\\1" MbedTLS_VERSION "${_MBEDTLS_VERSION_STRING}")
+		endif()
+
+		if(MbedTLS_VERSION)
+			string(REGEX MATCH "[0-9]+|-([A-Za-z0-9_.]+)" MBEDTLS_MAJOR_VERSION ${MbedTLS_VERSION})
+			define_property(TARGET PROPERTY MBEDTLS_VERSION_PROPERTY INHERITED
+				BRIEF_DOCS "Custom MbedTLS version target property."
+				FULL_DOCS "Custom MbedTLS version target property."
+			)
+			define_property(TARGET PROPERTY MBEDTLS_MAJOR_VERSION_PROPERTY INHERITED
+				BRIEF_DOCS "Custom MbedTLS major version target property."
+				FULL_DOCS "Custom MbedTLS major version target property."
+			)
+
+			set_target_properties(MbedTLS PROPERTIES
+				MBEDTLS_VERSION_PROPERTY ${MbedTLS_VERSION}
+				MBEDTLS_MAJOR_VERSION_PROPERTY ${MBEDTLS_MAJOR_VERSION}
+			)
+		endif()
 	endif()
 endif(ENABLE_DEV_NETWORK)
