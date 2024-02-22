@@ -113,6 +113,13 @@ if(LibUSB_FOUND)
 			IMPORTED_LOCATION "${LibUSB_LIBRARY}"
 			INTERFACE_INCLUDE_DIRECTORIES "${LibUSB_INCLUDE_DIR}"
 		)
+
+		if(UNIX AND NOT APPLE)
+			find_package(Libudev REQUIRED)
+			set_target_properties(usb-1.0 PROPERTIES
+				INTERFACE_LINK_LIBRARIES Libudev
+			)
+		endif()
 	endif()
 
 	if(NOT LibUSB_VERSION AND NOT CMAKE_CROSSCOMPILING)

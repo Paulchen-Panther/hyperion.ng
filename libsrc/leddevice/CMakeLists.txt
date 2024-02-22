@@ -86,7 +86,10 @@ foreach(f ${Leddevice_SOURCES})
 	endif()
 endforeach()
 
-add_library(leddevice ${CMAKE_BINARY_DIR}/LedDevice_headers.h ${Leddevice_SOURCES})
+add_library(leddevice
+	${CMAKE_BINARY_DIR}/LedDevice_headers.h
+	${Leddevice_SOURCES}
+)
 
 target_link_libraries(leddevice
 	hyperion
@@ -129,15 +132,13 @@ endif()
 if(ENABLE_DEV_USB_HID)
 	if(APPLE)
 		find_library(SECURITY Security REQUIRED)
-	endif()
-
-	if(SYSTEM_MATCHES_LINUX)
+	elseif(UNIX)
 		find_package(Threads REQUIRED)
-		target_link_libraries(leddevice ${CMAKE_THREAD_LIBS_INIT})
 	endif()
 
 	target_link_libraries(leddevice
 		${SECURITY}
+		${CMAKE_THREAD_LIBS_INIT}
 		usb-1.0
 		hidapi::hidapi
 	)
