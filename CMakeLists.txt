@@ -207,11 +207,11 @@ cmake_dependent_option(ENABLE_QT_EXT			"Enable standalone Qt grabber"				ON "ENA
 cmake_dependent_option(ENABLE_OSX_EXT			"Enable standalone OSX grabber"				ON "ENABLE_OSX;ENABLE_FLATBUF_CONNECT"														OFF)
 
 # 3rd party
-option(USE_SYSTEM_LIBUSB_LIBS					"Use LibUSB library from system"																										ON)
-option(USE_SYSTEM_QMDNS_LIBS					"Use QMdnsEngine library from system"																									ON)
-option(USE_SYSTEM_FLATBUFFERS_LIBS				"Use FlatBuffers library from system"																									ON)
-option(USE_SYSTEM_PROTO_LIBS					"Use Protocol Buffers library from system"																								ON)
-option(USE_SYSTEM_MBEDTLS_LIBS					"Use mbedTLS library from system"																										ON)
+option(USE_SYSTEM_LIBUSB_LIBS					"Use LibUSB library from system"																										OFF)
+option(USE_SYSTEM_QMDNS_LIBS					"Use QMdnsEngine library from system"																									OFF)
+option(USE_SYSTEM_FLATBUFFERS_LIBS				"Use FlatBuffers library from system"																									OFF)
+option(USE_SYSTEM_PROTO_LIBS					"Use Protocol Buffers library from system"																								OFF)
+option(USE_SYSTEM_MBEDTLS_LIBS					"Use mbedTLS library from system"																										OFF)
 
 # Tests
 cmake_dependent_option(ENABLE_TESTS				"Compile additional test applications"		ON "DEBUG_BUILD"																			OFF)
