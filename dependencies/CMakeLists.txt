@@ -29,9 +29,9 @@ if(ENABLE_DEV_USB_HID)
 	endif()
 
 	if(TARGET usb-1.0)
-		if(NOT TARGET libusb)
-			add_library(libusb INTERFACE IMPORTED GLOBAL)
-			target_link_libraries(libusb INTERFACE usb-1.0)
+		if(SYSTEM_MATCHES_LINUX)
+			# Extend visibility of usb-1.0 to global scope on linux
+			set_property(TARGET usb-1.0 PROPERTY IMPORTED_GLOBAL TRUE)
 		endif()
 
 		# static libusb version detection
@@ -53,7 +53,7 @@ if(ENABLE_DEV_USB_HID)
 				FULL_DOCS "Custom LibUSB version target property."
 			)
 
-			set_target_properties(libusb PROPERTIES
+			set_target_properties(usb-1.0 PROPERTIES
 				LIBUSB_VERSION_PROPERTY ${LibUSB_VERSION}
 			)
 		endif()
