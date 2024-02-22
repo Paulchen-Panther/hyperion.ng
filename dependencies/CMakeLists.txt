@@ -4,7 +4,7 @@
 
 if(ENABLE_DEV_USB_HID)
 	if(USE_SYSTEM_LIBUSB_LIBS)
-		find_package(LibUSB QUIT)
+		find_package(LibUSB QUIET)
 		if(NOT LibUSB_FOUND)
 			message(STATUS "Could not find LibUSB system library. Building from source.")
 			set(USE_SYSTEM_LIBUSB_LIBS OFF CACHE INTERNAL "Use LibUSB library from system")
@@ -12,28 +12,48 @@ if(ENABLE_DEV_USB_HID)
 	endif()
 
 	if(NOT USE_SYSTEM_LIBUSB_LIBS)
-		# Build LibUSB as static library
-		set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build statically version of LibUSB")
+		if(NOT CMAKE_OSX_ARCHITECTURES STREQUAL "" AND NOT CMAKE_OSX_DEPLOYMENT_TARGET STREQUAL "")
+			string(REPLACE ";" "$<SEMICOLON>" CMAKE_OSX_ARCHITECTURES "${CMAKE_OSX_ARCHITECTURES}")
+			set(CMAKE_EXTRA_ARGS
+				-DCMAKE_OSX_ARCHITECTURES:STRING=${CMAKE_OSX_ARCHITECTURES}
+				-DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=${CMAKE_OSX_DEPLOYMENT_TARGET}
+			)
+		endif()
 
-		# Suppress warnings about "Compatibility with CMake < 3.5 will be removed from a future version of CMake"
-		set(CMAKE_WARN_DEPRECATED OFF CACHE BOOL "" FORCE)
+		get_property(isMultiConfig GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+		if(NOT isMultiConfig)
+			list(APPEND ${CMAKE_EXTRA_ARGS} "-DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}")
+		endif()
 
-		# Disable build of LibUSB tests
-		set(LIBUSB_BUILD_TESTING OFF CACHE BOOL "Build libusb Tests")
+		if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+			set(CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR} CACHE PATH "" FORCE)
+		endif()
 
-		# Disable build of LibUSB examples
-		set(LIBUSB_BUILD_EXAMPLES OFF CACHE BOOL "Build libusb examples")
+		include(ExternalProject)
+		ExternalProject_Add(libusb
+			PREFIX				${CMAKE_CURRENT_BINARY_DIR}/external/libusb-cmake
+			BUILD_ALWAYS		OFF
+			DOWNLOAD_COMMAND	""
+			SOURCE_DIR			${CMAKE_CURRENT_SOURCE_DIR}/external/libusb-cmake
+			CMAKE_ARGS			-DBUILD_SHARED_LIBS:BOOL=OFF # Build libusb as static library
+								-DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
+								-DCMAKE_WARN_DEPRECATED:BOOL=OFF # Suppress warnings about "Compatibility with CMake < 3.5 will be removed from a future version of CMake"
+								-Wno-dev # We don't want to be warned over unused variables
+								${CMAKE_EXTRA_ARGS}
+			INSTALL_DIR			${CMAKE_INSTALL_PREFIX}
+			BUILD_BYPRODUCTS    <BINARY_DIR>/${CMAKE_STATIC_LIBRARY_PREFIX}usb-1.0${CMAKE_STATIC_LIBRARY_SUFFIX}
+		)
 
-		# Add LibUSB directory to the build
-		add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/external/libusb-cmake")
+		add_library(usb-1.0 STATIC IMPORTED GLOBAL)
+		ExternalProject_Get_Property(libusb BINARY_DIR SOURCE_DIR)
+		message(STATUS "BINARY_DIR: ${BINARY_DIR}")
+		set_target_properties(usb-1.0 PROPERTIES
+			IMPORTED_LOCATION "${BINARY_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}usb-1.0${CMAKE_STATIC_LIBRARY_SUFFIX}"
+			INTERFACE_INCLUDE_DIRECTORIES "${SOURCE_DIR}/libusb/libusb"
+		)
 	endif()
 
 	if(TARGET usb-1.0)
-		if(SYSTEM_MATCHES_LINUX)
-			# Extend visibility of usb-1.0 to global scope on linux
-			set_property(TARGET usb-1.0 PROPERTY IMPORTED_GLOBAL TRUE)
-		endif()
-
 		# static libusb version detection
 		get_build_interface_include_directory(TARGET usb-1.0 OUTPUT LIBUSB_INCLUDE_DIR)
 		if(LIBUSB_INCLUDE_DIR AND EXISTS "${LIBUSB_INCLUDE_DIR}/version.h")

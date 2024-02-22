@@ -65,6 +65,7 @@ find_path(LibUSB_INCLUDE_DIR
 		/opt/homebrew
 		/sw
 		${PC_LIBUSB_INCLUDE_DIRS}
+		${CMAKE_BINARY_DIR}
 	HINTS
 		${LIBUSB_ROOT_DIR}
 	PATH_SUFFIXES
@@ -85,6 +86,7 @@ find_library(LibUSB_LIBRARY
 		/opt/homebrew
 		/sw
 		${PC_LIBUSB_LIBRARY_DIRS}
+		${CMAKE_BINARY_DIR}
 	HINTS
 		${LIBUSB_ROOT_DIR}
 	PATH_SUFFIXES
@@ -105,7 +107,7 @@ mark_as_advanced(LibUSB_LIBRARY LibUSB_INCLUDE_DIR)
 
 if(LibUSB_FOUND)
 	if(NOT TARGET usb-1.0)
-		add_library(usb-1.0 UNKNOWN IMPORTED)
+		add_library(usb-1.0 UNKNOWN IMPORTED GLOBAL)
 		set_target_properties(usb-1.0 PROPERTIES
 			IMPORTED_LINK_INTERFACE_LANGUAGES "C"
 			IMPORTED_LOCATION "${LibUSB_LIBRARY}"
