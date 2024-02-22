@@ -91,7 +91,6 @@ add_library(leddevice ${CMAKE_BINARY_DIR}/LedDevice_headers.h ${Leddevice_SOURCE
 target_link_libraries(leddevice
 	hyperion
 	hyperion-utils
-	${CMAKE_THREAD_LIBS_INIT}
 )
 
 if(WIN32)
@@ -130,6 +129,11 @@ endif()
 if(ENABLE_DEV_USB_HID)
 	if(APPLE)
 		find_library(SECURITY Security REQUIRED)
+	endif()
+
+	if(SYSTEM_MATCHES_LINUX)
+		find_package(Threads REQUIRED)
+		target_link_libraries(leddevice ${CMAKE_THREAD_LIBS_INIT})
 	endif()
 
 	target_link_libraries(leddevice
