@@ -1,6 +1,7 @@
 # =============================================================================
 # LibUSB
 # =============================================================================
+<<<<<<< HEAD
 
 if(USE_SYSTEM_LIBUSB_LIBS)
 	find_package(LibUSB REQUIRED)
@@ -124,6 +125,136 @@ if(ENABLE_DEV_USB_HID)
 	endif()
 endif()
 
+=======
+
+if(ENABLE_DEV_USB_HID)
+	if(USE_SYSTEM_LIBUSB_LIBS)
+		find_package(LibUSB REQUIRED)
+	endif()
+
+	if(NOT USE_SYSTEM_LIBUSB_LIBS)
+		if(NOT CMAKE_OSX_ARCHITECTURES STREQUAL "" AND NOT CMAKE_OSX_DEPLOYMENT_TARGET STREQUAL "")
+			string(REPLACE ";" "$<SEMICOLON>" CMAKE_OSX_ARCHITECTURES "${CMAKE_OSX_ARCHITECTURES}")
+			set(CMAKE_EXTRA_ARGS
+				-DCMAKE_OSX_ARCHITECTURES:STRING=${CMAKE_OSX_ARCHITECTURES}
+				-DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=${CMAKE_OSX_DEPLOYMENT_TARGET}
+			)
+		endif()
+
+		get_property(isMultiConfig GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+		if(NOT isMultiConfig)
+			list(APPEND ${CMAKE_EXTRA_ARGS} "-DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}")
+		endif()
+
+		if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+			set(CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR} CACHE PATH "" FORCE)
+		endif()
+
+		include(ExternalProject)
+		ExternalProject_Add(libusb
+			PREFIX				${CMAKE_CURRENT_BINARY_DIR}/external/libusb-cmake
+			BUILD_ALWAYS		OFF
+			DOWNLOAD_COMMAND	""
+			SOURCE_DIR			${CMAKE_CURRENT_SOURCE_DIR}/external/libusb-cmake
+			CMAKE_ARGS			-DBUILD_SHARED_LIBS:BOOL=OFF # Build libusb as static library
+								-DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
+								-DCMAKE_WARN_DEPRECATED:BOOL=OFF # Suppress warnings about "Compatibility with CMake < 3.5 will be removed from a future version of CMake"
+								-Wno-dev # We don't want to be warned over unused variables
+								${CMAKE_EXTRA_ARGS}
+			INSTALL_DIR			${CMAKE_INSTALL_PREFIX}
+			BUILD_BYPRODUCTS    <BINARY_DIR>/${CMAKE_STATIC_LIBRARY_PREFIX}usb-1.0${CMAKE_STATIC_LIBRARY_SUFFIX}
+		)
+
+		add_library(usb-1.0 STATIC IMPORTED GLOBAL)
+		ExternalProject_Get_Property(libusb BINARY_DIR SOURCE_DIR)
+		set_target_properties(usb-1.0 PROPERTIES
+			IMPORTED_LOCATION ${BINARY_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}usb-1.0${CMAKE_STATIC_LIBRARY_SUFFIX}
+			INTERFACE_INCLUDE_DIRECTORIES ${SOURCE_DIR}/libusb/libusb
+		)
+
+		if(UNIX AND NOT APPLE)
+			find_package(Libudev REQUIRED)
+			set_target_properties(usb-1.0 PROPERTIES
+				INTERFACE_LINK_LIBRARIES Libudev
+			)
+		endif()
+	endif()
+
+	if(TARGET usb-1.0)
+		# static libusb version detection
+		get_build_interface_include_directory(TARGET usb-1.0 OUTPUT LIBUSB_INCLUDE_DIR)
+		if(LIBUSB_INCLUDE_DIR AND EXISTS "${LIBUSB_INCLUDE_DIR}/version.h")
+			file(READ "${LIBUSB_INCLUDE_DIR}/version.h" VERSIONHEADERDATA)
+			string(REGEX MATCH "#define LIBUSB_MAJOR ([0-9]*)" _ ${VERSIONHEADERDATA})
+			set(LIBUSB_VERSION_MAJOR ${CMAKE_MATCH_1})
+			string(REGEX MATCH "#define LIBUSB_MINOR ([0-9]*)" _ ${VERSIONHEADERDATA})
+			set(LIBUSB_VERSION_MINOR ${CMAKE_MATCH_1})
+			string(REGEX MATCH "#define LIBUSB_MICRO ([0-9]*)" _ ${VERSIONHEADERDATA})
+			set(LIBUSB_VERSION_MICRO ${CMAKE_MATCH_1})
+			set(LibUSB_VERSION "${LIBUSB_VERSION_MAJOR}.${LIBUSB_VERSION_MINOR}.${LIBUSB_VERSION_MICRO}")
+		endif()
+
+		if(LibUSB_VERSION)
+			define_property(TARGET PROPERTY LIBUSB_VERSION_PROPERTY
+				BRIEF_DOCS "Custom LibUSB version target property."
+				FULL_DOCS "Custom LibUSB version target property."
+			)
+
+			set_target_properties(usb-1.0 PROPERTIES
+				LIBUSB_VERSION_PROPERTY ${LibUSB_VERSION}
+			)
+		endif()
+	endif()
+endif()
+
+# =============================================================================
+# HIDAPI
+# =============================================================================
+
+if(ENABLE_DEV_USB_HID)
+	if(USE_SYSTEM_HIDAPI_LIBS)
+		find_package(hidapi CONFIG QUIET)
+		if(NOT hidapi_FOUND)
+			find_package(hidapi REQUIRED)
+		endif()
+	endif()
+
+	if(NOT USE_SYSTEM_HIDAPI_LIBS)
+		# Build HIDAPI as static library
+		set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build statically version of HIDAPI")
+
+		# Suppress warnings about "Compatibility with CMake < 3.5 will be removed from a future version of CMake"
+		set(CMAKE_WARN_DEPRECATED OFF CACHE INTERNAL "")
+
+		# Use the libusb based implementation of HIDAPI (Linux only)
+		if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+			set(HIDAPI_WITH_HIDRAW OFF CACHE BOOL "Build HIDRAW-based implementation of HIDAPI")
+		endif()
+
+		# Install HIDAPI targets
+		set(HIDAPI_INSTALL_TARGETS ON CACHE BOOL "Enable the installation of HIDAPI targets")
+
+		# Disable build of HIDAPI tests
+		set(HIDAPI_BUILD_HIDTEST OFF CACHE BOOL "Disable small console test application hidtest")
+
+		# Add HIDAPI directory to the build
+		add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/external/hidapi")
+	endif()
+
+	if(TARGET hidapi::hidapi AND NOT TARGET hidapi)
+		add_library(hidapi INTERFACE IMPORTED GLOBAL)
+		set_target_properties(hidapi PROPERTIES
+			INTERFACE_LINK_LIBRARIES hidapi::hidapi
+		)
+	endif()
+
+	# Set HIDAPI version to the parent scope for configure summary
+	if(hidapi_VERSION)
+		set(hidapi_VERSION "${hidapi_VERSION}" PARENT_SCOPE)
+	endif()
+endif()
+
+>>>>>>> e3183eaf (Refactor)
 #=============================================================================
 # Tinkerforge
 #=============================================================================
