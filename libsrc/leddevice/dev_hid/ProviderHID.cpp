@@ -146,9 +146,9 @@ int ProviderHID::writeBytes(unsigned size, const uint8_t * data)
 	}
 
 	// Prepend report ID to the buffer
-	uint8_t ledData[size + 1];
-	ledData[0] = 0; // Report ID
-	memcpy(ledData + 1, data, size_t(size));
+	uint8_t* ledData = new uint8_t[size + 1];
+ ledData[0] = 0; // Report ID
+ memcpy(ledData + 1, data, size);
 
 	// Send data via feature or out report
 	int ret;
@@ -182,6 +182,7 @@ int ProviderHID::writeBytes(unsigned size, const uint8_t * data)
 			_deviceHandle = nullptr;
 		}
 	}
+ delete[] ledData;
 	return ret;
 }
 
