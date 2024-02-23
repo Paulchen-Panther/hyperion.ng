@@ -4,20 +4,38 @@ project(hyperiond)
 ############ Preparation ############
 #####################################
 
+get_target_property(QMAKE_EXECUTABLE Qt${QT_VERSION_MAJOR}::qmake IMPORTED_LOCATION)
+
 if(WIN32)
 	# generate windows .rc file for this binary
-	string(REPLACE "/" "\\\\" WIN_RC_ICON_PATH ${CMAKE_SOURCE_DIR}/cmake/nsis/installer.ico)
-	configure_file(${CMAKE_SOURCE_DIR}/cmake/win/win.rc.in ${CMAKE_BINARY_DIR}/win.rc)
+	string(REPLACE "/" "\\\\" WIN_RC_ICON_PATH ${CMAKE_SOURCE_DIR}/cmake/windows/nsis/installer.ico)
+	configure_file(${CMAKE_SOURCE_DIR}/cmake/windows/win.rc.in ${CMAKE_BINARY_DIR}/win.rc)
 	set(WIN_RC_FILE ${CMAKE_BINARY_DIR}/win.rc)
-
 	# promote hyperiond as GUI app
 	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")
-elseif(CMAKE_HOST_APPLE)
+
+	# Search for windeployqt target (qt6 has the target natively) otherwise create it.
+	# With vcpkg this is not needed.
+	if(NOT VCPKG_TOOLCHAIN AND NOT TARGET Qt${QT_VERSION_MAJOR}::windeployqt)
+		get_filename_component(QT_BIN_DIR ${QMAKE_EXECUTABLE} DIRECTORY)
+		find_program(WINDEPLOYQT_EXECUTABLE NAMES windeployqt HINTS ${QT_BIN_DIR})
+		if(EXISTS ${WINDEPLOYQT_EXECUTABLE})
+			add_executable(Qt${QT_VERSION_MAJOR}::windeployqt IMPORTED)
+			set_target_properties(Qt${QT_VERSION_MAJOR}::windeployqt PROPERTIES
+				IMPORTED_LOCATION ${WINDEPLOYQT_EXECUTABLE}
+			)
+		else()
+			message(WARNING "Cannot find the windeployqt tool.")
+		endif()
+	endif()
+elseif(APPLE)
 	# include resource files for macos bundle (copy LICENSE file and correct line breaks)
 	configure_file(${CMAKE_SOURCE_DIR}/LICENSE ${CMAKE_BINARY_DIR}/LICENSE COPYONLY)
 	execute_process(COMMAND bash -c "perl -pi -e 's/\n/\r/g' ${CMAKE_BINARY_DIR}/LICENSE")
 	set(MACOS_BUNDLE_RESOURCE_FILES ${CMAKE_SOURCE_DIR}/cmake/macos/Hyperion.icns ${CMAKE_BINARY_DIR}/LICENSE)
-	set_source_files_properties(${MACOS_BUNDLE_RESOURCE_FILES} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+	set_source_files_properties(${MACOS_BUNDLE_RESOURCE_FILES} PROPERTIES
+		MACOSX_PACKAGE_LOCATION Resources
+	)
 endif()
 
 #####################################
@@ -55,8 +73,13 @@ if(Qt${QT_VERSION_MAJOR}DBus_FOUND)
 	target_link_libraries(${PROJECT_NAME} "Qt${QT_VERSION_MAJOR}::DBus")
 endif()
 
-if(ENABLE_EFFECTENGINE)
+if(ENABLE_EFFECTENGINE AND TARGET python)
 	target_link_libraries(${PROJECT_NAME} effectengine python)
+	get_target_property(PYTHON_VERSION python PYTHON_VERSION_PROPERTY)
+	get_target_property(PYTHON_MODULES_DIR python PYTHON_STDLIB_LOCATION_PROPERTY)
+	if(VCPKG_TOOLCHAIN AND WIN32)
+		get_target_property(PYTHON_EMBEDDABLE_ZIP python PYTHON_EMBEDDABLE_ZIP_FILE_PROPERTY)
+	endif()
 endif()
 
 if(ENABLE_FLATBUF_SERVER)
@@ -69,19 +92,19 @@ endif()
 
 if(ENABLE_AMLOGIC)
 	target_link_libraries(${PROJECT_NAME} pcre16 dl z)
-endif(ENABLE_AMLOGIC)
+endif()
 
 if(ENABLE_DISPMANX)
 	target_link_libraries(${PROJECT_NAME} dispmanx-grabber)
-endif (ENABLE_DISPMANX)
+endif()
 
 if(ENABLE_FB)
 	target_link_libraries(${PROJECT_NAME} framebuffer-grabber)
-endif (ENABLE_FB)
+endif()
 
 if(ENABLE_OSX)
 	target_link_libraries(${PROJECT_NAME} osx-grabber)
-endif (ENABLE_OSX)
+endif()
 
 if(ENABLE_V4L2)
 	target_link_libraries(${PROJECT_NAME} v4l2-grabber)
@@ -89,7 +112,10 @@ endif()
 
 if(ENABLE_MF)
 	target_link_libraries(${PROJECT_NAME} mf-grabber)
-endif (ENABLE_MF)
+	if(TARGET turbojpeg)
+		get_target_property(TurboJPEG_INCLUDE_DIR turbojpeg INTERFACE_INCLUDE_DIRECTORIES)
+	endif()
+endif()
 
 if(ENABLE_AUDIO)
 	target_link_libraries(hyperiond audio-grabber)
@@ -97,30 +123,30 @@ endif()
 
 if(ENABLE_AMLOGIC)
 	target_link_libraries(${PROJECT_NAME} amlogic-grabber)
-endif (ENABLE_AMLOGIC)
+endif()
 
 if(ENABLE_X11)
 	if(APPLE)
 		include_directories("/opt/X11/include")
-	endif(APPLE)
+	endif()
 	target_link_libraries(${PROJECT_NAME} x11-grabber)
-endif (ENABLE_X11)
+endif()
 
 if(ENABLE_XCB)
 	target_link_libraries(${PROJECT_NAME} xcb-grabber)
-endif (ENABLE_XCB)
+endif()
 
 if(ENABLE_QT)
 	target_link_libraries(${PROJECT_NAME} qt-grabber)
-endif (ENABLE_QT)
+endif()
 
 if(ENABLE_DX)
 	target_link_libraries(${PROJECT_NAME} directx-grabber)
-endif (ENABLE_DX)
+endif()
 
 if(ENABLE_CEC)
 	target_link_libraries(${PROJECT_NAME} cechandler)
-endif (ENABLE_CEC)
+endif()
 
 if(ENABLE_MDNS)
 	target_link_libraries(${PROJECT_NAME} mdns)
@@ -130,7 +156,7 @@ endif()
 ########### Install steps ###########
 #####################################
 
-if(CMAKE_HOST_APPLE)
+if(APPLE)
 	# set bundle information
 	set(MAC_BUNDLE_NAME "Hyperion")
 	set_target_properties(${PROJECT_NAME} PROPERTIES
@@ -148,7 +174,6 @@ if(CMAKE_HOST_APPLE)
 	)
 
 	install(TARGETS ${PROJECT_NAME} BUNDLE DESTINATION . COMPONENT "Hyperion")
-	get_target_property(QMAKE_EXECUTABLE Qt${QT_VERSION_MAJOR}::qmake IMPORTED_LOCATION)
 	configure_file("${CMAKE_SOURCE_DIR}/cmake/macos/BundleMacOS.cmake.in" "${PROJECT_BINARY_DIR}/BundleMacOS.cmake" @ONLY)
     install(SCRIPT "${PROJECT_BINARY_DIR}/BundleMacOS.cmake" COMPONENT "Hyperion")
 elseif(NOT WIN32)
@@ -166,88 +191,86 @@ elseif(NOT WIN32)
 	endforeach(size)
 
 	# install desktop/appstream file
-	install(FILES ${CMAKE_SOURCE_DIR}/cmake/desktop/hyperion.metainfo.xml DESTINATION "share/hyperion/desktop" COMPONENT "Hyperion")
-	install(FILES ${CMAKE_SOURCE_DIR}/cmake/desktop/hyperion.desktop DESTINATION "share/hyperion/desktop" COMPONENT "Hyperion")
-else()
-	install(TARGETS ${PROJECT_NAME} DESTINATION "bin" COMPONENT "Hyperion")
-	install(FILES ${CMAKE_SOURCE_DIR}/effects/readme.txt DESTINATION "effects" COMPONENT "Hyperion")
+	install(FILES ${CMAKE_SOURCE_DIR}/cmake/linux/desktop/hyperion.metainfo.xml DESTINATION "share/hyperion/desktop" COMPONENT "Hyperion")
+	install(FILES ${CMAKE_SOURCE_DIR}/cmake/linux/desktop/hyperion.desktop DESTINATION "share/hyperion/desktop" COMPONENT "Hyperion")
+
+	# create symlink and copy "updateHyperionUser.sh" script
 	install(CODE "execute_process(COMMAND ln -sf \"../share/hyperion/bin/${PROJECT_NAME}\" \"${CMAKE_BINARY_DIR}/symlink_${PROJECT_NAME}\")" COMPONENT "Hyperion")
 	install(FILES "${CMAKE_BINARY_DIR}/symlink_${PROJECT_NAME}" DESTINATION "bin" RENAME ${PROJECT_NAME} COMPONENT "Hyperion")
 	install(CODE "file (REMOVE ${CMAKE_BINARY_DIR}/symlink_${PROJECT_NAME})" COMPONENT "Hyperion")
 	install(FILES ${CMAKE_SOURCE_DIR}/bin/scripts/updateHyperionUser.sh DESTINATION "share/hyperion/scripts" COMPONENT "Hyperion")
-endif()
 
-if(ENABLE_DEPLOY_DEPENDENCIES AND NOT APPLE)
-	if(EXISTS ${TARGET_FILE})
-		message(STATUS "Collecting Dependencies for target file: ${TARGET_FILE}")
-		include(${CMAKE_SOURCE_DIR}/cmake/RuntimeDependencies${CMAKE_HOST_SYSTEM_NAME}.cmake)
-	elseif(EXISTS "${CMAKE_SOURCE_DIR}/cmake/RuntimeDependencies${CMAKE_HOST_SYSTEM_NAME}.cmake")
-		# Run CMake after target was built
-		add_custom_command(
-			TARGET ${PROJECT_NAME} POST_BUILD
-			COMMAND "${CMAKE_COMMAND}" "-DTARGET_FILE=$<TARGET_FILE:${PROJECT_NAME}>"
-			ARGS ${CMAKE_SOURCE_DIR}
-			WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-			VERBATIM
-		)
+	if(ENABLE_DEPLOY_DEPENDENCIES)
+		configure_file("${CMAKE_SOURCE_DIR}/cmake/linux/BundleLinux.cmake.in" "${PROJECT_BINARY_DIR}/BundleLinux.cmake" @ONLY)
+		install(SCRIPT "${PROJECT_BINARY_DIR}/BundleLinux.cmake" COMPONENT "Hyperion")
 	endif()
+else()
+	install(TARGETS ${PROJECT_NAME} DESTINATION "bin" COMPONENT "Hyperion")
+	install(FILES ${CMAKE_SOURCE_DIR}/effects/readme.txt DESTINATION "effects" COMPONENT "Hyperion")
+
+	if(VCPKG_TOOLCHAIN)
+		x_vcpkg_install_local_dependencies(TARGETS ${PROJECT_NAME} DESTINATION "bin" COMPONENT "Hyperion")
+		install(FILES ${PYTHON_EMBEDDABLE_ZIP} DESTINATION "bin" COMPONENT "Hyperion")
+	elseif(TARGET Qt${QT_VERSION_MAJOR}::windeployqt)
+		get_target_property(WINDEPLOYQT_EXECUTABLE Qt${QT_VERSION_MAJOR}::windeployqt IMPORTED_LOCATION)
+	endif()
+
+	configure_file("${CMAKE_SOURCE_DIR}/cmake/windows/BundleWindows.cmake.in" "${PROJECT_BINARY_DIR}/BundleWindows.cmake" @ONLY)
+	install(SCRIPT "${PROJECT_BINARY_DIR}/BundleWindows.cmake" COMPONENT "Hyperion")
 endif()
 
 ######################################
 ########## Additional steps ##########
 ######################################
 
-if(WIN32)
-	# Deploy Qt DLLs into the binary folder.
-	# This is necessary for starting the application from within the IDE
-	get_target_property(QT_QMAKE_EXECUTABLE Qt${QT_VERSION_MAJOR}::qmake IMPORTED_LOCATION)
-	get_filename_component(QT_BIN_DIR "${QT_QMAKE_EXECUTABLE}" DIRECTORY)
-	find_program(WINDEPLOYQT_EXECUTABLE windeployqt HINTS "${QT_BIN_DIR}")
-
-	if(NOT WINDEPLOYQT_EXECUTABLE)
-		find_program(WINDEPLOYQT_EXECUTABLE windeployqt)
-	endif()
-
-	if(WINDEPLOYQT_EXECUTABLE AND NOT CMAKE_GITHUB_ACTION)
-		set(WINDEPLOYQT_PARAMS_RUNTIME --verbose 0 --no-compiler-runtime --no-opengl-sw --no-system-d3d-compiler)
-		message(STATUS "Found windeployqt: ${WINDEPLOYQT_EXECUTABLE} PATH_HINT:${QT_BIN_DIR}")
-		add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${WINDEPLOYQT_EXECUTABLE} ${WINDEPLOYQT_PARAMS_RUNTIME} "$<TARGET_FILE:${PROJECT_NAME}>")
-	endif()
-
-	find_package(OpenSSL REQUIRED)
-	if(OPENSSL_FOUND)
-		string(REGEX MATCHALL "[0-9]+" openssl_versions "${OPENSSL_VERSION}")
-		list(GET openssl_versions 0 openssl_version_major)
-		list(GET openssl_versions 1 openssl_version_minor)
-
-		set(open_ssl_version_suffix)
-		if(openssl_version_major VERSION_EQUAL 1 AND openssl_version_minor VERSION_EQUAL 1)
-			set(open_ssl_version_suffix "-1_1")
-		else()
-			set(open_ssl_version_suffix "-3")
+# Deploy Qt DLLs into the binary folder.
+# When building with vcpkg, the python module dir is compressed as zip file and copied  into the binary folder
+# This is necessary for starting the application from within the IDE
+if(WIN32 AND NOT DEFINED ENV{GITHUB_ACTIONS})
+	if(VCPKG_TOOLCHAIN)
+		if(EXISTS ${PYTHON_EMBEDDABLE_ZIP})
+			add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+				COMMAND ${CMAKE_COMMAND} -E copy "${PYTHON_EMBEDDABLE_ZIP}" $<TARGET_FILE_DIR:${PROJECT_NAME}>
+			)
+		endif()
+	else()
+		if(TARGET Qt${QT_VERSION_MAJOR}::windeployqt)
+			set(WINDEPLOYQT_PARAMS --verbose 0 --no-compiler-runtime --no-opengl-sw --no-system-d3d-compiler)
+			add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+				COMMAND Qt${QT_VERSION_MAJOR}::windeployqt ${WINDEPLOYQT_PARAMS} "$<TARGET_FILE:${PROJECT_NAME}>"
+			)
 		endif()
 
-		if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-			string(APPEND open_ssl_version_suffix "-x64")
+		if(OPENSSL_FOUND)
+			string(REGEX MATCHALL "[0-9]+" openssl_versions ${OPENSSL_VERSION})
+			list(GET openssl_versions 0 openssl_version_major)
+			list(GET openssl_versions 1 openssl_version_minor)
+
+			if(openssl_version_major VERSION_EQUAL 1 AND openssl_version_minor VERSION_EQUAL 1)
+				set(open_ssl_version_suffix "-1_1")
+			else()
+				set(open_ssl_version_suffix "-3")
+			endif()
+
+			if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+				string(APPEND open_ssl_version_suffix "-x64")
+			endif()
+
+			get_filename_component(OPENSSL_DIR "${OPENSSL_INCLUDE_DIR}" DIRECTORY)
+			foreach(comp "ssl" "crypto")
+				find_file(${comp}
+					NAMES
+						"lib${comp}${open_ssl_version_suffix}.dll"
+					PATHS
+						${OPENSSL_DIR}
+					PATH_SUFFIXES
+						bin
+				)
+
+				add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+					COMMAND ${CMAKE_COMMAND} -E copy ${${comp}} $<TARGET_FILE_DIR:${PROJECT_NAME}>
+				)
+			endforeach()
 		endif()
-
-		find_file(OPENSSL_SSL
-			NAMES "libssl${open_ssl_version_suffix}.dll"
-			PATHS ${OPENSSL_INCLUDE_DIR}/.. ${OPENSSL_INCLUDE_DIR}/../bin
-			NO_DEFAULT_PATH
-		)
-
-		find_file(OPENSSL_CRYPTO
-			NAMES "libcrypto${open_ssl_version_suffix}.dll"
-			PATHS ${OPENSSL_INCLUDE_DIR}/.. ${OPENSSL_INCLUDE_DIR}/../bin
-			NO_DEFAULT_PATH
-		)
-
-		add_custom_command(
-			TARGET ${PROJECT_NAME} POST_BUILD
-			COMMAND ${CMAKE_COMMAND} -E copy
-			${OPENSSL_SSL} ${OPENSSL_CRYPTO}
-			$<TARGET_FILE_DIR:${PROJECT_NAME}>
-		)
-	endif(OPENSSL_FOUND)
-endif(WIN32)
+	endif()
+endif()

@@ -42,3 +42,6 @@ NULL
 
 # Docker deploy folder
 deploy/*
+
+# ccache/buildcache
+.*cache/

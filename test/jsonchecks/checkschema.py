@@ -9,8 +9,6 @@ from urllib.request import pathname2url
 def path2url(path):
     return urljoin('file:', pathname2url(path))
 
-print('-- validate json file')
-
 jsonFileName   = sys.argv[1]
 schemaFileName = sys.argv[2]
 
@@ -23,7 +21,8 @@ try:
 			instance = json.load(jsonFile)
 			Draft3Validator(schema, resolver=resolver).validate(instance)
 except Exception as e:
-	print('validation error: '+jsonFileName + ' '+schemaFileName+' ('+str(e)+')')
+	print('Validation error: '+jsonFileName + ' '+schemaFileName+' ('+str(e)+')')
 	sys.exit(1)
 
+print("-- Successfully validate JSON file: '" + path.basename(jsonFileName) + "' against schema '" + path.basename(schemaFileName) + "'")
 sys.exit(0)
