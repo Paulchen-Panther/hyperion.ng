@@ -12,6 +12,7 @@ add_library(hyperion-api
 target_link_libraries(hyperion-api
 	hyperion
 	hyperion-utils
+	hyperion-utils::schema-checker
 	${DIRECTX9_LIBRARIES}
 )
 

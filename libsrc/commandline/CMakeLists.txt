@@ -24,6 +24,5 @@ add_library(commandline
 )
 
 target_link_libraries(commandline
-	hyperion
 	Qt${QT_VERSION_MAJOR}::Gui
 )

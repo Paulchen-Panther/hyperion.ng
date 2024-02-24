@@ -20,6 +20,7 @@ endif(ENABLE_DEV_SPI)
 
 add_executable(test_configfile TestConfigFile.cpp)
 link_to_hyperion(test_configfile)
+target_link_libraries(test_configfile hyperion-utils::schema-checker)
 
 add_executable(test_ImageRgb TestRgbImage.cpp)
 link_to_hyperion(test_ImageRgb)
@@ -44,6 +45,7 @@ target_link_libraries(test_versions Qt${QT_VERSION_MAJOR}::Core)
 
 add_executable(test_image2ledsmap TestImage2LedsMap.cpp "${CMAKE_BINARY_DIR}/resources.qrc")
 link_to_hyperion(test_image2ledsmap)
+target_link_libraries(test_image2ledsmap hyperion-utils::schema-checker)
 
 ######### These tests are broken. May they fix someone ##########
 

@@ -94,6 +94,7 @@ add_library(leddevice
 target_link_libraries(leddevice
 	hyperion
 	hyperion-utils
+	hyperion-utils::qstring_utils
 )
 
 if(WIN32)

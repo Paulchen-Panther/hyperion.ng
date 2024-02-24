@@ -8,4 +8,5 @@ add_library(boblightserver
 target_link_libraries(boblightserver
 	hyperion
 	hyperion-utils
+	hyperion-utils::qstring_utils
 )

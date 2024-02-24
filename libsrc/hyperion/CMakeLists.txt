@@ -51,6 +51,8 @@ target_link_libraries(hyperion
 	blackborder
 	events
 	hyperion-utils
+	hyperion-utils::schema-checker
+	hyperion-utils::qstring_utils
 	leddevice
 	database
 )

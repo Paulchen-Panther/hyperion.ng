@@ -6,11 +6,6 @@ add_library(hyperion-utils
 	# Global defines/signal sharing
 	${CMAKE_SOURCE_DIR}/include/utils/global_defines.h
 	${CMAKE_SOURCE_DIR}/include/utils/GlobalSignals.h
-	# JSON Schema Checker
-	${CMAKE_SOURCE_DIR}/include/utils/jsonschema/QJsonFactory.h
-	${CMAKE_SOURCE_DIR}/include/utils/jsonschema/QJsonUtils.h
-	${CMAKE_SOURCE_DIR}/include/utils/jsonschema/QJsonSchemaChecker.h
-	${CMAKE_SOURCE_DIR}/libsrc/utils/jsonschema/QJsonSchemaChecker.cpp
 	# Color ARGB/BGR/RGB/RGBA/RGBW etc. structures
 	${CMAKE_SOURCE_DIR}/include/utils/ColorArgb.h
 	${CMAKE_SOURCE_DIR}/libsrc/utils/ColorArgb.cpp
@@ -73,8 +68,6 @@ add_library(hyperion-utils
 	${CMAKE_SOURCE_DIR}/include/utils/VideoStandard.h
 	# SettingsManager utilities
 	${CMAKE_SOURCE_DIR}/include/utils/settings.h
-	# Qt string utilities
-	${CMAKE_SOURCE_DIR}/include/utils/QStringUtils.h
 	# QThread sleep class
 	${CMAKE_SOURCE_DIR}/include/utils/Sleep.h
 	# Wait event loop function
@@ -105,3 +98,34 @@ target_include_directories(hyperion-utils PRIVATE
 if(ENABLE_EFFECTENGINE)
 	target_link_libraries(hyperion-utils python)
 endif()
+
+# =============================================================================
+# New Style
+# =============================================================================
+
+# ==============
+# JSON Schema Checker
+# ==============
+
+# First, we create the STATIC library. SHARED makes no sense here. INTERFACE will follow shortly.
+add_library(schema-checker STATIC)
+# Then an ALIAS, so that it is recognizable that this belongs to the hyperion category "utils".
+add_library(hyperion-utils::schema-checker ALIAS schema-checker)
+# Then the source files are added.
+target_sources(schema-checker PRIVATE ${CMAKE_SOURCE_DIR}/libsrc/utils/jsonschema/QJsonSchemaChecker.cpp)
+# The header files are specified here. PUBLIC so that other targets can access them.
+target_include_directories(schema-checker PUBLIC ${CMAKE_SOURCE_DIR}/include/utils/jsonschema)
+# And now the dependencies on this target.
+target_link_libraries(schema-checker Qt${QT_VERSION_MAJOR}::Core)
+
+# ==============
+# Qt String Utilities
+# ==============
+
+# Just like in the first example, we create a library but this time with the type INTERFACE.
+# INTERFACE was created especially for header only classes. More information here: https://cmake.org/cmake/help/v3.5/manual/cmake-buildsystem.7.html#interface-libraries
+add_library(qstringutils INTERFACE ${CMAKE_SOURCE_DIR}/include/utils/QStringUtils.h)
+# Then an ALIAS, so that it is recognizable that this belongs to the hyperion category "utils".
+add_library(hyperion-utils::qstring_utils ALIAS qstringutils)
+# And now the INTERFACE dependencies on this target.
+target_link_libraries(qstringutils INTERFACE Qt${QT_VERSION_MAJOR}::Core)

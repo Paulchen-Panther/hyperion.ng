@@ -37,6 +37,8 @@ add_library(webserver
 target_link_libraries(webserver
 	hyperion
 	hyperion-utils
+	hyperion-utils::schema-checker
+	hyperion-utils::qstring_utils
 	hyperion-api
 )
 
