@@ -191,7 +191,6 @@ jobs:
           key: ${{ runner.os }}-amd64-chocolatey-qt${{ inputs.qt_version }}
 
       - name: 📥 Install DirectX SDK, OpenSSL, Ninja, libjpeg-turbo, CMake ${{ inputs.qt_version == '6' && 'and Vulkan-SDK' || '' }}
-        if: steps.cache-chocolatey.outputs.cache-hit != 'true'
         run: |
           choco install --no-progress directx-sdk ${{env.VULKAN_SDK}} -y
           choco install --no-progress ${{env.OPENSSL}} -y
