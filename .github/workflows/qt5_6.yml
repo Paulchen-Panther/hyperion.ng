@@ -180,7 +180,7 @@ jobs:
 
       - name: 💾 Restore DirectX SDK & libjpeg-turbo
         id: cache-windows
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: ./installer
           key: ${{ runner.os }}-libjpeg-${{ env.LIBJPEG_TURBO_VERSION }}-dxsdk-jun10
@@ -193,11 +193,17 @@ jobs:
           Invoke-WebRequest -Uri https://sourceforge.net/projects/libjpeg-turbo/files/${{ env.LIBJPEG_TURBO_VERSION }}/libjpeg-turbo-${{ env.LIBJPEG_TURBO_VERSION }}-vc64.exe -OutFile ".\installer\libjpeg-turbo.exe" -UserAgent "NativeHost"
           Invoke-WebRequest -Uri https://download.microsoft.com/download/A/E/7/AE743F1F-632B-4809-87A9-AA1BB3458E31/DXSDK_Jun10.exe -OutFile ".\installer\dxsdk-jun10.exe" -UserAgent "NativeHost"
 
+      - name: 💾 Save DirectX SDK & libjpeg-turbo
+        if: steps.cache-windows.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ./installer
+          key: ${{ runner.os }}-libjpeg-${{ env.LIBJPEG_TURBO_VERSION }}-dxsdk-jun10
+
       - name: 📥 Install DirectX SDK, libjpeg-turbo
+        shell: powershell
         run: |
           .\installer\libjpeg-turbo.exe /S
-          MsiExec.exe /passive /X{F0C3E5D1-1ADE-321E-8167-68EF0DE699A5}
-          MsiExec.exe /passive /X{1D8E6291-B0D5-35EC-8441-6616F567A0F7}
           .\installer\dxsdk-jun10.exe /U /F
 
       - name: 📥 Install Vulkan Headers
