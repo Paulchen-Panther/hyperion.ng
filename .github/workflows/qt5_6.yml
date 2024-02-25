@@ -122,15 +122,14 @@ jobs:
         shell: bash
         run: tr -d '\n' < .version > temp && mv temp .version && echo -n "+PR${{ inputs.pull_request_number }}" >> .version
 
-      - name: 💾 Cache Homebrew Packages
+      - name: 💾 Restore Homebrew Cache
         id: cache-homebrew
         uses: actions/cache@v4
         with:
-          path: ${{ matrix.arrays.arch == 'x86_64' && '/usr/local' || '/opt/homebrew' }}
+          path: ~/Library/Caches/Homebrew/downloads
           key: ${{ runner.os }}-${{ matrix.arrays.arch }}-homebrew-packages-${{ inputs.qt_version }}
 
       - name: 📥 Install dependencies
-        if: steps.cache-homebrew.outputs.cache-hit != 'true'
         shell: bash
         run: |
           brew untap --force homebrew/core homebrew/cask
@@ -166,7 +165,6 @@ jobs:
     name: 🪟 Windows (x64)
     runs-on: windows-2022
     env:
-      CMAKE_VERSION: 3.28.3
       LIBJPEG_TURBO_VERSION: 3.0.1
     steps:
       - name: ⬇ Checkout
@@ -180,28 +178,33 @@ jobs:
         shell: bash
         run: tr -d '\n' < .version > temp && mv temp .version && echo -n "+PR${{ inputs.pull_request_number }}" >> .version
 
-      - name: 🔧 Set Chocolatey cache location
-        run: choco config set cacheLocation --value "${{ github.workspace }}\choco"
-
-      - name: 💾 Restore Chocolatey cache
-        id: cache-chocolatey
+      - name: 💾 Restore DirectX SDK & libjpeg-turbo
+        id: cache-windows
         uses: actions/cache@v4
         with:
-          path: ${{ github.workspace }}\choco
-          key: ${{ runner.os }}-amd64-chocolatey-qt${{ inputs.qt_version }}
+          path: installer
+          key: ${{ runner.os }}-libjpeg-${{ env.LIBJPEG_TURBO_VERSION }}-dxsdk-jun10
 
-      - name: 📥 Install DirectX SDK, OpenSSL, Ninja, libjpeg-turbo, CMake ${{ inputs.qt_version == '6' && 'and Vulkan-SDK' || '' }}
+      - name: 📥 Download DirectX SDK & libjpeg-turbo
+        if: steps.cache-windows.outputs.cache-hit != 'true'
         run: |
-          choco install --no-progress directx-sdk ${{env.VULKAN_SDK}} -y
-          choco install --no-progress ${{env.OPENSSL}} -y
-          choco install --no-progress ninja -y
-          Invoke-WebRequest https://netcologne.dl.sourceforge.net/project/libjpeg-turbo/${{ env.LIBJPEG_TURBO_VERSION }}/libjpeg-turbo-${{ env.LIBJPEG_TURBO_VERSION }}-vc64.exe -OutFile libjpeg-turbo-setup.exe -UserAgent NativeHost
-          .\libjpeg-turbo-setup.exe /silent
-          Invoke-WebRequest https://github.com/Kitware/CMake/releases/download/v${{ env.CMAKE_VERSION }}/cmake-${{ env.CMAKE_VERSION }}-windows-x86_64.msi -OutFile cmake-setup.msi -UserAgent NativeHost
-          .\cmake-setup.msi /silent
-        env:
-          VULKAN_SDK: ${{ inputs.qt_version == '6' && 'vulkan-sdk' || '' }}
-          OPENSSL: ${{ inputs.qt_version == '6' && 'openssl' || 'openssl --version=1.1.1.2100' }}
+          mkdir installer
+          Invoke-WebRequest -Uri https://sourceforge.net/projects/libjpeg-turbo/files/${{ env.LIBJPEG_TURBO_VERSION }}/libjpeg-turbo-${{ env.LIBJPEG_TURBO_VERSION }}-vc64.exe -OutFile ".\installer\libjpeg-turbo.exe" -UserAgent "NativeHost"
+          Invoke-WebRequest -Uri https://download.microsoft.com/download/A/E/7/AE743F1F-632B-4809-87A9-AA1BB3458E31/DXSDK_Jun10.exe -OutFile ".\installer\dxsdk-jun10.exe" -UserAgent "NativeHost"
+
+      - name: 📥 Install DirectX SDK, libjpeg-turbo
+        run: |
+          .\installer\libjpeg-turbo-setup.exe /S
+          MsiExec.exe /passive /X{F0C3E5D1-1ADE-321E-8167-68EF0DE699A5}
+          MsiExec.exe /passive /X{1D8E6291-B0D5-35EC-8441-6616F567A0F7}
+          .\installer\dxsdk-jun10.exe /U /F
+
+      - name: 📥 Install Vulkan Headers
+        if: ${{ inputs.qt_version == '6' }}
+        uses: humbletim/setup-vulkan-sdk@v1
+        with:
+          vulkan-components: Vulkan-Headers
+          vulkan-use-cache: true
 
       - name: 📥 Install Qt
         uses: jurplel/install-qt-action@v3
