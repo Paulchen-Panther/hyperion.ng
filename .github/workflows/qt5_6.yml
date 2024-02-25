@@ -195,13 +195,10 @@ jobs:
 
       - name: 📥 Install DirectX SDK, libjpeg-turbo
         run: |
-          dir
-          cd installer
-          dir
-          .\libjpeg-turbo-setup.exe /S
+          .\installer\libjpeg-turbo.exe /S
           MsiExec.exe /passive /X{F0C3E5D1-1ADE-321E-8167-68EF0DE699A5}
           MsiExec.exe /passive /X{1D8E6291-B0D5-35EC-8441-6616F567A0F7}
-          .\dxsdk-jun10.exe /U /F
+          .\installer\dxsdk-jun10.exe /U /F
 
       - name: 📥 Install Vulkan Headers
         if: ${{ inputs.qt_version == '6' }}
