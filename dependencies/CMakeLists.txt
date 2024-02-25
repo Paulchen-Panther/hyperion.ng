@@ -2,41 +2,27 @@
 # LibUSB
 # =============================================================================
 
-if(ENABLE_DEV_USB_HID)
-	if(USE_SYSTEM_LIBUSB_LIBS)
-		find_package(LibUSB REQUIRED)
-	endif()
+if(USE_SYSTEM_LIBUSB_LIBS)
+	find_package(LibUSB REQUIRED)
+endif()
 
-	if(NOT USE_SYSTEM_LIBUSB_LIBS)
-		if(NOT CMAKE_OSX_ARCHITECTURES STREQUAL "" AND NOT CMAKE_OSX_DEPLOYMENT_TARGET STREQUAL "")
-			string(REPLACE ";" "$<SEMICOLON>" CMAKE_OSX_ARCHITECTURES "${CMAKE_OSX_ARCHITECTURES}")
-			set(CMAKE_EXTRA_ARGS
-				-DCMAKE_OSX_ARCHITECTURES:STRING=${CMAKE_OSX_ARCHITECTURES}
-				-DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=${CMAKE_OSX_DEPLOYMENT_TARGET}
-			)
-		endif()
-
-		get_property(isMultiConfig GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
-		if(NOT isMultiConfig)
-			list(APPEND ${CMAKE_EXTRA_ARGS} "-DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}")
-		else()
-			# CMAKE_ARCHIVE_OUTPUT_DIRECTORY_ is for static libraries
-			list(APPEND ${CMAKE_EXTRA_ARGS} "-DCMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE:PATH=<BINARY_DIR>")
-			list(APPEND ${CMAKE_EXTRA_ARGS} "-DCMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG:PATH=<BINARY_DIR>")
-			list(APPEND ${CMAKE_EXTRA_ARGS} "-DCMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELWITHDEBINFO:PATH=<BINARY_DIR>")
-			list(APPEND ${CMAKE_EXTRA_ARGS} "-DCMAKE_ARCHIVE_OUTPUT_DIRECTORY_MINSIZEREL:PATH=<BINARY_DIR>")
-		endif()
-
+if(NOT USE_SYSTEM_LIBUSB_LIBS)
+	# If it is Linux and HIDAPI is used, it is necessary to create the target usb-1.0
+	# at the beginning of the build system as HIDAPI requires this.
+	if(SYSTEM_MATCHES_LINUX AND ENABLE_DEV_USB_HID)
 		include(ExternalProject)
 		ExternalProject_Add(libusb
 			PREFIX				${CMAKE_CURRENT_BINARY_DIR}/external/libusb-cmake
-			BUILD_ALWAYS		OFF
+			BUILD_ALWAYS		ON
 			DOWNLOAD_COMMAND	""
 			INSTALL_COMMAND		""
 			SOURCE_DIR			${CMAKE_CURRENT_SOURCE_DIR}/external/libusb-cmake
 			CMAKE_ARGS			-DBUILD_SHARED_LIBS:BOOL=OFF # Build libusb as static library
+								-DLIBUSB_BUILD_TESTING:BOOL=OFF # Disable build of libusb tests
+								-DLIBUSB_BUILD_EXAMPLES:BOOL=OFF # Disable build of libusb examples
 								-DLIBUSB_INSTALL_TARGETS:BOOL=OFF # Don't install libusb targets
 								-DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
+								-DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
 								-DCMAKE_WARN_DEPRECATED:BOOL=OFF # Suppress warnings about "Compatibility with CMake < 3.5 will be removed from a future version of CMake"
 								-Wno-dev # We don't want to be warned over unused variables
 								${CMAKE_EXTRA_ARGS}
@@ -44,45 +30,50 @@ if(ENABLE_DEV_USB_HID)
 		)
 
 		add_library(usb-1.0 STATIC IMPORTED GLOBAL)
+		add_dependencies(usb-1.0 libusb)
 		ExternalProject_Get_Property(libusb BINARY_DIR SOURCE_DIR)
 		set_target_properties(usb-1.0 PROPERTIES
 			IMPORTED_LOCATION ${BINARY_DIR}/libusb-1.0${CMAKE_STATIC_LIBRARY_SUFFIX}
 			INTERFACE_INCLUDE_DIRECTORIES ${SOURCE_DIR}/libusb/libusb
 		)
-		add_dependencies(usb-1.0 libusb)
 
-		if(UNIX AND NOT APPLE)
-			find_package(Libudev REQUIRED)
-			set_target_properties(usb-1.0 PROPERTIES
-				INTERFACE_LINK_LIBRARIES Libudev
-			)
-		endif()
+		find_package(Libudev REQUIRED)
+		set_target_properties(usb-1.0 PROPERTIES
+			INTERFACE_LINK_LIBRARIES Libudev
+		)
+	else()
+		set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build statically version of libusb")
+		set(LIBUSB_BUILD_TESTING OFF CACHE BOOL "Disable build of libusb tests")
+		set(LIBUSB_BUILD_EXAMPLES OFF CACHE BOOL "Disable build of libusb examples")
+		set(LIBUSB_INSTALL_TARGETS OFF CACHE INTERNAL "Don't install libusb targets")
+		set(CMAKE_WARN_DEPRECATED OFF CACHE INTERNAL "Suppress warnings about 'Compatibility with CMake < 3.5 will be removed from a future version of CMake'")
+		add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/external/libusb-cmake")
+	endif()
+endif()
+
+if(TARGET usb-1.0)
+	# static libusb version detection
+	get_build_interface_include_directory(TARGET usb-1.0 OUTPUT LIBUSB_INCLUDE_DIR)
+	if(LIBUSB_INCLUDE_DIR AND EXISTS "${LIBUSB_INCLUDE_DIR}/version.h")
+		file(READ "${LIBUSB_INCLUDE_DIR}/version.h" VERSIONHEADERDATA)
+		string(REGEX MATCH "#define LIBUSB_MAJOR ([0-9]*)" _ ${VERSIONHEADERDATA})
+		set(LIBUSB_VERSION_MAJOR ${CMAKE_MATCH_1})
+		string(REGEX MATCH "#define LIBUSB_MINOR ([0-9]*)" _ ${VERSIONHEADERDATA})
+		set(LIBUSB_VERSION_MINOR ${CMAKE_MATCH_1})
+		string(REGEX MATCH "#define LIBUSB_MICRO ([0-9]*)" _ ${VERSIONHEADERDATA})
+		set(LIBUSB_VERSION_MICRO ${CMAKE_MATCH_1})
+		set(LibUSB_VERSION "${LIBUSB_VERSION_MAJOR}.${LIBUSB_VERSION_MINOR}.${LIBUSB_VERSION_MICRO}")
 	endif()
 
-	if(TARGET usb-1.0)
-		# static libusb version detection
-		get_build_interface_include_directory(TARGET usb-1.0 OUTPUT LIBUSB_INCLUDE_DIR)
-		if(LIBUSB_INCLUDE_DIR AND EXISTS "${LIBUSB_INCLUDE_DIR}/version.h")
-			file(READ "${LIBUSB_INCLUDE_DIR}/version.h" VERSIONHEADERDATA)
-			string(REGEX MATCH "#define LIBUSB_MAJOR ([0-9]*)" _ ${VERSIONHEADERDATA})
-			set(LIBUSB_VERSION_MAJOR ${CMAKE_MATCH_1})
-			string(REGEX MATCH "#define LIBUSB_MINOR ([0-9]*)" _ ${VERSIONHEADERDATA})
-			set(LIBUSB_VERSION_MINOR ${CMAKE_MATCH_1})
-			string(REGEX MATCH "#define LIBUSB_MICRO ([0-9]*)" _ ${VERSIONHEADERDATA})
-			set(LIBUSB_VERSION_MICRO ${CMAKE_MATCH_1})
-			set(LibUSB_VERSION "${LIBUSB_VERSION_MAJOR}.${LIBUSB_VERSION_MINOR}.${LIBUSB_VERSION_MICRO}")
-		endif()
+	if(LibUSB_VERSION)
+		define_property(TARGET PROPERTY LIBUSB_VERSION_PROPERTY
+			BRIEF_DOCS "Custom LibUSB version target property."
+			FULL_DOCS "Custom LibUSB version target property."
+		)
 
-		if(LibUSB_VERSION)
-			define_property(TARGET PROPERTY LIBUSB_VERSION_PROPERTY
-				BRIEF_DOCS "Custom LibUSB version target property."
-				FULL_DOCS "Custom LibUSB version target property."
-			)
-
-			set_target_properties(usb-1.0 PROPERTIES
-				LIBUSB_VERSION_PROPERTY ${LibUSB_VERSION}
-			)
-		endif()
+		set_target_properties(usb-1.0 PROPERTIES
+			LIBUSB_VERSION_PROPERTY ${LibUSB_VERSION}
+		)
 	endif()
 endif()
 
