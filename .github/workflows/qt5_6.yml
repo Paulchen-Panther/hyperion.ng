@@ -201,10 +201,9 @@ jobs:
           key: ${{ runner.os }}-libjpeg-${{ env.LIBJPEG_TURBO_VERSION }}-dxsdk-jun10
 
       - name: 📥 Install DirectX SDK, libjpeg-turbo
-        shell: powershell
         run: |
-          .\installer\libjpeg-turbo.exe /S
-          .\installer\dxsdk-jun10.exe /U /F
+          cmd.exe /c start /wait .\installer\libjpeg-turbo.exe /S
+          cmd.exe /c start /wait .\installer\dxsdk-jun10.exe /U /F
 
       - name: 📥 Install Vulkan Headers
         if: ${{ inputs.qt_version == '6' }}
