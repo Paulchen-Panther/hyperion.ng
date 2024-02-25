@@ -182,13 +182,13 @@ jobs:
         id: cache-windows
         uses: actions/cache@v4
         with:
-          path: installer
+          path: ./installer
           key: ${{ runner.os }}-libjpeg-${{ env.LIBJPEG_TURBO_VERSION }}-dxsdk-jun10
 
       - name: 📥 Download DirectX SDK & libjpeg-turbo
         if: steps.cache-windows.outputs.cache-hit != 'true'
         run: |
-          mkdir installer
+          mkdir .\installer
           Invoke-WebRequest -Uri https://sourceforge.net/projects/libjpeg-turbo/files/${{ env.LIBJPEG_TURBO_VERSION }}/libjpeg-turbo-${{ env.LIBJPEG_TURBO_VERSION }}-vc64.exe -OutFile ".\installer\libjpeg-turbo.exe" -UserAgent "NativeHost"
           Invoke-WebRequest -Uri https://download.microsoft.com/download/A/E/7/AE743F1F-632B-4809-87A9-AA1BB3458E31/DXSDK_Jun10.exe -OutFile ".\installer\dxsdk-jun10.exe" -UserAgent "NativeHost"
 
