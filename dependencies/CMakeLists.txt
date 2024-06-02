@@ -78,6 +78,46 @@ if(TARGET usb-1.0)
 endif()
 
 # =============================================================================
+# libftdi
+# =============================================================================
+
+if(ENABLE_DEV_FTDI)
+	# Build libftdi as static library
+	set(STATICLIBS ON CACHE BOOL "Build statically version of libftdi")
+
+	# Disable build of Boost Unit Test framework
+	set(BUILD_TESTS OFF CACHE BOOL "Build unit tests with Boost Unit Test framework")
+
+	# Disable build of example programs
+	set(EXAMPLES OFF CACHE BOOL "Build example programs")
+
+	# Disable build of ftdi_eeprom
+	set(FTDI_EEPROM OFF CACHE BOOL "Build ftdi_eeprom")
+
+	# Add libftdi directory to the build
+	add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/external/libftdi")
+
+  	if(TARGET ftdi1-static)
+		if(NOT TARGET libftdi)
+			add_library(libftdi INTERFACE IMPORTED GLOBAL)
+		endif()
+
+		target_link_libraries(libftdi INTERFACE ftdi1-static)
+
+		if(LIBFTDI_VERSION_STRING)
+			define_property(TARGET PROPERTY LIBFTDI_VERSION_PROPERTY
+				BRIEF_DOCS "Custom libftdi version target property."
+				FULL_DOCS "Custom libftdi version target property."
+			)
+
+			set_target_properties(libftdi PROPERTIES
+				LIBFTDI_VERSION_PROPERTY ${LIBFTDI_VERSION_STRING}
+			)
+		endif()
+	endif()
+endif()
+
+# =============================================================================
 # HIDAPI
 # =============================================================================
 

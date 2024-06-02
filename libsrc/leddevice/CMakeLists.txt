@@ -171,10 +171,7 @@ if(ENABLE_MDNS)
  	target_link_libraries(leddevice mdns)
 endif()
 
-if( ENABLE_DEV_FTDI )
-	find_package(PkgConfig REQUIRED)
-	pkg_check_modules(LIB_FTDI REQUIRED IMPORTED_TARGET libftdi1 )
-	target_include_directories(leddevice PRIVATE PkgConfig::LIB_FTDI)
-	target_link_libraries(leddevice PkgConfig::LIB_FTDI)
+if(ENABLE_DEV_FTDI)
+	target_link_libraries(leddevice libftdi)
 endif()
 
