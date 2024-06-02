@@ -82,38 +82,48 @@ endif()
 # =============================================================================
 
 if(ENABLE_DEV_FTDI)
-	# Build libftdi as static library
-	set(STATICLIBS ON CACHE BOOL "Build statically version of libftdi")
+	include(ExternalProject)
+	ExternalProject_Add(libftdi1
+		PREFIX				${CMAKE_CURRENT_BINARY_DIR}/external/libftdi1
+		BUILD_ALWAYS		ON
+		DOWNLOAD_COMMAND	""
+		INSTALL_COMMAND		""
+		SOURCE_DIR			${CMAKE_CURRENT_SOURCE_DIR}/external/libftdi
+		CMAKE_ARGS			-DSTATICLIBS:BOOL=ON # Build libftdi as static library
+							-DBUILD_TESTS:BOOL=OFF # Disable build of Boost Unit Test framework
+							-DEXAMPLES:BOOL=OFF # Disable build of example programs
+							-DFTDI_EEPROM:BOOL=OFF # Disable build of ftdi_eeprom
+							-DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
+							-DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
+							-Wno-dev # We don't want to be warned over unused variables
+		BUILD_BYPRODUCTS    <BINARY_DIR>/src/libftdi1${CMAKE_STATIC_LIBRARY_SUFFIX}
+	)
 
-	# Disable build of Boost Unit Test framework
-	set(BUILD_TESTS OFF CACHE BOOL "Build unit tests with Boost Unit Test framework")
+	add_library(libftdi STATIC IMPORTED GLOBAL)
+	add_dependencies(libftdi libftdi1)
+	ExternalProject_Get_Property(libftdi1 BINARY_DIR SOURCE_DIR)
+	set_target_properties(libftdi PROPERTIES
+		IMPORTED_LOCATION ${BINARY_DIR}/src/libftdi1${CMAKE_STATIC_LIBRARY_SUFFIX}
+		INTERFACE_INCLUDE_DIRECTORIES ${SOURCE_DIR}/src
+	)
 
-	# Disable build of example programs
-	set(EXAMPLES OFF CACHE BOOL "Build example programs")
+	if(EXISTS "${BINARY_DIR}/src/ftdi_version_i.h")
+		file(STRINGS "${BINARY_DIR}/src/ftdi_version_i.h" version_str REGEX "#define FTDI_[A-Z]+_VERSION [0-9]+")
+		string(REGEX REPLACE ".*#define FTDI_MAJOR_VERSION ([0-9]+).*" "\\1" major "${version_str}")
+		string(REGEX REPLACE ".*#define FTDI_MINOR_VERSION ([0-9]+).*" "\\1" minor "${version_str}")
+		string(REGEX REPLACE ".*#define FTDI_MICRO_VERSION ([0-9]+).*" "\\1" micro "${version_str}")
+		set(LIBFTDI_VERSION_STRING "${major}.${minor}.${micro}")
+	endif()
 
-	# Disable build of ftdi_eeprom
-	set(FTDI_EEPROM OFF CACHE BOOL "Build ftdi_eeprom")
+	if(LIBFTDI_VERSION_STRING)
+		define_property(TARGET PROPERTY LIBFTDI_VERSION_PROPERTY
+			BRIEF_DOCS "Custom libftdi version target property."
+			FULL_DOCS "Custom libftdi version target property."
+		)
 
-	# Add libftdi directory to the build
-	add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/external/libftdi")
-
-  	if(TARGET ftdi1-static)
-		if(NOT TARGET libftdi)
-			add_library(libftdi INTERFACE IMPORTED GLOBAL)
-		endif()
-
-		target_link_libraries(libftdi INTERFACE ftdi1-static)
-
-		if(LIBFTDI_VERSION_STRING)
-			define_property(TARGET PROPERTY LIBFTDI_VERSION_PROPERTY
-				BRIEF_DOCS "Custom libftdi version target property."
-				FULL_DOCS "Custom libftdi version target property."
-			)
-
-			set_target_properties(libftdi PROPERTIES
-				LIBFTDI_VERSION_PROPERTY ${LIBFTDI_VERSION_STRING}
-			)
-		endif()
+		set_target_properties(libftdi PROPERTIES
+			LIBFTDI_VERSION_PROPERTY ${LIBFTDI_VERSION_STRING}
+		)
 	endif()
 endif()
 
