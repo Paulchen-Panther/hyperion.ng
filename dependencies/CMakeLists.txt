@@ -150,7 +150,7 @@ if(ENABLE_DEV_FTDI)
 	)
 
 	add_library(libftdi STATIC IMPORTED GLOBAL)
-	add_dependencies(libftdi libftdi1)
+	add_dependencies(libftdi libftdi1 usb-1.0)
 	ExternalProject_Get_Property(libftdi1 BINARY_DIR SOURCE_DIR)
 	set_target_properties(libftdi PROPERTIES
 		IMPORTED_LOCATION ${BINARY_DIR}/src/libftdi1${CMAKE_STATIC_LIBRARY_SUFFIX}
