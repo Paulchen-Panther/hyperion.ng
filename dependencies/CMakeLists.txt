@@ -9,7 +9,7 @@ endif()
 if(NOT USE_SYSTEM_LIBUSB_LIBS)
 	# If it is Linux and HIDAPI is used, it is necessary to create the target usb-1.0
 	# at the beginning of the build system as HIDAPI requires this.
-	if(SYSTEM_MATCHES_LINUX AND ENABLE_DEV_USB_HID)
+	if((SYSTEM_MATCHES_LINUX AND (ENABLE_DEV_USB_HID AND NOT USE_SYSTEM_HIDAPI_LIBS)) OR ENABLE_DEV_FTDI)
 		include(ExternalProject)
 		ExternalProject_Add(libusb
 			PREFIX				${CMAKE_CURRENT_BINARY_DIR}/external/libusb-cmake
@@ -25,7 +25,6 @@ if(NOT USE_SYSTEM_LIBUSB_LIBS)
 								-DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
 								-DCMAKE_WARN_DEPRECATED:BOOL=OFF # Suppress warnings about "Compatibility with CMake < 3.5 will be removed from a future version of CMake"
 								-Wno-dev # We don't want to be warned over unused variables
-								${CMAKE_EXTRA_ARGS}
 			BUILD_BYPRODUCTS    <BINARY_DIR>/libusb-1.0${CMAKE_STATIC_LIBRARY_SUFFIX}
 		)
 
@@ -37,10 +36,12 @@ if(NOT USE_SYSTEM_LIBUSB_LIBS)
 			INTERFACE_INCLUDE_DIRECTORIES ${SOURCE_DIR}/libusb/libusb
 		)
 
-		find_package(Libudev REQUIRED)
-		set_target_properties(usb-1.0 PROPERTIES
-			INTERFACE_LINK_LIBRARIES Libudev
-		)
+		if(SYSTEM_MATCHES_LINUX)
+			find_package(Libudev REQUIRED)
+			set_target_properties(usb-1.0 PROPERTIES
+				INTERFACE_LINK_LIBRARIES Libudev
+			)
+		endif()
 	else()
 		set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build statically version of libusb")
 		set(LIBUSB_BUILD_TESTING OFF CACHE BOOL "Disable build of libusb tests")
@@ -73,56 +74,6 @@ if(TARGET usb-1.0)
 
 		set_target_properties(usb-1.0 PROPERTIES
 			LIBUSB_VERSION_PROPERTY ${LibUSB_VERSION}
-		)
-	endif()
-endif()
-
-# =============================================================================
-# libftdi
-# =============================================================================
-
-if(ENABLE_DEV_FTDI)
-	include(ExternalProject)
-	ExternalProject_Add(libftdi1
-		PREFIX				${CMAKE_CURRENT_BINARY_DIR}/external/libftdi1
-		BUILD_ALWAYS		ON
-		DOWNLOAD_COMMAND	""
-		INSTALL_COMMAND		""
-		SOURCE_DIR			${CMAKE_CURRENT_SOURCE_DIR}/external/libftdi
-		CMAKE_ARGS			-DSTATICLIBS:BOOL=ON # Build libftdi as static library
-							-DBUILD_TESTS:BOOL=OFF # Disable build of Boost Unit Test framework
-							-DEXAMPLES:BOOL=OFF # Disable build of example programs
-							-DFTDI_EEPROM:BOOL=OFF # Disable build of ftdi_eeprom
-							-DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
-							-DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
-							-Wno-dev # We don't want to be warned over unused variables
-		BUILD_BYPRODUCTS    <BINARY_DIR>/src/libftdi1${CMAKE_STATIC_LIBRARY_SUFFIX}
-	)
-
-	add_library(libftdi STATIC IMPORTED GLOBAL)
-	add_dependencies(libftdi libftdi1)
-	ExternalProject_Get_Property(libftdi1 BINARY_DIR SOURCE_DIR)
-	set_target_properties(libftdi PROPERTIES
-		IMPORTED_LOCATION ${BINARY_DIR}/src/libftdi1${CMAKE_STATIC_LIBRARY_SUFFIX}
-		INTERFACE_INCLUDE_DIRECTORIES ${SOURCE_DIR}/src
-	)
-
-	if(EXISTS "${BINARY_DIR}/src/ftdi_version_i.h")
-		file(STRINGS "${BINARY_DIR}/src/ftdi_version_i.h" version_str REGEX "#define FTDI_[A-Z]+_VERSION [0-9]+")
-		string(REGEX REPLACE ".*#define FTDI_MAJOR_VERSION ([0-9]+).*" "\\1" major "${version_str}")
-		string(REGEX REPLACE ".*#define FTDI_MINOR_VERSION ([0-9]+).*" "\\1" minor "${version_str}")
-		string(REGEX REPLACE ".*#define FTDI_MICRO_VERSION ([0-9]+).*" "\\1" micro "${version_str}")
-		set(LIBFTDI_VERSION_STRING "${major}.${minor}.${micro}")
-	endif()
-
-	if(LIBFTDI_VERSION_STRING)
-		define_property(TARGET PROPERTY LIBFTDI_VERSION_PROPERTY
-			BRIEF_DOCS "Custom libftdi version target property."
-			FULL_DOCS "Custom libftdi version target property."
-		)
-
-		set_target_properties(libftdi PROPERTIES
-			LIBFTDI_VERSION_PROPERTY ${LIBFTDI_VERSION_STRING}
 		)
 	endif()
 endif()
@@ -171,6 +122,58 @@ if(ENABLE_DEV_USB_HID)
 	# Set HIDAPI version to the parent scope for configure summary
 	if(hidapi_VERSION)
 		set(hidapi_VERSION "${hidapi_VERSION}" PARENT_SCOPE)
+	endif()
+endif()
+
+# =============================================================================
+# libftdi
+# =============================================================================
+
+if(ENABLE_DEV_FTDI)
+	include(ExternalProject)
+	ExternalProject_Add(libftdi1
+		PREFIX				${CMAKE_CURRENT_BINARY_DIR}/external/libftdi1
+		BUILD_ALWAYS		ON
+		DOWNLOAD_COMMAND	""
+		INSTALL_COMMAND		""
+		SOURCE_DIR			${CMAKE_CURRENT_SOURCE_DIR}/external/libftdi
+		CMAKE_ARGS			-DSTATICLIBS:BOOL=ON # Build libftdi as static library
+							-DBUILD_TESTS:BOOL=OFF # Disable build of Boost Unit Test framework
+							-DEXAMPLES:BOOL=OFF # Disable build of example programs
+							-DFTDI_EEPROM:BOOL=OFF # Disable build of ftdi_eeprom
+							-DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
+							-DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
+							-DLIBUSB_INCLUDE_DIR:STRING=${LIBUSB_INCLUDE_DIR}
+							-DLIBUSB_LIBRARIES:STRING=${LIBUSB_LIBRARIES}
+							-Wno-dev # We don't want to be warned over unused variables
+		BUILD_BYPRODUCTS    <BINARY_DIR>/src/libftdi1${CMAKE_STATIC_LIBRARY_SUFFIX}
+	)
+
+	add_library(libftdi STATIC IMPORTED GLOBAL)
+	add_dependencies(libftdi libftdi1)
+	ExternalProject_Get_Property(libftdi1 BINARY_DIR SOURCE_DIR)
+	set_target_properties(libftdi PROPERTIES
+		IMPORTED_LOCATION ${BINARY_DIR}/src/libftdi1${CMAKE_STATIC_LIBRARY_SUFFIX}
+		INTERFACE_INCLUDE_DIRECTORIES ${SOURCE_DIR}/src
+	)
+
+	if(EXISTS "${BINARY_DIR}/src/ftdi_version_i.h")
+		file(STRINGS "${BINARY_DIR}/src/ftdi_version_i.h" version_str REGEX "#define FTDI_[A-Z]+_VERSION [0-9]+")
+		string(REGEX REPLACE ".*#define FTDI_MAJOR_VERSION ([0-9]+).*" "\\1" major "${version_str}")
+		string(REGEX REPLACE ".*#define FTDI_MINOR_VERSION ([0-9]+).*" "\\1" minor "${version_str}")
+		string(REGEX REPLACE ".*#define FTDI_MICRO_VERSION ([0-9]+).*" "\\1" micro "${version_str}")
+		set(LIBFTDI_VERSION_STRING "${major}.${minor}.${micro}")
+	endif()
+
+	if(LIBFTDI_VERSION_STRING)
+		define_property(TARGET PROPERTY LIBFTDI_VERSION_PROPERTY
+			BRIEF_DOCS "Custom libftdi version target property."
+			FULL_DOCS "Custom libftdi version target property."
+		)
+
+		set_target_properties(libftdi PROPERTIES
+			LIBFTDI_VERSION_PROPERTY ${LIBFTDI_VERSION_STRING}
+		)
 	endif()
 endif()
 

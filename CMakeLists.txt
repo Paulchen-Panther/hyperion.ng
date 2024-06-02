@@ -186,7 +186,7 @@ cmake_dependent_option(ENABLE_FLATBUF_CONNECT		"Enable Flatbuffers connecting re
 
 # LED-Device options
 cmake_dependent_option(ENABLE_DEV_NETWORK			"Enable the Network devices"				ON ""																						OFF)
-cmake_dependent_option(ENABLE_DEV_FTDI				"Enable the FTDI devices"					ON ""																						OFF)
+cmake_dependent_option(ENABLE_DEV_FTDI				"Enable the FTDI devices"					ON "NOT HYPERION_LIGHT;NOT PLATFORM_MATCHES_OSX"											OFF)
 cmake_dependent_option(ENABLE_DEV_SERIAL			"Enable the Serial devices"					ON ""																						OFF)
 cmake_dependent_option(ENABLE_DEV_SPI				"Enable the SPI device"						ON "SYSTEM_MATCHES_LINUX"																	OFF)
 cmake_dependent_option(ENABLE_DEV_TINKERFORGE		"Enable the TINKERFORGE device"				ON "SYSTEM_MATCHES_LINUX"																	OFF)
