@@ -1,5 +1,11 @@
 #pragma once
 
+#define NOFRAME_BENCH
+
+#ifdef FRAME_BENCH
+	#include <QElapsedTimer>
+#endif
+
 // stl includes
 #include <vector>
 #include <map>
@@ -158,7 +164,7 @@ private:
 	// signal detection
 	int      _noSignalCounterThreshold;
 	ColorRgb _noSignalThresholdColor;
-	bool     _standbyActivated, _signalDetectionEnabled, _noSignalDetected;
+	bool     _standbyActivated, _signalDetectionEnabled, _signalDetected;
 	int      _noSignalCounter;
 	int		_brightness, _contrast, _saturation, _hue;
 	double   _x_frac_min;
@@ -166,6 +172,9 @@ private:
 	double   _x_frac_max;
 	double   _y_frac_max;
 
+#ifdef FRAME_BENCH
+	QElapsedTimer _frameTimer;
+#endif
 	QSocketNotifier *_streamNotifier;
 
 	bool _initialized, _reload;

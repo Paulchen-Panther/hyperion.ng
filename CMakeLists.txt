@@ -163,6 +163,7 @@ option(HYPERION_LIGHT "Build Hyperion with a reduced set of functionality" OFF)
 # Grabber options
 cmake_dependent_option(ENABLE_AMLOGIC				"Enable the AMLOGIC video grabber"			ON "NOT HYPERION_LIGHT;PLATFORM_MATCHES_AML"												OFF)
 cmake_dependent_option(ENABLE_DISPMANX				"Enable the RPi dispmanx grabber"			ON "NOT HYPERION_LIGHT;PLATFORM_MATCHES_RPI"												OFF)
+cmake_dependent_option(ENABLE_DDA					"Enable the DXGI DDA grabber"				ON "NOT HYPERION_LIGHT;WIN32"																OFF)
 cmake_dependent_option(ENABLE_DX					"Enable the DirectX grabber"				ON "NOT HYPERION_LIGHT;WIN32"																OFF)
 cmake_dependent_option(ENABLE_FB					"Enable the framebuffer grabber"			ON "NOT HYPERION_LIGHT;ENABLE_AMLOGIC OR SYSTEM_MATCHES_LINUX OR PLATFORM_STREQUAL_IMX6"	OFF)
 cmake_dependent_option(ENABLE_MF					"Enable the Media Foundation grabber"		ON "NOT HYPERION_LIGHT;WIN32"																OFF)
@@ -185,6 +186,7 @@ cmake_dependent_option(ENABLE_FLATBUF_CONNECT		"Enable Flatbuffers connecting re
 
 # LED-Device options
 cmake_dependent_option(ENABLE_DEV_NETWORK			"Enable the Network devices"				ON ""																						OFF)
+cmake_dependent_option(ENABLE_DEV_FTDI				"Enable the FTDI devices"					ON ""																						OFF)
 cmake_dependent_option(ENABLE_DEV_SERIAL			"Enable the Serial devices"					ON ""																						OFF)
 cmake_dependent_option(ENABLE_DEV_SPI				"Enable the SPI device"						ON "SYSTEM_MATCHES_LINUX"																	OFF)
 cmake_dependent_option(ENABLE_DEV_TINKERFORGE		"Enable the TINKERFORGE device"				ON "SYSTEM_MATCHES_LINUX"																	OFF)

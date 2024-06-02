@@ -294,8 +294,9 @@ void HyperionDaemon::startNetworkServices()
 	_jsonServer->thread()->start();
 	_webserver->thread()->start();
 	_sslWebserver->thread()->start();
-
+#if defined(ENABLE_MDNS)
 	_mDNSProvider->thread()->start();
+#endif
 	_ssdp->thread()->start();
 
 #if defined(ENABLE_FLATBUF_SERVER)
@@ -314,8 +315,9 @@ void HyperionDaemon::stopNetworkServices()
 #if defined(ENABLE_FLATBUF_SERVER)
 	_flatBufferServer.reset(nullptr);
 #endif
-
+#if defined(ENABLE_MDNS)
 	_mDNSProvider.reset(nullptr);
+#endif
 	_ssdp.reset(nullptr);
 
 	_sslWebserver.reset(nullptr);
@@ -423,7 +425,7 @@ void HyperionDaemon::handleSettingsUpdate(settings::type settingsType, const QJs
 
 void HyperionDaemon::updateScreenGrabbers(const QJsonDocument& grabberConfig)
 {
-#if !defined(ENABLE_DISPMANX) && !defined(ENABLE_OSX) && !defined(ENABLE_FB) && !defined(ENABLE_X11) && !defined(ENABLE_XCB) && !defined(ENABLE_AMLOGIC) && !defined(ENABLE_QT) && !defined(ENABLE_DX)
+#if !defined(ENABLE_DISPMANX) && !defined(ENABLE_OSX) && !defined(ENABLE_FB) && !defined(ENABLE_X11) && !defined(ENABLE_XCB) && !defined(ENABLE_AMLOGIC) && !defined(ENABLE_QT) && !defined(ENABLE_DX) && !defined(ENABLE_DDA)
 	Info(_log, "No screen capture supported on this platform");
 	return;
 #endif
@@ -465,6 +467,12 @@ void HyperionDaemon::updateScreenGrabbers(const QJsonDocument& grabberConfig)
 		else if (type == "dx")
 		{
 			startGrabber<DirectXWrapper>(_screenGrabber, grabberConfig);
+		}
+#endif
+#ifdef ENABLE_DDA
+		else if (type == "dda")
+		{
+			startGrabber<DDAWrapper>(_screenGrabber, grabberConfig);
 		}
 #endif
 #ifdef ENABLE_FB

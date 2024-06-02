@@ -90,10 +90,6 @@ if(ENABLE_PROTOBUF_SERVER)
 	target_link_libraries(${PROJECT_NAME} protoserver)
 endif()
 
-if(ENABLE_AMLOGIC)
-	target_link_libraries(${PROJECT_NAME} pcre16 dl z)
-endif()
-
 if(ENABLE_DISPMANX)
 	target_link_libraries(${PROJECT_NAME} dispmanx-grabber)
 endif()
@@ -143,6 +139,10 @@ endif()
 if(ENABLE_DX)
 	target_link_libraries(${PROJECT_NAME} directx-grabber)
 endif()
+
+if(ENABLE_DDA)
+	target_link_libraries(${PROJECT_NAME} dda-grabber)
+endif (ENABLE_DDA)
 
 if(ENABLE_CEC)
 	target_link_libraries(${PROJECT_NAME} cechandler)

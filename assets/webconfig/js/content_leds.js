@@ -18,7 +18,8 @@ var bottomRight2bottomLeft = null;
 var bottomLeft2topLeft = null;
 var toggleKeystoneCorrectionArea = false;
 
-var devRPiSPI = ['apa102', 'apa104', 'ws2801', 'lpd6803', 'lpd8806', 'p9813', 'sk6812spi', 'sk6822spi', 'sk9822', 'ws2812spi'];
+var devSPI = ['apa102', 'apa104', 'ws2801', 'lpd6803', 'lpd8806', 'p9813', 'sk6812spi', 'sk6822spi', 'sk9822', 'ws2812spi'];
+var devFTDI = ['apa102_ftdi', 'sk6812_ftdi', 'ws2812_ftdi'];
 var devRPiPWM = ['ws281x'];
 var devRPiGPIO = ['piblaster'];
 var devNET = ['atmoorb', 'cololight', 'fadecandy', 'philipshue', 'nanoleaf', 'razer', 'tinkerforge', 'tpm2net', 'udpe131', 'udpartnet', 'udpddp', 'udph801', 'udpraw', 'wled', 'yeelight'];
@@ -468,17 +469,18 @@ function createClassicLeds() {
   aceEdt.set(finalLedArray);
 }
 
-function createMatrixLayout(ledshoriz, ledsvert, cabling, start, direction) {
+function createMatrixLayout(ledshoriz, ledsvert, cabling, start, direction, gap) {
   // Big thank you to RanzQ (Juha Rantanen) from Github for this script
   // https://raw.githubusercontent.com/RanzQ/hyperion-audio-effects/master/matrix-config.js
 
-  var parallel = false
-  var leds = []
-  var hblock = 1.0 / ledshoriz
-  var vblock = 1.0 / ledsvert
+  let parallel = false;
+  const leds = [];
+
+  const hblock = (1.0 - gap.left - gap.right) / ledshoriz;
+  const vblock = (1.0 - gap.top - gap.bottom) / ledsvert;
 
   if (cabling == "parallel") {
-    parallel = true
+    parallel = true;
   }
 
   /**
@@ -487,10 +489,10 @@ function createMatrixLayout(ledshoriz, ledsvert, cabling, start, direction) {
    * @param {Number} y     Vertical position in matrix
    */
   function addLed(x, y) {
-    var hscanMin = x * hblock
-    var hscanMax = (x + 1) * hblock
-    var vscanMin = y * vblock
-    var vscanMax = (y + 1) * vblock
+    let hscanMin = gap.left + (x * hblock);
+    let hscanMax = gap.left + (x + 1) * hblock;
+    let vscanMin = gap.top + y * vblock;
+    let vscanMax = gap.top + (y + 1) * vblock;
 
     hscanMin = round(hscanMin);
     hscanMax = round(hscanMax);
@@ -502,43 +504,41 @@ function createMatrixLayout(ledshoriz, ledsvert, cabling, start, direction) {
       hmax: hscanMax,
       vmin: vscanMin,
       vmax: vscanMax
-    })
+    });
   }
 
-  var startYX = start.split('-')
-  var startX = startYX[1] === 'right' ? ledshoriz - 1 : 0
-  var startY = startYX[0] === 'bottom' ? ledsvert - 1 : 0
-  var endX = startX === 0 ? ledshoriz - 1 : 0
-  var endY = startY === 0 ? ledsvert - 1 : 0
-  var forward = startX < endX
+  const startYX = start.split('-');
+  let startX = startYX[1] === 'right' ? ledshoriz - 1 : 0;
+  let startY = startYX[0] === 'bottom' ? ledsvert - 1 : 0;
+  let endX = startX === 0 ? ledshoriz - 1 : 0;
+  let endY = startY === 0 ? ledsvert - 1 : 0;
+  let forward = startX < endX;
+  let downward = startY < endY;
 
-  var downward = startY < endY
-
-  var x, y
+  let x, y;
 
   if (direction === 'vertical') {
     for (x = startX; forward && x <= endX || !forward && x >= endX; x += forward ? 1 : -1) {
       for (y = startY; downward && y <= endY || !downward && y >= endY; y += downward ? 1 : -1) {
-
-        addLed(x, y)
+        addLed(x, y);
       }
       if (!parallel) {
-        downward = !downward
-        var tmp = startY
-        startY = endY
-        endY = tmp
+        downward = !downward;
+        const tmp = startY;
+        startY = endY;
+        endY = tmp;
       }
     }
   } else {
     for (y = startY; downward && y <= endY || !downward && y >= endY; y += downward ? 1 : -1) {
       for (x = startX; forward && x <= endX || !forward && x >= endX; x += forward ? 1 : -1) {
-        addLed(x, y)
+        addLed(x, y);
       }
       if (!parallel) {
-        forward = !forward
-        var tmp = startX
-        startX = endX
-        endX = tmp
+        forward = !forward;
+        const tmp = startX;
+        startX = endX;
+        endX = tmp;
       }
     }
   }
@@ -551,13 +551,20 @@ function createMatrixLeds() {
   // https://raw.githubusercontent.com/RanzQ/hyperion-audio-effects/master/matrix-config.js
 
   //get values
-  var ledshoriz = parseInt($("#ip_ma_ledshoriz").val());
-  var ledsvert = parseInt($("#ip_ma_ledsvert").val());
-  var cabling = $("#ip_ma_cabling").val();
-  var direction = $("#ip_ma_direction").val();
-  var start = $("#ip_ma_start").val();
+  const ledshoriz = parseInt($("#ip_ma_ledshoriz").val());
+  const ledsvert = parseInt($("#ip_ma_ledsvert").val());
+  const cabling = $("#ip_ma_cabling").val();
+  const direction = $("#ip_ma_direction").val();
+  const start = $("#ip_ma_start").val();
+  const gap = {
+    //gap values % -> float
+    left: parseInt($("#ip_ma_gapleft").val()) / 100,
+    right: parseInt($("#ip_ma_gapright").val()) / 100,
+    top: parseInt($("#ip_ma_gaptop").val()) / 100,
+    bottom: parseInt($("#ip_ma_gapbottom").val()) / 100,
+  };
 
-  nonBlacklistLedArray = createMatrixLayout(ledshoriz, ledsvert, cabling, start, direction);
+  nonBlacklistLedArray = createMatrixLayout(ledshoriz, ledsvert, cabling, start, direction, gap);
   finalLedArray = blackListLeds(nonBlacklistLedArray, ledBlacklist);
 
   createLedPreview(finalLedArray);
@@ -797,6 +804,35 @@ $(document).ready(function () {
 
   $('.ledMAconstr').on("change", function () {
     valValue(this.id, this.value, this.min, this.max);
+
+    // top/bottom and left/right must not overlap
+    switch (this.id) {
+      case "ip_ma_gapleft":
+        let left = 100 - parseInt($("#ip_ma_gapright").val());
+        if (this.value > left) {
+          $(this).val(left);
+        }
+        break;
+      case "ip_ma_gapright":
+        let right = 100 - parseInt($("#ip_ma_gapleft").val());
+        if (this.value > right) {
+          $(this).val(right);
+        }
+        break;
+      case "ip_ma_gaptop":
+        let top = 100 - parseInt($("#ip_ma_gapbottom").val());
+        if (this.value > top) {
+          $(this).val(top);
+        }
+        break;
+      case "ip_ma_gapbottom":
+        let bottom = 100 - parseInt($("#ip_ma_gaptop").val());
+        if (this.value > bottom) {
+          $(this).val(bottom);
+        }
+        break;
+      default:
+    }
     createMatrixLeds();
   });
 
@@ -1018,28 +1054,28 @@ $(document).ready(function () {
   });
 
   $("#leddevices").off().on("change", function () {
-    var generalOptions = window.serverSchema.properties.device;
+    const generalOptions = window.serverSchema.properties.device;
 
-    var ledType = $(this).val();
-    var specificOptions = window.serverSchema.properties.alldevices[ledType];
+    const ledType = $(this).val();
+    const specificOptions = window.serverSchema.properties.alldevices[ledType];
 
     conf_editor = createJsonEditor('editor_container_leddevice', {
       specificOptions: specificOptions,
       generalOptions: generalOptions,
     });
 
-    var values_general = {};
-    var values_specific = {};
-    var isCurrentDevice = (window.serverConfig.device.type == ledType);
+    let values_general = {};
+    let values_specific = {};
+    const isCurrentDevice = (window.serverConfig.device.type == ledType);
 
-    for (var key in window.serverConfig.device) {
+    for (const key in window.serverConfig.device) {
       if (key != "type" && key in generalOptions.properties) values_general[key] = window.serverConfig.device[key];
     };
     conf_editor.getEditor("root.generalOptions").setValue(values_general);
 
     if (isCurrentDevice) {
-      var specificOptions_val = conf_editor.getEditor("root.specificOptions").getValue();
-      for (var key in specificOptions_val) {
+      const specificOptions_val = conf_editor.getEditor("root.specificOptions").getValue();
+      for (const key in specificOptions_val) {
         values_specific[key] = (key in window.serverConfig.device) ? window.serverConfig.device[key] : specificOptions_val[key];
       };
       conf_editor.getEditor("root.specificOptions").setValue(values_specific);
@@ -1051,45 +1087,12 @@ $(document).ready(function () {
     conf_editor.validate().length || window.readOnlyMode ? $('#btn_submit_controller').prop('disabled', true) : $('#btn_submit_controller').prop('disabled', false);
 
     // LED controller specific wizards
-    $('#btn_wiz_holder').html("");
-    $('#btn_led_device_wiz').off();
-
-    if (ledType == "philipshue") {
-      var ledWizardType = ledType;
-      var data = { type: ledWizardType };
-      var hue_title = 'wiz_hue_title';
-      changeWizard(data, hue_title, startWizardPhilipsHue);
-    }
-    else if (ledType == "nanoleaf") {
-      var ledWizardType = ledType;
-      var data = { type: ledWizardType };
-      var nanoleaf_user_auth_title = 'wiz_nanoleaf_user_auth_title';
-      changeWizard(data, nanoleaf_user_auth_title, startWizardNanoleafUserAuth);
-      $('#btn_wiz_holder').hide();
-    }
-    else if (ledType == "atmoorb") {
-      var ledWizardType = (this.checked) ? "atmoorb" : ledType;
-      var data = { type: ledWizardType };
-      var atmoorb_title = 'wiz_atmoorb_title';
-      changeWizard(data, atmoorb_title, startWizardAtmoOrb);
-    }
-    else if (ledType == "yeelight") {
-      var ledWizardType = (this.checked) ? "yeelight" : ledType;
-      var data = { type: ledWizardType };
-      var yeelight_title = 'wiz_yeelight_title';
-      changeWizard(data, yeelight_title, startWizardYeelight);
-    }
-
-    function changeWizard(data, hint, fn) {
-      $('#btn_wiz_holder').html("")
-      createHint("wizard", $.i18n(hint), "btn_wiz_holder", "btn_led_device_wiz");
-      $('#btn_led_device_wiz').off().on('click', data, fn);
-    }
+    createLedDeviceWizards(ledType);
 
     conf_editor.on('ready', function () {
-      var hwLedCountDefault = 1;
-      var colorOrderDefault = "rgb";
-      var filter = {};
+      let hwLedCountDefault = 1;
+      let colorOrderDefault = "rgb";
+      let filter = {};
 
       $('#btn_layout_controller').hide();
       $('#btn_test_controller').hide();
@@ -1119,6 +1122,12 @@ $(document).ready(function () {
         case "karate":
         case "sedu":
         case "tpm2":
+
+        //FTDI devices
+        case "apa102_ftdi":
+        case "sk6812_ftdi":
+        case "ws2812_ftdi":
+
           if (storedAccess === 'expert') {
             filter.discoverAll = true;
           }
@@ -1138,57 +1147,55 @@ $(document).ready(function () {
               showNotification('danger', "Device discovery for " + ledType + " failed with error:" + error);
             });
 
-          hwLedCountDefault = 1;
-          colorOrderDefault = "rgb";
           break;
 
-        case "philipshue":
+        case "philipshue": {
           disableAutoResolvedGeneralOptions();
 
-          var lights = conf_editor.getEditor("root.specificOptions.lightIds").getValue();
+          const lights = conf_editor.getEditor("root.specificOptions.lightIds").getValue();
           hwLedCountDefault = lights.length;
-          colorOrderDefault = "rgb";
+        }
           break;
 
-        case "yeelight":
+        case "yeelight": {
           disableAutoResolvedGeneralOptions();
 
-          var lights = conf_editor.getEditor("root.specificOptions.lights").getValue();
+          const lights = conf_editor.getEditor("root.specificOptions.lights").getValue();
           hwLedCountDefault = lights.length;
-          colorOrderDefault = "rgb";
+        }
           break;
 
-        case "atmoorb":
+        case "atmoorb": {
           disableAutoResolvedGeneralOptions();
 
-          var configruedOrbIds = conf_editor.getEditor("root.specificOptions.orbIds").getValue().trim();
+          const configruedOrbIds = conf_editor.getEditor("root.specificOptions.orbIds").getValue().trim();
           if (configruedOrbIds.length !== 0) {
             hwLedCountDefault = configruedOrbIds.split(",").map(Number).length;
           } else {
             hwLedCountDefault = 0;
           }
-          colorOrderDefault = "rgb";
+        }
           break;
 
-        case "razer":
+        case "razer": {
           disableAutoResolvedGeneralOptions();
-          hwLedCountDefault = 1;
           colorOrderDefault = "bgr";
 
-          var subType = conf_editor.getEditor("root.specificOptions.subType").getValue();
-          let params = { subType: subType };
+          const subType = conf_editor.getEditor("root.specificOptions.subType").getValue();
+          const params = { subType };
           getProperties_device(ledType, subType, params);
+        }
           break;
 
         default:
       }
 
       if (ledType !== window.serverConfig.device.type) {
-        var hwLedCount = conf_editor.getEditor("root.generalOptions.hardwareLedCount");
+        let hwLedCount = conf_editor.getEditor("root.generalOptions.hardwareLedCount");
         if (hwLedCount) {
           hwLedCount.setValue(hwLedCountDefault);
         }
-        var colorOrder = conf_editor.getEditor("root.generalOptions.colorOrder");
+        let colorOrder = conf_editor.getEditor("root.generalOptions.colorOrder");
         if (colorOrder) {
           colorOrder.setValue(colorOrderDefault);
         }
@@ -1197,8 +1204,8 @@ $(document).ready(function () {
 
     conf_editor.on('change', function () {
       // //Check, if device can be identified/tested and/or saved
-      var canIdentify = false;
-      var canSave = false;
+      let canIdentify = false;
+      let canSave = false;
 
       switch (ledType) {
 
@@ -1210,11 +1217,12 @@ $(document).ready(function () {
         case "udpartnet":
         case "udpddp":
         case "udph801":
-        case "udpraw":
-          var host = conf_editor.getEditor("root.specificOptions.host").getValue();
+        case "udpraw": {
+          const host = conf_editor.getEditor("root.specificOptions.host").getValue();
           if (host !== "") {
             canSave = true;
           }
+        }
           break;
 
         case "adalight":
@@ -1222,50 +1230,63 @@ $(document).ready(function () {
         case "karate":
         case "dmx":
         case "sedu":
-        case "tpm2":
-          var rate = conf_editor.getEditor("root.specificOptions.rate").getValue();
+        case "tpm2": {
+          let currentDeviceType = window.serverConfig.device.type;
+          if ($.inArray(currentDeviceType, devSerial) === -1) {
+            canIdentify = true;
+          } else {
+            let output = conf_editor.getEditor("root.specificOptions.output").getValue();
+            if (window.serverConfig.device.output !== output) {
+              canIdentify = true;
+            }
+          }
+
+          const rate = conf_editor.getEditor("root.specificOptions.rate").getValue();
           if (rate > 0) {
             canSave = true;
           }
+        }
           break;
 
-        case "philipshue":
-          var host = conf_editor.getEditor("root.specificOptions.host").getValue();
-          var username = conf_editor.getEditor("root.specificOptions.username").getValue();
+        case "philipshue": {
+          const host = conf_editor.getEditor("root.specificOptions.host").getValue();
+          const username = conf_editor.getEditor("root.specificOptions.username").getValue();
           if (host !== "" && username != "") {
-            var useEntertainmentAPI = conf_editor.getEditor("root.specificOptions.useEntertainmentAPI").getValue();
-            var clientkey = conf_editor.getEditor("root.specificOptions.clientkey").getValue();
+            const useEntertainmentAPI = conf_editor.getEditor("root.specificOptions.useEntertainmentAPI").getValue();
+            const clientkey = conf_editor.getEditor("root.specificOptions.clientkey").getValue();
             if (!useEntertainmentAPI || clientkey !== "") {
               canSave = true;
             }
           }
+        }
           break;
 
         case "wled":
-        case "cololight":
-          var hostList = conf_editor.getEditor("root.specificOptions.hostList").getValue();
+        case "cololight": {
+          const hostList = conf_editor.getEditor("root.specificOptions.hostList").getValue();
           if (hostList !== "SELECT") {
-            var host = conf_editor.getEditor("root.specificOptions.host").getValue();
+            const host = conf_editor.getEditor("root.specificOptions.host").getValue();
             if (host !== "") {
               canIdentify = true;
               canSave = true;
             }
           }
+        }
           break;
 
-        case "nanoleaf":
-          var hostList = conf_editor.getEditor("root.specificOptions.hostList").getValue();
+        case "nanoleaf": {
+          const hostList = conf_editor.getEditor("root.specificOptions.hostList").getValue();
           if (hostList !== "SELECT") {
-            var host = conf_editor.getEditor("root.specificOptions.host").getValue();
-            var token = conf_editor.getEditor("root.specificOptions.token").getValue();
+            const host = conf_editor.getEditor("root.specificOptions.host").getValue();
+            const token = conf_editor.getEditor("root.specificOptions.token").getValue();
             if (host !== "" && token !== "") {
               canIdentify = true;
               canSave = true;
             }
           }
+        }
           break;
         default:
-          canIdentify = false;
           canSave = true;
       }
 
@@ -1393,30 +1414,27 @@ $(document).ready(function () {
       }
     });
 
+
     conf_editor.watch('root.specificOptions.output', () => {
-      var output = conf_editor.getEditor("root.specificOptions.output").getValue();
+      const output = conf_editor.getEditor("root.specificOptions.output").getValue();
       if (output === "NONE" || output === "SELECT" || output === "") {
 
         $('#btn_submit_controller').prop('disabled', true);
         $('#btn_test_controller').prop('disabled', true);
         $('#btn_test_controller').hide();
-
         conf_editor.getEditor("root.generalOptions.hardwareLedCount").setValue(1);
         showAllDeviceInputOptions("output", false);
       }
       else {
         showAllDeviceInputOptions("output", true);
         let params = {};
-        var canIdentify = false;
         switch (ledType) {
-          case "adalight":
-            canIdentify = true;
-            break;
           case "atmo":
           case "karate":
             params = { serialPort: output };
             getProperties_device(ledType, output, params);
             break;
+          case "adalight":
           case "dmx":
           case "sedu":
           case "tpm2":
@@ -1431,12 +1449,15 @@ $(document).ready(function () {
           case "sk9822":
           case "ws2812spi":
           case "piblaster":
+          case "apa102_ftdi":
+          case "sk6812_ftdi":
+          case "ws2812_ftdi":
           default:
         }
 
         if ($.inArray(ledType, devSerial) != -1) {
-          var rateList = conf_editor.getEditor("root.specificOptions.rateList").getValue();
-          var showRate = false;
+          const rateList = conf_editor.getEditor("root.specificOptions.rateList").getValue();
+          let showRate = false;
           if (rateList == "CUSTOM") {
             showRate = true;
           }
@@ -1444,13 +1465,6 @@ $(document).ready(function () {
         }
 
         if (!conf_editor.validate().length) {
-          if (canIdentify) {
-            $("#btn_test_controller").show();
-            $('#btn_test_controller').prop('disabled', false);
-          } else {
-            $('#btn_test_controller').hide();
-            $('#btn_test_controller').prop('disabled', true);
-          }
           if (!window.readOnlyMode) {
             $('#btn_submit_controller').prop('disabled', false);
           }
@@ -1502,12 +1516,12 @@ $(document).ready(function () {
     });
 
     conf_editor.watch('root.specificOptions.rateList', () => {
-      var specOptPath = 'root.specificOptions.';
-      var rateList = conf_editor.getEditor("root.specificOptions.rateList");
-      if (rateList) {
-        var val = rateList.getValue();
-        var rate = conf_editor.getEditor("root.specificOptions.rate");
+      const specOptPath = 'root.specificOptions.';
+      const rateList = conf_editor.getEditor("root.specificOptions.rateList");
+      let rate = conf_editor.getEditor("root.specificOptions.rate");
 
+      if (rateList) {
+        const val = rateList.getValue();
         switch (val) {
           case 'CUSTOM':
           case '':
@@ -1654,9 +1668,10 @@ $(document).ready(function () {
   optArr[3] = [];
   optArr[4] = [];
   optArr[5] = [];
+  optArr[6] = [];
 
   for (var idx = 0; idx < ledDevices.length; idx++) {
-    if ($.inArray(ledDevices[idx], devRPiSPI) != -1)
+    if ($.inArray(ledDevices[idx], devSPI) != -1)
       optArr[0].push(ledDevices[idx]);
     else if ($.inArray(ledDevices[idx], devRPiPWM) != -1)
       optArr[1].push(ledDevices[idx]);
@@ -1668,8 +1683,12 @@ $(document).ready(function () {
       optArr[4].push(ledDevices[idx]);
     else if ($.inArray(ledDevices[idx], devHID) != -1)
       optArr[4].push(ledDevices[idx]);
+    else if (ledDevices[idx].endsWith("_ftdi")) {
+      var title = ledDevices[idx].replace('_ftdi','');
+      optArr[5].push(ledDevices[idx] + ":" + title);
+    }
     else
-      optArr[5].push(ledDevices[idx]);
+      optArr[6].push(ledDevices[idx]);
   }
 
   $("#leddevices").append(createSel(optArr[0], $.i18n('conf_leds_optgroup_RPiSPI')));
@@ -1677,9 +1696,10 @@ $(document).ready(function () {
   $("#leddevices").append(createSel(optArr[2], $.i18n('conf_leds_optgroup_RPiGPIO')));
   $("#leddevices").append(createSel(optArr[3], $.i18n('conf_leds_optgroup_network')));
   $("#leddevices").append(createSel(optArr[4], $.i18n('conf_leds_optgroup_usb')));
+  $("#leddevices").append(createSel(optArr[5], $.i18n('conf_leds_optgroup_ftdi'), true));
 
   if (storedAccess === 'expert' || window.serverConfig.device.type === "file") {
-    $("#leddevices").append(createSel(optArr[5], $.i18n('conf_leds_optgroup_other')));
+    $("#leddevices").append(createSel(optArr[6], $.i18n('conf_leds_optgroup_other')));
   }
 
   $("#leddevices").val(window.serverConfig.device.type);
@@ -1883,6 +1903,9 @@ function saveLedConfig(genDefLayout = false) {
     case "sk9822":
     case "ws2812spi":
     case "piblaster":
+    case "apa102_ftdi":
+    case "sk6812_ftdi":
+    case "ws2812_ftdi":
     default:
       if (genDefLayout === true) {
         ledConfig = {
@@ -1935,8 +1958,10 @@ var updateOutputSelectList = function (ledType, discoveryInfo) {
     ledTypeGroup = "devNET";
   } else if ($.inArray(ledType, devSerial) != -1) {
     ledTypeGroup = "devSerial";
-  } else if ($.inArray(ledType, devRPiSPI) != -1) {
-    ledTypeGroup = "devRPiSPI";
+  } else if ($.inArray(ledType, devSPI) != -1) {
+    ledTypeGroup = "devSPI";
+  } else if ($.inArray(ledType, devFTDI) != -1) {
+    ledTypeGroup = "devFTDI";
   } else if ($.inArray(ledType, devRPiGPIO) != -1) {
     ledTypeGroup = "devRPiGPIO";
   } else if ($.inArray(ledType, devRPiPWM) != -1) {
@@ -2059,7 +2084,63 @@ var updateOutputSelectList = function (ledType, discoveryInfo) {
         }
       }
       break;
-    case "devRPiSPI":
+
+    case "devFTDI":
+      key = "output";
+
+      if (discoveryInfo.devices.length == 0) {
+        enumVals.push("NONE");
+        enumTitleVals.push($.i18n('edt_dev_spec_devices_discovered_none'));
+        $('#btn_submit_controller').prop('disabled', true);
+        showAllDeviceInputOptions(key, false);
+      }
+      else {
+        switch (ledType) {
+          case "ws2812_ftdi":
+          case "sk6812_ftdi":
+          case "apa102_ftdi":
+            for (const device of discoveryInfo.devices) {
+              enumVals.push(device.ftdiOpenString);
+
+              var title = "FTDI";
+              if (device.manufacturer) {
+                title = device.manufacturer;
+              }
+
+              if (device.serialNumber) {
+                title += " - " + device.serialNumber;
+              }
+              title += " (" + device.vendorIdentifier + "|" + device.productIdentifier + ")";
+
+              if (device.description) {
+                title += " " + device.description;
+              }
+
+              enumTitleVals.push(title);
+            }
+
+            // Select configured device
+            var configuredDeviceType = window.serverConfig.device.type;
+            var configuredOutput = window.serverConfig.device.output;
+            if (ledType === configuredDeviceType) {
+              if ($.inArray(configuredOutput, enumVals) != -1) {
+                enumDefaultVal = configuredOutput;
+              } else {
+                enumVals.push(window.serverConfig.device.output);
+                enumDefaultVal = configuredOutput;
+              }
+            }
+            else {
+              addSelect = true;
+            }
+
+            break;
+          default:
+        }
+      }
+      break;
+
+    case "devSPI":
     case "devRPiGPIO":
       key = "output";
 
@@ -2125,7 +2206,6 @@ var updateOutputSelectList = function (ledType, discoveryInfo) {
 async function discover_device(ledType, params) {
 
   const result = await requestLedDeviceDiscovery(ledType, params);
-
   var discoveryResult = {};
   if (result) {
     if (result.error) {
@@ -2508,6 +2588,10 @@ function nanoleafGeneratelayout(panelLayout, panelOrderTopDown, panelOrderLeftRi
     18: { name: "LightLinesSingleZone", led: true, sideLengthX: 77, sideLengthY: 77 },
     19: { name: "ControllerCap", led: false, sideLengthX: 11, sideLengthY: 11 },
     20: { name: "PowerConnector", led: false, sideLengthX: 11, sideLengthY: 11 },
+    29: { name: "4DLightstrip", led: true, sideLengthX: 50, sideLengthY: 50 },
+    30: { name: "Skylight Panel", led: true, sideLengthX: 180, sideLengthY: 180 },
+    31: { name: "SkylightControllerPrimary", led: true, sideLengthX: 180, sideLengthY: 180 },
+    32: { name: "SkylightControllerPassive", led: true, sideLengthX: 180, sideLengthY: 180 },            
     999: { name: "Unknown", led: true, sideLengthX: 100, sideLengthY: 100 }
   };
 
