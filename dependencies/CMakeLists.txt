@@ -36,6 +36,11 @@ if(NOT USE_SYSTEM_LIBUSB_LIBS)
 			INTERFACE_INCLUDE_DIRECTORIES ${SOURCE_DIR}/libusb/libusb
 		)
 
+		if(ENABLE_DEV_FTDI)
+			set(LIBUSB_INCLUDE_DIR ${BINARY_DIR}/libusb-1.0${CMAKE_STATIC_LIBRARY_SUFFIX})
+			set(LIBUSB_LIBRARIES ${SOURCE_DIR}/libusb/libusb)
+		endif()
+
 		if(SYSTEM_MATCHES_LINUX)
 			find_package(Libudev REQUIRED)
 			set_target_properties(usb-1.0 PROPERTIES
@@ -150,7 +155,8 @@ if(ENABLE_DEV_FTDI)
 	)
 
 	add_library(libftdi STATIC IMPORTED GLOBAL)
-	add_dependencies(libftdi libftdi1 usb-1.0)
+	add_dependencies(libftdi libftdi1)
+	ExternalProject_Add_StepDependencies(libftdi1 build libusb)
 	ExternalProject_Get_Property(libftdi1 BINARY_DIR SOURCE_DIR)
 	set_target_properties(libftdi PROPERTIES
 		IMPORTED_LOCATION ${BINARY_DIR}/src/libftdi1${CMAKE_STATIC_LIBRARY_SUFFIX}
