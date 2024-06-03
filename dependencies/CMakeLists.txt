@@ -142,7 +142,7 @@ if(ENABLE_DEV_FTDI)
 		DOWNLOAD_COMMAND	""
 		INSTALL_COMMAND		""
 		SOURCE_DIR			${CMAKE_CURRENT_SOURCE_DIR}/external/libftdi
-		CMAKE_ARGS			-DSTATICLIBS:BOOL=ON # Build libftdi as static library
+		CMAKE_ARGS			-DSTATICLIBS:BOOL=OFF # Build libftdi as static library
 							-DBUILD_TESTS:BOOL=OFF # Disable build of Boost Unit Test framework
 							-DEXAMPLES:BOOL=OFF # Disable build of example programs
 							-DFTDI_EEPROM:BOOL=OFF # Disable build of ftdi_eeprom
