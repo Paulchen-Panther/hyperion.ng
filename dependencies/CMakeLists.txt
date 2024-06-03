@@ -17,12 +17,13 @@ if(NOT USE_SYSTEM_LIBUSB_LIBS)
 			DOWNLOAD_COMMAND	""
 			INSTALL_COMMAND		""
 			SOURCE_DIR			${CMAKE_CURRENT_SOURCE_DIR}/external/libusb-cmake
-			CMAKE_ARGS			-DBUILD_SHARED_LIBS:BOOL=ON # Build libusb as static library
+			CMAKE_ARGS			-DBUILD_SHARED_LIBS:BOOL=OFF # Build libusb as static library
 								-DLIBUSB_BUILD_TESTING:BOOL=OFF # Disable build of libusb tests
 								-DLIBUSB_BUILD_EXAMPLES:BOOL=OFF # Disable build of libusb examples
 								-DLIBUSB_INSTALL_TARGETS:BOOL=OFF # Don't install libusb targets
 								-DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
 								-DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
+								-DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=ON
 								-DCMAKE_WARN_DEPRECATED:BOOL=OFF # Suppress warnings about "Compatibility with CMake < 3.5 will be removed from a future version of CMake"
 								-Wno-dev # We don't want to be warned over unused variables
 			BUILD_BYPRODUCTS    <BINARY_DIR>/libusb-1.0${CMAKE_STATIC_LIBRARY_SUFFIX}
