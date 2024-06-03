@@ -17,7 +17,7 @@ if(NOT USE_SYSTEM_LIBUSB_LIBS)
 			DOWNLOAD_COMMAND	""
 			INSTALL_COMMAND		""
 			SOURCE_DIR			${CMAKE_CURRENT_SOURCE_DIR}/external/libusb-cmake
-			CMAKE_ARGS			-DBUILD_SHARED_LIBS:BOOL=OFF # Build libusb as static library
+			CMAKE_ARGS			-DBUILD_SHARED_LIBS:BOOL=ON # Build libusb as static library
 								-DLIBUSB_BUILD_TESTING:BOOL=OFF # Disable build of libusb tests
 								-DLIBUSB_BUILD_EXAMPLES:BOOL=OFF # Disable build of libusb examples
 								-DLIBUSB_INSTALL_TARGETS:BOOL=OFF # Don't install libusb targets
@@ -142,7 +142,7 @@ if(ENABLE_DEV_FTDI)
 		DOWNLOAD_COMMAND	""
 		INSTALL_COMMAND		""
 		SOURCE_DIR			${CMAKE_CURRENT_SOURCE_DIR}/external/libftdi
-		CMAKE_ARGS			-DSTATICLIBS:BOOL=OFF # Build libftdi as static library
+		CMAKE_ARGS			-DSTATICLIBS:BOOL=ON # Build libftdi as static library
 							-DBUILD_TESTS:BOOL=OFF # Disable build of Boost Unit Test framework
 							-DEXAMPLES:BOOL=OFF # Disable build of example programs
 							-DFTDI_EEPROM:BOOL=OFF # Disable build of ftdi_eeprom
