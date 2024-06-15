@@ -413,29 +413,22 @@ macro(DeployWindows TARGET)
 		endif(OPENSSL_FOUND)
 
 		# Copy libjpeg-turbo to 'hyperion'
-		if (ENABLE_MF)
-			find_package(TurboJPEG)
-
-			if (TURBOJPEG_FOUND)
-				find_file(TURBOJPEG_DLL
-					NAMES "turbojpeg.dll"
-					PATHS ${TurboJPEG_INCLUDE_DIRS}/.. ${TurboJPEG_INCLUDE_DIRS}/../bin
-					NO_DEFAULT_PATH
+		if(ENABLE_MF AND TARGET turbojpeg)
+			get_target_property(TurboJPEG_INCLUDE_DIR turbojpeg INTERFACE_INCLUDE_DIRECTORIES)
+			get_filename_component(TURBOJPEG_DIR "${TurboJPEG_INCLUDE_DIR}" DIRECTORY)
+			foreach(comp "turbojpeg" "jpeg62")
+				find_file(${comp}
+					NAMES
+						"${comp}.dll"
+					PATHS
+						${TURBOJPEG_DIR}
+					PATH_SUFFIXES
+						bin
 				)
 
-				find_file(JPEG_DLL
-					NAMES "jpeg62.dll"
-					PATHS ${TurboJPEG_INCLUDE_DIRS}/.. ${TurboJPEG_INCLUDE_DIRS}/../bin
-					NO_DEFAULT_PATH
-				)
-
-				install(
-					FILES ${TURBOJPEG_DLL} ${JPEG_DLL}
-					DESTINATION "bin"
-					COMPONENT "Hyperion"
-				)
-			endif(TURBOJPEG_FOUND)
-		endif(ENABLE_MF)
+				file(INSTALL FILES ${${comp}} DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
+			endforeach()
+		endif()
 
 		# Create a qt.conf file in 'bin' to override hard-coded search paths in Qt plugins
 		file(WRITE "${CMAKE_BINARY_DIR}/qt.conf" "[Paths]\nPlugins=../lib/\n")
