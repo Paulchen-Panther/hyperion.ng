@@ -73,15 +73,15 @@ endif()
 
 if(ENABLE_DISPMANX)
 	target_link_libraries(${PROJECT_NAME} dispmanx-grabber)
-endif (ENABLE_DISPMANX)
+endif()
 
 if(ENABLE_FB)
 	target_link_libraries(${PROJECT_NAME} framebuffer-grabber)
-endif (ENABLE_FB)
+endif()
 
 if(ENABLE_OSX)
 	target_link_libraries(${PROJECT_NAME} osx-grabber)
-endif (ENABLE_OSX)
+endif()
 
 if(ENABLE_V4L2)
 	target_link_libraries(${PROJECT_NAME} v4l2-grabber)
@@ -97,34 +97,34 @@ endif()
 
 if(ENABLE_AMLOGIC)
 	target_link_libraries(${PROJECT_NAME} amlogic-grabber)
-endif (ENABLE_AMLOGIC)
+endif()
 
 if(ENABLE_X11)
 	if(APPLE)
 		include_directories("/opt/X11/include")
-	endif(APPLE)
+	endif()
 	target_link_libraries(${PROJECT_NAME} x11-grabber)
-endif (ENABLE_X11)
+endif()
 
 if(ENABLE_XCB)
 	target_link_libraries(${PROJECT_NAME} xcb-grabber)
-endif (ENABLE_XCB)
+endif()
 
 if(ENABLE_QT)
 	target_link_libraries(${PROJECT_NAME} qt-grabber)
-endif (ENABLE_QT)
+endif()
 
 if(ENABLE_DX)
 	target_link_libraries(${PROJECT_NAME} directx-grabber)
-endif (ENABLE_DX)
+endif()
 
 if(ENABLE_DDA)
 	target_link_libraries(${PROJECT_NAME} dda-grabber)
-endif (ENABLE_DDA)
+endif()
 
 if(ENABLE_CEC)
 	target_link_libraries(${PROJECT_NAME} cechandler)
-endif (ENABLE_CEC)
+endif()
 
 if(ENABLE_MDNS)
 	target_link_libraries(${PROJECT_NAME} mdns)

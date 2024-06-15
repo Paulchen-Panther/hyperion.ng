@@ -15,183 +15,288 @@ if(ENABLE_DEV_WS281XPWM)
 endif()
 
 #=============================================================================
-#  QMdnsEngine
+# QMdnsEngine
 #=============================================================================
 
-if (ENABLE_MDNS)
-	set(USE_SYSTEM_QMDNS_LIBS ${DEFAULT_USE_SYSTEM_QMDNS_LIBS} CACHE BOOL "use qmdnsengine library from system")
-
+if(ENABLE_MDNS)
 	if(USE_SYSTEM_QMDNS_LIBS)
-		find_package(qmdnsengine REQUIRED)
-	else()
-		include(ExternalProject)
-		ExternalProject_Add(qmdns
-			PREFIX				${CMAKE_CURRENT_BINARY_DIR}/external/qmdnsengine
-			BUILD_ALWAYS		OFF
-			DOWNLOAD_COMMAND	""
-			SOURCE_DIR			${CMAKE_CURRENT_SOURCE_DIR}/external/qmdnsengine
-			BINARY_DIR			${CMAKE_CURRENT_BINARY_DIR}/external/qmdnsengine/bin
-			CMAKE_ARGS			-DBUILD_SHARED_LIBS:BOOL=OFF
-								-DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_BINARY_DIR}
-								-DBIN_INSTALL_DIR:STRING=lib
-								-DLIB_INSTALL_DIR:STRING=lib
-								-DINCLUDE_INSTALL_DIR:STRING=include
-								-DCMAKE_PREFIX_PATH:PATH=${CMAKE_PREFIX_PATH}
-								-DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER}
-								-DCMAKE_CXX_COMPILER:FILEPATH=${CMAKE_CXX_COMPILER}
-								-DCMAKE_C_FLAGS:STRING=${CMAKE_C_FLAGS}
-								-DCMAKE_CXX_FLAGS:STRING=${CMAKE_CXX_FLAGS}
-								-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-								-Wno-dev # We don't want to be warned over unused variables
-			INSTALL_DIR			${CMAKE_BINARY_DIR}
-			BUILD_BYPRODUCTS    <INSTALL_DIR>/lib/${CMAKE_STATIC_LIBRARY_PREFIX}qmdnsengine${CMAKE_STATIC_LIBRARY_SUFFIX}
-		)
+		find_package(qmdnsengine CONFIG QUIET)
+		if(NOT qmdnsengine_FOUND)
+			find_package(qmdnsengine REQUIRED)
+		endif()
+	endif()
 
-		add_library(qmdnsengine STATIC IMPORTED GLOBAL)
-		add_dependencies(qmdnsengine qmdns)
-		ExternalProject_Get_Property(qmdns INSTALL_DIR)
-		set_target_properties(qmdnsengine PROPERTIES
-			IMPORTED_LOCATION "${INSTALL_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}qmdnsengine${CMAKE_STATIC_LIBRARY_SUFFIX}"
-			INTERFACE_INCLUDE_DIRECTORIES "${INSTALL_DIR}/include"
-		)
+	if(NOT USE_SYSTEM_QMDNS_LIBS)
+		# Build QMdnsEngine as static library
+		set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build statically version of QMdnsEngine")
+
+		# Suppress warnings about "Compatibility with CMake < 3.5 will be removed from a future version of CMake"
+		set(CMAKE_WARN_DEPRECATED OFF CACHE BOOL "" FORCE)
+
+		# Add QMdnsEngine directory to the build
+		add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/external/qmdnsengine")
+	endif()
+
+	if(TARGET qmdnsengine)
+		if(NOT TARGET qmdns)
+			add_library(qmdns INTERFACE IMPORTED GLOBAL)
+			target_link_libraries(qmdns INTERFACE qmdnsengine)
+		endif()
+
+		get_target_property(qmdnsengine_VERSION qmdnsengine VERSION)
+		if(qmdnsengine_VERSION)
+			message(STATUS "QMdnsEngine version used: ${qmdnsengine_VERSION}")
+		endif()
 	endif()
 endif()
 
 #=============================================================================
-# FLATBUFFER
+# FlatBuffers
 #=============================================================================
 
 if(ENABLE_FLATBUF_SERVER OR ENABLE_FLATBUF_CONNECT)
-	set(USE_SYSTEM_FLATBUFFERS_LIBS ${DEFAULT_USE_SYSTEM_FLATBUFFERS_LIBS} CACHE BOOL "use flatbuffers library from system")
+	if(USE_SYSTEM_FLATBUFFERS_LIBS)
+		find_package(Flatbuffers CONFIG QUIET NAMES flatbuffers Flatbuffers FlatBuffers)
+		if(NOT Flatbuffers_FOUND)
+			find_package(Flatbuffers REQUIRED)
+		endif()
 
-	if (USE_SYSTEM_FLATBUFFERS_LIBS)
-		find_program(FLATBUFFERS_FLATC_EXECUTABLE NAMES flatc REQUIRED)
-		find_package(Flatbuffers QUIET)
-		if (NOT Flatbuffers_FOUND)
-			find_package(FlatBuffers QUIET)
-			if (NOT FlatBuffers_FOUND)
-				message(STATUS "Could not find Flatbuffers system library, build static Flatbuffers library")
-				set(DEFAULT_USE_SYSTEM_FLATBUFFERS_LIBS OFF PARENT_SCOPE)
-				set(USE_SYSTEM_FLATBUFFERS_LIBS OFF)
-			endif()
+		if(TARGET flatbuffers::flatc AND NOT TARGET flatc)
+			add_executable(flatc IMPORTED GLOBAL)
+			get_target_property(FLATC_EXECUTABLE flatbuffers::flatc IMPORTED_LOCATION_RELEASE)
+			set_target_properties(flatc PROPERTIES IMPORTED_LOCATION ${FLATC_EXECUTABLE})
 		endif()
 	endif()
 
-	if (NOT USE_SYSTEM_FLATBUFFERS_LIBS)
-		set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build shared flatbuffers library")
+	if(NOT USE_SYSTEM_FLATBUFFERS_LIBS)
+		# Build Flatbuffers as static library
+		set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build shared Flatbuffers library")
+
+		# Disable build of Flatbuffers tests
 		set(FLATBUFFERS_BUILD_TESTS OFF CACHE BOOL "Build Flatbuffers with tests")
-		add_subdirectory(external/flatbuffers)
+
+		# Disable Flatbuffers Compiler if cross compiling (and import or build nativly)
+		include (CMakeDependentOption)
+		cmake_dependent_option(FLATBUFFERS_BUILD_FLATC "Enable the build of the flatbuffers compiler" OFF "CMAKE_CROSSCOMPILING" ON)
+
+		# Define the flatc import option
+		set(IMPORT_FLATC "" CACHE STRING "Import the Flatbuffers compiler (flatc_export.cmake) from a native build")
+
+		# Add Flatbuffers directory to the build
+		add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/external/flatbuffers")
 
 		if(CMAKE_CROSSCOMPILING)
-			# when crosscompiling import the flatc executable targets from a file generated by a native build
-			option(IMPORT_FLATC "flatc export file (flatc_export.cmake) from a native build" "IMPORT_FLATC-FILE_NOT_FOUND")
-			include(${IMPORT_FLATC})
+			if(IMPORT_FLATC)
+				# Import the Flatbuffers Compiler from a native build ...
+				include(${IMPORT_FLATC})
+			else()
+				# ... or build flatc nativly
+				include(ExternalProject)
+				ExternalProject_Add(flatc-host
+					PREFIX				${CMAKE_BINARY_DIR}/dependencies/external/flatc-host
+					BUILD_ALWAYS		OFF
+					DOWNLOAD_COMMAND	""
+					INSTALL_COMMAND     ""
+					SOURCE_DIR			${CMAKE_CURRENT_SOURCE_DIR}/external/flatbuffers
+					CMAKE_ARGS          -DFLATBUFFERS_BUILD_FLATLIB:BOOL=OFF
+										-DFLATBUFFERS_INSTALL:BOOL=OFF
+										-DBUILD_SHARED_LIBS:BOOL=${BUILD_SHARED_LIBS}
+										-DFLATBUFFERS_BUILD_TESTS:BOOL=${FLATBUFFERS_BUILD_TESTS}
+										-DCMAKE_CXX_COMPILER:FILEPATH=${CMAKE_CXX_COMPILER}
+										-DCMAKE_CXX_FLAGS:STRING=${CMAKE_CXX_FLAGS}
+										-DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
+										-Wno-dev # We don't want to be warned over unused variables
+					BUILD_BYPRODUCTS    <BINARY_DIR>/flatc${CMAKE_EXECUTABLE_SUFFIX}
+				)
+
+				add_executable(flatc IMPORTED GOBAL)
+				ExternalProject_Get_Property(flatc-host BINARY_DIR)
+				set_target_properties(flatc PROPERTIES
+					IMPORTED_LOCATION ${BINARY_DIR}/flatc${CMAKE_EXECUTABLE_SUFFIX}
+				)
+				add_dependencies(flatc flatc-host)
+			endif()
 		else()
 			# export the flatc compiler so it can be used when cross compiling
 			export(TARGETS flatc FILE "${CMAKE_BINARY_DIR}/flatc_export.cmake")
 		endif()
+	endif()
 
-		# define the include for the flatbuffers library at the parent scope
-		set(FLATBUFFERS_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/external/flatbuffers/include")
+	if(TARGET flatbuffers::flatbuffers OR TARGET FlatBuffers::FlatBuffers)
+		if(NOT TARGET FlatBuffers)
+			add_library(FlatBuffers INTERFACE IMPORTED GLOBAL)
+			if(TARGET flatbuffers::flatbuffers)
+				target_link_libraries(FlatBuffers INTERFACE flatbuffers::flatbuffers)
+			else()
+				target_link_libraries(FlatBuffers INTERFACE FlatBuffers::FlatBuffers)
+			endif()
+		endif()
 
-		IF (NOT CMAKE_CROSSCOMPILING)
-			# define the flatc executable at the parent scope
-			set(FLATBUFFERS_FLATC_EXECUTABLE "$<TARGET_FILE:flatc>")
+		if(TARGET flatbuffers::flatbuffers)
+			get_build_interface_include_directory(TARGET flatbuffers::flatbuffers OUTPUT FLATBUFFERS_INCLUDE_DIR)
 		else()
-			#Workaround, set flatc comiplier directory hard, as cmake definitions of flatc do not cater for crosscompile correctly.
-			#Includ of flatc_export.cmake detects that flatc target is defined aand returns before using the definitions written by export
-			set ( FLATBUFFERS_FLATC_EXECUTABLE "${CMAKE_BINARY_DIR}/../build-x86x64/bin/flatc")
+			get_build_interface_include_directory(TARGET FlatBuffers::FlatBuffers OUTPUT FLATBUFFERS_INCLUDE_DIR)
+		endif()
+
+		# static flatbuffers version detection from: https://github.com/hyperledger-archives/iroha-ametsuchi/blob/master/cmake/Modules/Findflatbuffers.cmake
+		if(FLATBUFFERS_INCLUDE_DIR AND EXISTS "${FLATBUFFERS_INCLUDE_DIR}/flatbuffers/base.h")
+			file(STRINGS "${FLATBUFFERS_INCLUDE_DIR}/flatbuffers/base.h" flatbuffers_version_str REGEX "#define FLATBUFFERS_VERSION_[A-Z]+ ")
+			string(REGEX REPLACE ".*#define FLATBUFFERS_VERSION_MAJOR ([0-9]+).*" "\\1" flatbuffers_MAJOR_VERSION "${flatbuffers_version_str}")
+			string(REGEX REPLACE ".*#define FLATBUFFERS_VERSION_MINOR ([0-9]+).*" "\\1" flatbuffers_MINOR_VERSION "${flatbuffers_version_str}")
+			string(REGEX REPLACE ".*#define FLATBUFFERS_VERSION_REVISION ([0-9]+).*" "\\1" flatbuffers_REVISION_VERSION "${flatbuffers_version_str}")
+			set(Flatbuffers_VERSION "${flatbuffers_MAJOR_VERSION}.${flatbuffers_MINOR_VERSION}.${flatbuffers_REVISION_VERSION}")
+		endif()
+
+		if(Flatbuffers_VERSION)
+			message(STATUS "FlatBuffers version used: ${Flatbuffers_VERSION}")
 		endif()
 	endif()
 
-	set(FLATBUFFERS_FLATC_EXECUTABLE ${FLATBUFFERS_FLATC_EXECUTABLE} PARENT_SCOPE)
-	set(FLATBUFFERS_INCLUDE_DIRS ${FLATBUFFERS_INCLUDE_DIRS} PARENT_SCOPE)
-	include_directories(${FLATBUFFERS_INCLUDE_DIRS})
+	function(compile_flatbuffer_schema FBS_GENERATED)
+		if(NOT ARGN)
+			message(SEND_ERROR "Error: compile_flatbuffer_schema() called without any schema files")
+			return()
+		endif()
 
-	if (FLATBUFFERS_INCLUDE_DIRS AND EXISTS "${FLATBUFFERS_INCLUDE_DIRS}/../package.json")
-		file(STRINGS "${FLATBUFFERS_INCLUDE_DIRS}/../package.json" _FLATBUFFERS_VERSION_STRING REGEX "^[ \t\r\n]+\"version\":[ \t\r\n]+\"[0-9]+.[0-9]+.[0-9]+\",")
-		string(REGEX REPLACE "^[ \t\r\n]+\"version\":[ \t\r\n]+\"([0-9]+.[0-9]+.[0-9]+)\"," "\\1" FLATBUFFERS_PARSE_VERSION "${_FLATBUFFERS_VERSION_STRING}")
-		message(STATUS "Flatbuffers version used: ${FLATBUFFERS_PARSE_VERSION}")
-	endif ()
+		set(${FBS_GENERATED})
+		foreach(FIL ${ARGN})
+			get_filename_component(ABS_FIL ${FIL} ABSOLUTE)
+			get_filename_component(FIL_WE ${FIL} NAME_WE)
 
-	function(compile_flattbuffer_schema SRC_FBS OUTPUT_DIR)
-		string(REGEX REPLACE "\\.fbs$" "_generated.h" GEN_HEADER ${SRC_FBS})
-		set_property(SOURCE ${GEN_HEADER} PROPERTY SKIP_AUTOMOC ON)
+			set(OUT_FILE "${CMAKE_CURRENT_BINARY_DIR}/${FIL_WE}_generated.h")
+			list(APPEND ${FBS_GENERATED} ${OUT_FILE})
 
-		add_custom_command(
-			OUTPUT ${GEN_HEADER}
-			COMMAND "${FLATBUFFERS_FLATC_EXECUTABLE}" -c --no-includes --gen-mutable
-					--gen-object-api
-					-o "${OUTPUT_DIR}"
-					"${SRC_FBS}"
-			DEPENDS "${FLATBUFFERS_FLATC_EXECUTABLE}" ${SRC_FBS})
+			add_custom_command(
+				OUTPUT ${OUT_FILE}
+				COMMAND "$<TARGET_FILE:flatc>"
+				ARGS -c --no-includes --gen-mutable --gen-object-api -o "${CMAKE_CURRENT_BINARY_DIR}" "${ABS_FIL}"
+				DEPENDS ${ABS_FIL} flatc
+				COMMENT "Running flatbuffers compiler on ${FIL}"
+				VERBATIM
+			)
+			set_property(SOURCE ${OUT_FILE} PROPERTY SKIP_AUTOMOC ON)
+		endforeach()
+
+		set_source_files_properties(${${FBS_GENERATED}} PROPERTIES
+			GENERATED TRUE
+		)
+		set(${FBS_GENERATED} ${${FBS_GENERATED}} PARENT_SCOPE)
 	endfunction()
 endif()
 
 #=============================================================================
-# PROTOBUFFER
+# Protocol Buffers
 #=============================================================================
 
 if(ENABLE_PROTOBUF_SERVER)
-	set(USE_SYSTEM_PROTO_LIBS ${DEFAULT_USE_SYSTEM_PROTO_LIBS} CACHE BOOL "use protobuf library from system")
-
-	# defines for 3rd party sub-modules
-	set(ABSL_PROPAGATE_CXX_STD ON CACHE BOOL "Build abseil-cpp with C++ version requirements propagated")
-
-	if (USE_SYSTEM_PROTO_LIBS)
-		find_package(Protobuf REQUIRED)
-		if(CMAKE_VERSION VERSION_GREATER 3.5.2)
-			set(PROTOBUF_INCLUDE_DIRS ${Protobuf_INCLUDE_DIRS})
-			set(PROTOBUF_PROTOC_EXECUTABLE ${Protobuf_PROTOC_EXECUTABLE})
-			set(PROTOBUF_LIBRARIES ${Protobuf_LIBRARIES})
+	if(USE_SYSTEM_PROTO_LIBS)
+		find_package(Protobuf CONFIG QUIET NAMES protobuf Protobuf ProtoBuf)
+		if(NOT Protobuf_FOUND)
+			find_package(Protobuf REQUIRED)
 		endif()
-	else ()
-		set(protobuf_BUILD_TESTS OFF CACHE BOOL "Build protobuf with tests")
+
+		if(TARGET protobuf::protoc AND NOT TARGET protoc)
+			add_executable(protoc IMPORTED GLOBAL)
+			get_target_property(PROTOC_EXECUTABLE protobuf::protoc IMPORTED_LOCATION_RELEASE)
+			set_target_properties(protoc PROPERTIES IMPORTED_LOCATION ${PROTOC_EXECUTABLE})
+		endif()
+	endif()
+
+	if(NOT USE_SYSTEM_PROTO_LIBS)
+		# Build Protobuf as static library
 		set(protobuf_BUILD_SHARED_LIBS OFF CACHE BOOL "Build protobuf shared")
+
+		# Disable build of Protobuf tests
+		set(protobuf_BUILD_TESTS OFF CACHE BOOL "Build protobuf with tests")
+
+		# Disable build of Protobuf with zlib support
 		set(protobuf_WITH_ZLIB OFF CACHE BOOL "Build protobuf with zlib support")
 
+		# Disable build of libupb
+		set(protobuf_BUILD_LIBUPB OFF CACHE BOOL "Build libupb")
+
+		# Build abeil (3rd party sub-module) with C++ version requirements
+		set(ABSL_PROPAGATE_CXX_STD ON CACHE BOOL "Build abseil-cpp with C++ version requirements propagated")
+
+		# Disable Protobuf Compiler if cross compiling (and import or build nativly)
+		include (CMakeDependentOption)
+		cmake_dependent_option(protobuf_BUILD_PROTOC_BINARIES "Build protobuf libraries and protoc compiler" OFF "CMAKE_CROSSCOMPILING" ON)
+
+		# Override debug prefix
+		set(protobuf_DEBUG_POSTFIX "" CACHE STRING "Default debug postfix" FORCE)
+
+		# Disable static linking of MSVC runtime libraries under Windows
 		if (WIN32)
 			set(protobuf_MSVC_STATIC_RUNTIME OFF CACHE BOOL "Build protobuf static")
 		endif()
 
+		# Define the protoc import option
+		set(IMPORT_PROTOC "" CACHE STRING "Import the Protobuf compiler (protoc_export.cmake) from a native build")
+
+		# Add Protobuf directory to the build
 		add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/external/protobuf")
 
-		# define the include for the protobuf library
-		set(PROTOBUF_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/external/protobuf/src")
+		if(CMAKE_CROSSCOMPILING)
+			if(IMPORT_PROTOC)
+				# Import the Protobuf Compiler from a native build ...
+				include(${IMPORT_FLATC})
+			else()
+				# ... or build protoc nativly
+				include(ExternalProject)
+				ExternalProject_Add(protoc-host
+					PREFIX				${CMAKE_BINARY_DIR}/dependencies/external/protoc-host
+					BUILD_ALWAYS		OFF
+					DOWNLOAD_COMMAND	""
+					INSTALL_COMMAND     ""
+					SOURCE_DIR			${CMAKE_CURRENT_SOURCE_DIR}/external/protobuf
+					CMAKE_ARGS          -Dprotobuf_BUILD_LIBPROTOC:BOOL=OFF
+										-Dprotobuf_INSTALL:BOOL=OFF
+										-Dprotobuf_BUILD_TESTS:BOOL=${protobuf_BUILD_TESTS}
+										-Dprotobuf_BUILD_SHARED_LIBS:BOOL=${protobuf_BUILD_SHARED_LIBS}
+										-Dprotobuf_WITH_ZLIB:BOOL=${protobuf_WITH_ZLIB}
+										-DABSL_PROPAGATE_CXX_STD:BOOL=${ABSL_PROPAGATE_CXX_STD}
+										-DCMAKE_CXX_COMPILER:FILEPATH=${CMAKE_CXX_COMPILER}
+										-DCMAKE_CXX_FLAGS:STRING=${CMAKE_CXX_FLAGS}
+										-DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
+										-Wno-dev # We don't want to be warned over unused variables
+					BUILD_BYPRODUCTS    <BINARY_DIR>/protoc${CMAKE_EXECUTABLE_SUFFIX}
+				)
 
-		# define the protoc executable
-		set(PROTOBUF_PROTOC_EXECUTABLE protobuf::protoc)
-
-		# define the protobuf library
-		set(PROTOBUF_LIBRARIES protobuf::libprotobuf)
-
+				add_executable(protoc IMPORTED GLOBAL)
+				ExternalProject_Get_Property(protoc-host BINARY_DIR)
+				set_target_properties(protoc PROPERTIES
+					IMPORTED_LOCATION ${BINARY_DIR}/protoc${CMAKE_EXECUTABLE_SUFFIX}
+				)
+				add_dependencies(protoc protoc-host)
+			endif()
+		else()
+			# export the protoc compiler so it can be used when cross compiling
+			export(TARGETS protoc FILE "${CMAKE_BINARY_DIR}/protoc_export.cmake")
+		endif()
 	endif()
 
-	# redefine at parent scope
-	set(PROTOBUF_INCLUDE_DIRS ${PROTOBUF_INCLUDE_DIRS} PARENT_SCOPE)
-	set(PROTOBUF_PROTOC_EXECUTABLE ${PROTOBUF_PROTOC_EXECUTABLE} PARENT_SCOPE)
-	set(PROTOBUF_LIBRARIES ${PROTOBUF_LIBRARIES} PARENT_SCOPE)
+	if(TARGET protobuf::libprotobuf)
+		if(NOT TARGET ProtoBuf)
+			add_library(ProtoBuf INTERFACE IMPORTED GLOBAL)
+			target_link_libraries(ProtoBuf INTERFACE protobuf::libprotobuf)
+		endif()
 
-	# include headers
-	include_directories(${PROTOBUF_INCLUDE_DIRS})
+		# static protobuf version detection from: https://github.com/opencv/opencv/blob/4.x/cmake/OpenCVFindProtobuf.cmake
+		get_build_interface_include_directory(TARGET protobuf::libprotobuf OUTPUT PROTOBUF_INCLUDE_DIR)
+		if(PROTOBUF_INCLUDE_DIR AND EXISTS "${PROTOBUF_INCLUDE_DIR}/google/protobuf/stubs/common.h")
+			file(STRINGS "${PROTOBUF_INCLUDE_DIR}/google/protobuf/stubs/common.h" ver REGEX "#define GOOGLE_PROTOBUF_VERSION [0-9]+")
+			string(REGEX MATCHALL "[0-9]+" ver ${ver})
+			math(EXPR minor "${ver} / 1000 % 1000")
+			math(EXPR patch "${ver} % 1000")
+			set(Protobuf_VERSION "${minor}.${patch}")
+		endif()
 
-	# message(STATUS "Using protobuf compiler: " ${PROTOBUF_PROTOC_EXECUTABLE})
+		if(Protobuf_VERSION)
+			message(STATUS "Protocol Buffers version used: ${Protobuf_VERSION}")
+		endif()
+	endif()
 
-	#=============================================================================
-	# Copyright 2009 Kitware, Inc.
-	# Copyright 2009-2011 Philip Lowman <philip@yhbt.com>
-	# Copyright 2008 Esben Mose Hansen, Ange Optimization ApS
-	#
-	# Distributed under the OSI-approved BSD License (the "License");
-	# see accompanying file Copyright.txt for details.
-	#
-	# This software is distributed WITHOUT ANY WARRANTY; without even the
-	# implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-	# See the License for more information.
-	#=============================================================================
-	# (To distribute this file outside of CMake, substitute the full
-	#  License text for the above reference.)
-	function(PROTOBUF_GENERATE_CPP SRCS HDRS)
+	function(protobuf_generate_cpp SRCS HDRS)
 		if(NOT ARGN)
 			message(SEND_ERROR "Error: PROTOBUF_GENERATE_CPP() called without any proto files")
 			return()
@@ -221,12 +326,6 @@ if(ENABLE_PROTOBUF_SERVER)
 			endforeach()
 		endif()
 
-		if(CMAKE_CROSSCOMPILING OR USE_SYSTEM_PROTO_LIBS)
-			set(PROTOC_DEPENDENCY ${PROTOBUF_PROTOC_EXECUTABLE})
-		else()
-			set(PROTOC_DEPENDENCY protoc)
-		endif()
-
 		set(${SRCS})
 		set(${HDRS})
 		foreach(FIL ${ARGN})
@@ -238,10 +337,10 @@ if(ENABLE_PROTOBUF_SERVER)
 
 			add_custom_command(
 				OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${FIL_WE}.pb.cc"
-					   "${CMAKE_CURRENT_BINARY_DIR}/${FIL_WE}.pb.h"
-				COMMAND ${PROTOBUF_PROTOC_EXECUTABLE}
+						"${CMAKE_CURRENT_BINARY_DIR}/${FIL_WE}.pb.h"
+				COMMAND "$<TARGET_FILE:protoc>"
 				ARGS --cpp_out ${CMAKE_CURRENT_BINARY_DIR} ${_protobuf_include_path} ${ABS_FIL}
-				DEPENDS ${ABS_FIL} ${PROTOC_DEPENDENCY}
+				DEPENDS ${ABS_FIL} protoc
 				COMMENT "Running C++ protocol buffer compiler on ${FIL}"
 				VERBATIM
 			)
@@ -249,90 +348,87 @@ if(ENABLE_PROTOBUF_SERVER)
 			set_property(SOURCE "${CMAKE_CURRENT_BINARY_DIR}/${FIL_WE}.pb.h" PROPERTY SKIP_AUTOMOC ON)
 		endforeach()
 
-		set_source_files_properties(${${SRCS}} ${${HDRS}} PROPERTIES GENERATED TRUE)
+		# disable warnings for auto generated proto files, we can't change the files ....
+		if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
+			set_source_files_properties(${${SRCS}} ${${HDRS}} ${ARGN} PROPERTIES
+				COMPILE_FLAGS "-w -Wno-return-local-addr"
+			)
+		elseif(MSVC)
+			set_source_files_properties(${${SRCS}} ${${HDRS}} ${ARGN} PROPERTIES
+				COMPILE_FLAGS "/W0"
+			)
+		endif()
+
+		set_source_files_properties(${${SRCS}} ${${HDRS}} PROPERTIES
+			GENERATED TRUE
+		)
 		set(${SRCS} ${${SRCS}} PARENT_SCOPE)
 		set(${HDRS} ${${HDRS}} PARENT_SCOPE)
 	endfunction()
 endif()
 
 #=============================================================================
-# MBEDTLS
+# MbedTLS
 #=============================================================================
 
 if(ENABLE_DEV_NETWORK)
-	set(USE_SYSTEM_MBEDTLS_LIBS ${DEFAULT_USE_SYSTEM_MBEDTLS_LIBS} CACHE BOOL "use mbedtls library from system")
+	if(USE_SYSTEM_MBEDTLS_LIBS)
+		find_package(MbedTLS CONFIG QUIET NAMES mbedtls mbedTLS MbedTLS)
+		if(NOT MbedTLS_FOUND)
+			find_package(MbedTLS REQUIRED)
+		endif()
+	endif()
 
-	if (USE_SYSTEM_MBEDTLS_LIBS)
-		find_package(mbedtls REQUIRED)
-		if (NOT MBEDTLS_FOUND)
-			message(STATUS "Could NOT find mbedtls system libraries, build static mbedtls libraries")
-			#Fallback: build mbedtls static libray inside project
-			set(DEFAULT_USE_SYSTEM_MBEDTLS_LIBS OFF PARENT_SCOPE)
-			set(USE_SYSTEM_MBEDTLS_LIBS OFF)
-		endif (NOT MBEDTLS_FOUND)
-else()
-		cmake_minimum_required(VERSION 3.5.1)
+	if(NOT USE_SYSTEM_MBEDTLS_LIBS)
+		# Build MbedTLS as static library
+		set(USE_SHARED_MBEDTLS_LIBRARY OFF CACHE BOOL "Disable MbedTLS shared libraries")
+		set(USE_STATIC_MBEDTLS_LIBRARY ON CACHE BOOL "Enable MbedTLS static libraries")
 
-		set(CMAKE_POLICY_DEFAULT_CMP0071 NEW)
+		# Disable build of MbedTLS tests
+		set(ENABLE_TESTING OFF CACHE BOOL "Build MbedTLS tests")
 
-		set(DEFAULT_USE_SYSTEM_MBEDTLS_LIBS OFF CACHE BOOL "system mbedtls libraries not found, disable use system mbedtls libraries")
-		set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build shared mbedtls libraries")
+		# Disable fatal warnings
+		option(MBEDTLS_FATAL_WARNINGS "Compiler warnings treated as errors" OFF)
 
-		set(ENABLE_TESTING OFF CACHE BOOL "Disable mbedTLS tests")
-		set(GEN_FILES OFF CACHE BOOL "Disable mbedTLS auto-generated files")
-		set(ENABLE_PROGRAMS OFF CACHE BOOL "Disable mbedTLS programs")
-		#set(LINK_WITH_PTHREAD ON CACHE BOOL "Enable mbedTLS library linked to pthread.")
+		# Disable build of MbedTLS program building
+		set(ENABLE_PROGRAMS OFF CACHE BOOL "Build MbedTLS programs")
 
-		set(USE_SHARED_MBEDTLS_LIBRARY OFF CACHE BOOL "Disable mbedTLS shared libraries")
-		set(USE_STATIC_MBEDTLS_LIBRARY ON CACHE BOOL "Enable mbedTLS static libraries")
+		# Enable export
+		set(DISABLE_PACKAGE_CONFIG_AND_INSTALL OFF CACHE INTERNAL "Disable package configuration, target export and installation")
 
-		set(MBEDTLS_DOWNLOAD_DIR "${CMAKE_BINARY_DIR}/dependencies/external/mbedtls/download")
-		set(MBEDTLS_SOURCE_DIR "${CMAKE_SOURCE_DIR}/dependencies/external/mbedtls")
-		set(MBEDTLS_BINARY_DIR "${CMAKE_BINARY_DIR}/dependencies/external/mbedtls/build")
-		set(MBEDTLS_INSTALL_DIR "${CMAKE_BINARY_DIR}")
-		if(${CMAKE_BUILD_TYPE} AND ${CMAKE_BUILD_TYPE} EQUAL "Debug")
-			set(MBEDTLS_LOGGING 1)
-		else ()
-			set(MBEDTLS_LOGGING 0)
-		endif ()
+		# Add MbedTLS directory to the build
+		add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/external/mbedtls")
+	endif()
 
-		add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/mbedtls)
+	if(TARGET MbedTLS::mbedtls)
+		if(NOT TARGET MbedTLS)
+			add_library(MbedTLS INTERFACE IMPORTED GLOBAL)
+			target_link_libraries(MbedTLS INTERFACE MbedTLS::mbedtls)
+		endif()
 
-		set (MBEDTLS_INCLUDE_DIR "${MBEDTLS_SOURCE_DIR}/include")
-		set (MBEDTLS_INCLUDE_DIR ${MBEDTLS_INCLUDE_DIR} PARENT_SCOPE)
-		if (MBEDTLS_INCLUDE_DIR)
-			if (EXISTS "${MBEDTLS_INCLUDE_DIR}/mbedtls/build_info.h")
-				file(STRINGS ${MBEDTLS_INCLUDE_DIR}/mbedtls/build_info.h _MBEDTLS_VERSION_LINE REGEX "^#define[ \t]+MBEDTLS_VERSION_STRING[\t ].*")
-				string(REGEX REPLACE ".*MBEDTLS_VERSION_STRING[\t ]+\"(.*)\"" "\\1" MBEDTLS_VERSION ${_MBEDTLS_VERSION_LINE})
-				set (MBEDTLS_VERSION ${MBEDTLS_VERSION} PARENT_SCOPE)
-				message(STATUS "Using static mbedtls libraries (build version \"${MBEDTLS_VERSION}\")")
-			elseif(EXISTS "${MBEDTLS_INCLUDE_DIR}/mbedtls/version.h")
-				file(STRINGS "${MBEDTLS_INCLUDE_DIR}/mbedtls/version.h" _MBEDTLS_VERSION_STRING REGEX "^#[\t ]*define[\t ]+MBEDTLS_VERSION_STRING[\t ]+\"[0-9]+.[0-9]+.[0-9]+\"")
-				string(REGEX REPLACE "^.*MBEDTLS_VERSION_STRING.*([0-9]+.[0-9]+.[0-9]+).*" "\\1" MBEDTLS_VERSION "${_MBEDTLS_VERSION_STRING}")
-				set (MBEDTLS_VERSION ${MBEDTLS_VERSION} PARENT_SCOPE)
-				message(STATUS "Using static mbedtls libraries (build version \"${MBEDTLS_VERSION}\")")
-			endif()
-		endif ()
+		# static mbedtls version detection
+		get_build_interface_include_directory(TARGET MbedTLS::mbedtls OUTPUT MBEDTLS_INCLUDE_DIR)
+		if(EXISTS "${MBEDTLS_INCLUDE_DIR}/mbedtls/build_info.h")
+			file(STRINGS ${MBEDTLS_INCLUDE_DIR}/mbedtls/build_info.h _MBEDTLS_VERSION_LINE REGEX "^#define[ \t]+MBEDTLS_VERSION_STRING[\t ].*")
+			string(REGEX REPLACE ".*MBEDTLS_VERSION_STRING[\t ]+\"(.*)\"" "\\1" MbedTLS_VERSION ${_MBEDTLS_VERSION_LINE})
+		elseif(EXISTS "${MBEDTLS_INCLUDE_DIR}/mbedtls/version.h")
+			file(STRINGS "${MBEDTLS_INCLUDE_DIR}/mbedtls/version.h" _MBEDTLS_VERSION_STRING REGEX "^#[\t ]*define[\t ]+MBEDTLS_VERSION_STRING[\t ]+\"[0-9]+.[0-9]+.[0-9]+\"")
+			string(REGEX REPLACE "^.*MBEDTLS_VERSION_STRING.*([0-9]+.[0-9]+.[0-9]+).*" "\\1" MbedTLS_VERSION "${_MBEDTLS_VERSION_STRING}")
+		endif()
 
-		include_directories(${MBEDTLS_INCLUDE_DIR})
+		if(MbedTLS_VERSION)
+			message(STATUS "MbedTLS version used: ${MbedTLS_VERSION}")
 
-		if(WIN32)
-			set (MBEDTLS_LIB_INSTALL_DIR_WITH_LIB_PREFIX "${MBEDTLS_INSTALL_DIR}/lib/${CMAKE_CFG_INTDIR}/")
-		else()
-			set (MBEDTLS_LIB_INSTALL_DIR_WITH_LIB_PREFIX "${MBEDTLS_INSTALL_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}")
-		endif ()
+			# Define and set custom INTERFACE_MBEDTLS_MAJOR_VERSION_PROPERTY target property
+			string(REGEX MATCH "[0-9]+|-([A-Za-z0-9_.]+)" MBEDTLS_MAJOR_VERSION ${MbedTLS_VERSION})
+			define_property(TARGET PROPERTY INTERFACE_MBEDTLS_MAJOR_VERSION_PROPERTY INHERITED
+				BRIEF_DOCS "Custom MbedTLS major version target property."
+				FULL_DOCS "Custom MbedTLS major version target property."
+			)
 
-		set (MBEDTLS_SSL_LIBRARY "${MBEDTLS_LIB_INSTALL_DIR_WITH_LIB_PREFIX}mbedtls${CMAKE_STATIC_LIBRARY_SUFFIX}")
-		set (MBEDTLS_X509_LIBRARY "${MBEDTLS_LIB_INSTALL_DIR_WITH_LIB_PREFIX}mbedx509${CMAKE_STATIC_LIBRARY_SUFFIX}")
-		set (MBEDTLS_CRYPTO_LIBRARY "${MBEDTLS_LIB_INSTALL_DIR_WITH_LIB_PREFIX}mbedcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}")
-		set (MBEDTLS_LIBRARIES ${MBEDTLS_SSL_LIBRARY} ${MBEDTLS_X509_LIBRARY} ${MBEDTLS_CRYPTO_LIBRARY})
-		set (MBEDTLS_LIBRARIES ${MBEDTLS_LIBRARIES} PARENT_SCOPE)
-
-		if(${CMAKE_BUILD_TYPE} AND ${CMAKE_BUILD_TYPE} EQUAL "Debug")
-			message(STATUS "mbedtls libraries: ${MBEDTLS_LIBRARIES}")
-		endif ()
-
-		mark_as_advanced (MBEDTLS_INCLUDE_DIR MBEDTLS_LIBRARIES MBEDTLS_SSL_LIBRARY MBEDTLS_X509_LIBRARY MBEDTLS_CRYPTO_LIBRARY)
-
-	endif (USE_SYSTEM_MBEDTLS_LIBS)
+			set_target_properties(MbedTLS PROPERTIES
+				INTERFACE_MBEDTLS_MAJOR_VERSION_PROPERTY ${MBEDTLS_MAJOR_VERSION}
+			)
+		endif()
+	endif()
 endif(ENABLE_DEV_NETWORK)

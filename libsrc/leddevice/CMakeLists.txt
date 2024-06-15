@@ -110,18 +110,14 @@ if(WIN32)
 endif()
 
 if(ENABLE_DEV_NETWORK)
-	target_link_libraries(leddevice Qt${QT_VERSION_MAJOR}::Network ssdp)
+	target_link_libraries(leddevice
+		Qt${QT_VERSION_MAJOR}::Network
+		ssdp
+		MbedTLS
+	)
 
-	if(NOT DEFAULT_USE_SYSTEM_MBEDTLS_LIBS)
-		if(MBEDTLS_LIBRARIES)
-			include_directories(${MBEDTLS_INCLUDE_DIR})
-			target_link_libraries(leddevice ${MBEDTLS_LIBRARIES})
-			target_include_directories(leddevice PRIVATE ${MBEDTLS_INCLUDE_DIR})
-		endif (MBEDTLS_LIBRARIES)
-	endif()
-
-	string(REGEX MATCH "[0-9]+|-([A-Za-z0-9_.]+)" MBEDTLS_MAJOR ${MBEDTLS_VERSION})
-	if(MBEDTLS_MAJOR EQUAL "3")
+	get_target_property(MAJOR_VERSION MbedTLS INTERFACE_MBEDTLS_MAJOR_VERSION_PROPERTY)
+	if(${MAJOR_VERSION} EQUAL "3")
 		target_compile_definitions(leddevice PRIVATE USE_MBEDTLS3)
 		if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
 			target_compile_features(leddevice PRIVATE cxx_std_20)
@@ -167,11 +163,10 @@ if(ENABLE_DEV_USB_HID)
 endif()
 
 if(ENABLE_MDNS)
-
  	target_link_libraries(leddevice mdns)
 endif()
 
-if( ENABLE_DEV_FTDI )
+if(ENABLE_DEV_FTDI)
 	find_package(PkgConfig REQUIRED)
 	pkg_check_modules(LIB_FTDI REQUIRED IMPORTED_TARGET libftdi1 )
 	target_include_directories(leddevice PRIVATE PkgConfig::LIB_FTDI)
