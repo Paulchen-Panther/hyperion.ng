@@ -158,6 +158,7 @@ jobs:
     runs-on: windows-2022
     env:
       VCINSTALLDIR: 'C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC'
+      LIBJPEG_TURBO_VERSION: 3.0.1
     steps:
       - name: ⬇ Checkout
         uses: actions/checkout@v4
