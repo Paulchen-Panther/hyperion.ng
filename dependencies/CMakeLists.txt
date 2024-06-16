@@ -1,10 +1,10 @@
 if(USE_PRE_BUILD_DEPS)
-	if(USE_PRE_BUILD_DEPS_DIR)
+	if(PRE_BUILD_DEPS_DIR)
 		# LibUSB
-		set(LIBUSB_ROOT_DIR ${USE_PRE_BUILD_DEPS_DIR})
+		set(LIBUSB_ROOT_DIR ${PRE_BUILD_DEPS_DIR})
 		# HIDAPI, QMdnsEngine, FlatBuffers, Protocol Buffers, MbedTLS
 		foreach(BUILD_DEP "absl" "utf8_range" "hidapi" "qmdnsengine" "flatbuffers" "protobuf" "MbedTLS")
-			set(${BUILD_DEP}_DIR "${USE_PRE_BUILD_DEPS_DIR}/lib/cmake/${BUILD_DEP}")
+			set(${BUILD_DEP}_DIR "${PRE_BUILD_DEPS_DIR}/lib/cmake/${BUILD_DEP}")
 		endforeach()
 	else()
 		message(FATAL_ERROR "The folder in which the previously created dependencies are located has not been defined. Please set PRE_BUILD_DEPS_DIR to this directory.")
@@ -227,10 +227,10 @@ if(ENABLE_FLATBUF_SERVER OR ENABLE_FLATBUF_CONNECT)
 		endif()
 
 		if(NOT TARGET flatc)
-			if(USE_PRE_BUILD_DEPS AND USE_PRE_BUILD_DEPS_DIR)
+			if(USE_PRE_BUILD_DEPS AND PRE_BUILD_DEPS_DIR)
 				add_executable(flatc IMPORTED GLOBAL)
 				set_target_properties(flatc PROPERTIES
-					IMPORTED_LOCATION ${USE_PRE_BUILD_DEPS_DIR}/bin/flatc${CMAKE_EXECUTABLE_SUFFIX}
+					IMPORTED_LOCATION ${PRE_BUILD_DEPS_DIR}/bin/flatc${CMAKE_EXECUTABLE_SUFFIX}
 				)
 			elseif(TARGET flatbuffers::flatc)
 				add_executable(flatc IMPORTED GLOBAL)
@@ -375,10 +375,10 @@ if(ENABLE_PROTOBUF_SERVER)
 		endif()
 
 		if(NOT TARGET protoc)
-			if(USE_PRE_BUILD_DEPS AND USE_PRE_BUILD_DEPS_DIR)
+			if(USE_PRE_BUILD_DEPS AND PRE_BUILD_DEPS_DIR)
 				add_executable(protoc IMPORTED GLOBAL)
 				set_target_properties(protoc PROPERTIES
-					IMPORTED_LOCATION ${USE_PRE_BUILD_DEPS_DIR}/bin/protoc${CMAKE_EXECUTABLE_SUFFIX}
+					IMPORTED_LOCATION ${PRE_BUILD_DEPS_DIR}/bin/protoc${CMAKE_EXECUTABLE_SUFFIX}
 				)
 			elseif(TARGET protobuf::protoc)
 				add_executable(protoc IMPORTED GLOBAL)

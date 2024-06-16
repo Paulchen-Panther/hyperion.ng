@@ -147,8 +147,8 @@ endif()
 option(HYPERION_LIGHT "Build Hyperion with a reduced set of functionality" OFF)
 
 # Build Hyperion with pre-build dependencies.
-option(USE_PRE_BUILD_DEPS "Build Hyperion with previously created dependencies (see also USE_PRE_BUILD_DEPS_DIR)" OFF)
-set(USE_PRE_BUILD_DEPS_DIR "" CACHE STRING "The folder in which the previously created dependencies are located")
+option(USE_PRE_BUILD_DEPS "Build Hyperion with previously created dependencies (see also PRE_BUILD_DEPS_DIR)" OFF)
+set(PRE_BUILD_DEPS_DIR "" CACHE STRING "The folder in which the previously created dependencies are located")
 
 # Grabber options
 cmake_dependent_option(ENABLE_AMLOGIC				"Enable the AMLOGIC video grabber"			ON "NOT HYPERION_LIGHT;PLATFORM_MATCHES_AML"												OFF)
