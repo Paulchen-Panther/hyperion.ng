@@ -91,6 +91,10 @@ add_library(hyperion-utils
 	${PROFILER}
 )
 
+target_include_directories(hyperion-utils PRIVATE
+	${CMAKE_SOURCE_DIR}/dependencies/include
+)
+
 target_link_libraries(hyperion-utils
 	hyperion
 	Qt${QT_VERSION_MAJOR}::Core

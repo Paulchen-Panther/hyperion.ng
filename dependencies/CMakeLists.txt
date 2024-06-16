@@ -1,17 +1,162 @@
-if (ENABLE_DEV_USB_HID)
-	add_subdirectory(build/hidapi)
+# =============================================================================
+# LibUSB
+# =============================================================================
+
+if(USE_SYSTEM_LIBUSB_LIBS)
+	find_package(LibUSB REQUIRED)
 endif()
 
-if (ENABLE_DEV_TINKERFORGE)
-	add_subdirectory(build/tinkerforge)
+if(NOT USE_SYSTEM_LIBUSB_LIBS)
+	# If it is Linux and HIDAPI is used, it is necessary to create the target usb-1.0
+	# at the beginning of the build system as HIDAPI requires this.
+	if(SYSTEM_MATCHES_LINUX AND (ENABLE_DEV_USB_HID AND NOT USE_SYSTEM_HIDAPI_LIBS))
+		include(ExternalProject)
+		ExternalProject_Add(libusb
+			PREFIX				${CMAKE_CURRENT_BINARY_DIR}/external/libusb-cmake
+			BUILD_ALWAYS		ON
+			DOWNLOAD_COMMAND	""
+			INSTALL_COMMAND		""
+			SOURCE_DIR			${CMAKE_CURRENT_SOURCE_DIR}/external/libusb-cmake
+			CMAKE_ARGS			-DBUILD_SHARED_LIBS:BOOL=OFF # Build libusb as static library
+								-DLIBUSB_BUILD_TESTING:BOOL=OFF # Disable build of libusb tests
+								-DLIBUSB_BUILD_EXAMPLES:BOOL=OFF # Disable build of libusb examples
+								-DLIBUSB_INSTALL_TARGETS:BOOL=OFF # Don't install libusb targets
+								-DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
+								-DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
+								-DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=ON
+								-DCMAKE_WARN_DEPRECATED:BOOL=OFF # Suppress warnings about "Compatibility with CMake < 3.5 will be removed from a future version of CMake"
+								-Wno-dev # We don't want to be warned over unused variables
+			BUILD_BYPRODUCTS    <BINARY_DIR>/libusb-1.0${CMAKE_STATIC_LIBRARY_SUFFIX}
+		)
+
+		add_library(usb-1.0 STATIC IMPORTED GLOBAL)
+		add_dependencies(usb-1.0 libusb)
+		ExternalProject_Get_Property(libusb BINARY_DIR SOURCE_DIR)
+		set_target_properties(usb-1.0 PROPERTIES
+			IMPORTED_LOCATION ${BINARY_DIR}/libusb-1.0${CMAKE_STATIC_LIBRARY_SUFFIX}
+			INTERFACE_INCLUDE_DIRECTORIES ${SOURCE_DIR}/libusb/libusb
+		)
+
+		if(SYSTEM_MATCHES_LINUX)
+			find_package(Libudev REQUIRED)
+			set_target_properties(usb-1.0 PROPERTIES
+				INTERFACE_LINK_LIBRARIES Libudev
+			)
+		endif()
+	else()
+		set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build statically version of libusb")
+		set(LIBUSB_BUILD_TESTING OFF CACHE BOOL "Disable build of libusb tests")
+		set(LIBUSB_BUILD_EXAMPLES OFF CACHE BOOL "Disable build of libusb examples")
+		set(LIBUSB_INSTALL_TARGETS OFF CACHE INTERNAL "Don't install libusb targets")
+		set(CMAKE_WARN_DEPRECATED OFF CACHE INTERNAL "Suppress warnings about 'Compatibility with CMake < 3.5 will be removed from a future version of CMake'")
+		add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/external/libusb-cmake")
+	endif()
 endif()
+
+if(TARGET usb-1.0)
+	# static libusb version detection
+	get_build_interface_include_directory(TARGET usb-1.0 OUTPUT LIBUSB_INCLUDE_DIR)
+	if(LIBUSB_INCLUDE_DIR AND EXISTS "${LIBUSB_INCLUDE_DIR}/version.h")
+		file(READ "${LIBUSB_INCLUDE_DIR}/version.h" VERSIONHEADERDATA)
+		string(REGEX MATCH "#define LIBUSB_MAJOR ([0-9]*)" _ ${VERSIONHEADERDATA})
+		set(LIBUSB_VERSION_MAJOR ${CMAKE_MATCH_1})
+		string(REGEX MATCH "#define LIBUSB_MINOR ([0-9]*)" _ ${VERSIONHEADERDATA})
+		set(LIBUSB_VERSION_MINOR ${CMAKE_MATCH_1})
+		string(REGEX MATCH "#define LIBUSB_MICRO ([0-9]*)" _ ${VERSIONHEADERDATA})
+		set(LIBUSB_VERSION_MICRO ${CMAKE_MATCH_1})
+		set(LibUSB_VERSION "${LIBUSB_VERSION_MAJOR}.${LIBUSB_VERSION_MINOR}.${LIBUSB_VERSION_MICRO}")
+	endif()
+
+	if(LibUSB_VERSION)
+		define_property(TARGET PROPERTY LIBUSB_VERSION_PROPERTY
+			BRIEF_DOCS "Custom LibUSB version target property."
+			FULL_DOCS "Custom LibUSB version target property."
+		)
+
+		set_target_properties(usb-1.0 PROPERTIES
+			LIBUSB_VERSION_PROPERTY ${LibUSB_VERSION}
+		)
+	endif()
+endif()
+
+# =============================================================================
+# HIDAPI
+# =============================================================================
+
+if(ENABLE_DEV_USB_HID)
+	if(USE_SYSTEM_HIDAPI_LIBS)
+		find_package(hidapi CONFIG QUIET)
+		if(NOT hidapi_FOUND)
+			find_package(hidapi REQUIRED)
+		endif()
+	endif()
+
+	if(NOT USE_SYSTEM_HIDAPI_LIBS)
+		# Build HIDAPI as static library
+		set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build statically version of HIDAPI")
+
+		# Suppress warnings about "Compatibility with CMake < 3.5 will be removed from a future version of CMake"
+		set(CMAKE_WARN_DEPRECATED OFF CACHE INTERNAL "")
+
+		# Use the libusb based implementation of HIDAPI (Linux only)
+		if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+			set(HIDAPI_WITH_HIDRAW OFF CACHE BOOL "Build HIDRAW-based implementation of HIDAPI")
+		endif()
+
+		# Install HIDAPI targets
+		set(HIDAPI_INSTALL_TARGETS ON CACHE BOOL "Enable the installation of HIDAPI targets")
+
+		# Disable build of HIDAPI tests
+		set(HIDAPI_BUILD_HIDTEST OFF CACHE BOOL "Disable small console test application hidtest")
+
+		# Add HIDAPI directory to the build
+		add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/external/hidapi")
+	endif()
+
+	if(TARGET hidapi::hidapi AND NOT TARGET hidapi)
+		add_library(hidapi INTERFACE IMPORTED GLOBAL)
+		set_target_properties(hidapi PROPERTIES
+			INTERFACE_LINK_LIBRARIES hidapi::hidapi
+		)
+	endif()
+
+	# Set HIDAPI version to the parent scope for configure summary
+	if(hidapi_VERSION)
+		set(hidapi_VERSION "${hidapi_VERSION}" PARENT_SCOPE)
+	endif()
+endif()
+
+#=============================================================================
+# Tinkerforge
+#=============================================================================
+
+if(ENABLE_DEV_TINKERFORGE)
+	add_library(tinkerforge STATIC)
+	target_sources(tinkerforge PRIVATE
+		${CMAKE_CURRENT_SOURCE_DIR}/include/tinkerforge/bricklet_led_strip.h
+		${CMAKE_CURRENT_SOURCE_DIR}/include/tinkerforge/ip_connection.h
+		${CMAKE_CURRENT_SOURCE_DIR}/libsrc/tinkerforge/bricklet_led_strip.c
+		${CMAKE_CURRENT_SOURCE_DIR}/libsrc/tinkerforge/ip_connection.c
+	)
+
+	target_include_directories(tinkerforge PUBLIC
+		"${CMAKE_CURRENT_SOURCE_DIR}/include/tinkerforge"
+	)
+endif()
+
+#=============================================================================
+# rpi_ws281x
+#=============================================================================
 
 if(ENABLE_DEV_WS281XPWM)
-	add_library(ws281x
-		external/rpi_ws281x/mailbox.c external/rpi_ws281x/ws2811.c
-		external/rpi_ws281x/pwm.c external/rpi_ws281x/dma.c
-		external/rpi_ws281x/pcm.c
-		external/rpi_ws281x/rpihw.c)
+	# Build rpi_ws281x as static library
+	set(BUILD_SHARED OFF CACHE BOOL "Build statically version of rpi_ws281x")
+
+	# Disable build of rpi_ws281x test application
+	set(BUILD_TEST OFF CACHE BOOL "Build test application")
+
+	# Add rpi_ws281x directory to the build
+	add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/external/rpi_ws281x")
 endif()
 
 #=============================================================================
@@ -45,7 +190,14 @@ if(ENABLE_MDNS)
 
 		get_target_property(qmdnsengine_VERSION qmdnsengine VERSION)
 		if(qmdnsengine_VERSION)
-			message(STATUS "QMdnsEngine version used: ${qmdnsengine_VERSION}")
+			define_property(TARGET PROPERTY INTERFACE_QMDNSENGINE_VERSION_PROPERTY
+				BRIEF_DOCS "Custom QMdnsEngine version target property."
+				FULL_DOCS "Custom QMdnsEngine version target property."
+			)
+
+			set_target_properties(qmdns PROPERTIES
+				INTERFACE_QMDNSENGINE_VERSION_PROPERTY ${qmdnsengine_VERSION}
+			)
 		endif()
 	endif()
 endif()
@@ -148,7 +300,14 @@ if(ENABLE_FLATBUF_SERVER OR ENABLE_FLATBUF_CONNECT)
 		endif()
 
 		if(Flatbuffers_VERSION)
-			message(STATUS "FlatBuffers version used: ${Flatbuffers_VERSION}")
+			define_property(TARGET PROPERTY INTERFACE_FLATBUFFERS_VERSION_PROPERTY
+				BRIEF_DOCS "Custom FlatBuffers version target property."
+				FULL_DOCS "Custom FlatBuffers version target property."
+			)
+
+			set_target_properties(FlatBuffers PROPERTIES
+				INTERFACE_FLATBUFFERS_VERSION_PROPERTY ${Flatbuffers_VERSION}
+			)
 		endif()
 	endif()
 
@@ -292,7 +451,14 @@ if(ENABLE_PROTOBUF_SERVER)
 		endif()
 
 		if(Protobuf_VERSION)
-			message(STATUS "Protocol Buffers version used: ${Protobuf_VERSION}")
+			define_property(TARGET PROPERTY INTERFACE_PROTOBUF_VERSION_PROPERTY
+				BRIEF_DOCS "Custom Protocol Buffers version target property."
+				FULL_DOCS "Custom Protocol Buffers version target property."
+			)
+
+			set_target_properties(ProtoBuf PROPERTIES
+				INTERFACE_PROTOBUF_VERSION_PROPERTY ${Protobuf_VERSION}
+			)
 		endif()
 	endif()
 
@@ -419,14 +585,19 @@ if(ENABLE_DEV_NETWORK)
 		if(MbedTLS_VERSION)
 			message(STATUS "MbedTLS version used: ${MbedTLS_VERSION}")
 
-			# Define and set custom INTERFACE_MBEDTLS_MAJOR_VERSION_PROPERTY target property
+			# Define and set custom INTERFACE_MBEDTLS_VERSION_PROPERTY and INTERFACE_MBEDTLS_MAJOR_VERSION_PROPERTY target property
 			string(REGEX MATCH "[0-9]+|-([A-Za-z0-9_.]+)" MBEDTLS_MAJOR_VERSION ${MbedTLS_VERSION})
+			define_property(TARGET PROPERTY INTERFACE_MBEDTLS_VERSION_PROPERTY INHERITED
+				BRIEF_DOCS "Custom MbedTLS version target property."
+				FULL_DOCS "Custom MbedTLS version target property."
+			)
 			define_property(TARGET PROPERTY INTERFACE_MBEDTLS_MAJOR_VERSION_PROPERTY INHERITED
 				BRIEF_DOCS "Custom MbedTLS major version target property."
 				FULL_DOCS "Custom MbedTLS major version target property."
 			)
 
 			set_target_properties(MbedTLS PROPERTIES
+				INTERFACE_MBEDTLS_VERSION_PROPERTY ${MbedTLS_VERSION}
 				INTERFACE_MBEDTLS_MAJOR_VERSION_PROPERTY ${MBEDTLS_MAJOR_VERSION}
 			)
 		endif()

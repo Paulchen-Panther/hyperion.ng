@@ -15,3 +15,9 @@
 [submodule "dependencies/external/mbedtls"]
 	path = dependencies/external/mbedtls
 	url = https://github.com/Mbed-TLS/mbedtls.git
+[submodule "dependencies/external/hidapi"]
+	path = dependencies/external/hidapi
+	url = https://github.com/libusb/hidapi
+[submodule "dependencies/external/libusb-cmake"]
+	path = dependencies/external/libusb-cmake
+	url = https://github.com/libusb/libusb-cmake

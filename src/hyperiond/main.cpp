@@ -35,7 +35,7 @@
 #include <commandline/Parser.h>
 #include <commandline/IntOption.h>
 #include <utils/DefaultSignalHandler.h>
-#include <../../include/db/AuthTable.h>
+#include <db/AuthTable.h>
 
 #include "detectProcess.h"
 

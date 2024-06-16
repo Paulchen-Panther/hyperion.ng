@@ -8,8 +8,8 @@
 #include <leddevice/LedDevice.h>
 
 extern "C" {
-	#include <tinkerforge/ip_connection.h>
-	#include <tinkerforge/bricklet_led_strip.h>
+	#include <ip_connection.h>
+	#include <bricklet_led_strip.h>
 }
 
 class LedDeviceTinkerforge : public LedDevice
@@ -75,7 +75,7 @@ private:
 	/// The interval/rate
 	unsigned _interval;
 
-	/// ip connection handle 
+	/// ip connection handle
 	IPConnection *_ipConnection;
 
 	/// led strip handle

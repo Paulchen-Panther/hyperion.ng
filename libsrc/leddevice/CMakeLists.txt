@@ -52,11 +52,6 @@ if(ENABLE_DEV_TINKERFORGE)
 endif()
 
 if(ENABLE_DEV_USB_HID)
-	find_package(libusb-1.0 REQUIRED)
-	include_directories(
-		${CMAKE_SOURCE_DIR}/include/hidapi
-		${LIBUSB_1_INCLUDE_DIRS}
-	)
 	file (GLOB Leddevice_USB_HID_SOURCES "${CURRENT_SOURCE_DIR}/dev_hid/*.h" "${CURRENT_SOURCE_DIR}/dev_hid/*.cpp")
 endif()
 
@@ -65,7 +60,7 @@ if(ENABLE_DEV_WS281XPWM)
 endif()
 
 if (ENABLE_DEV_FTDI)
-	FILE ( GLOB Leddevice_FTDI_SOURCES "${CURRENT_SOURCE_DIR}/dev_ftdi/*.h" "${CURRENT_SOURCE_DIR}/dev_ftdi/*.cpp")
+	FILE (GLOB Leddevice_FTDI_SOURCES "${CURRENT_SOURCE_DIR}/dev_ftdi/*.h" "${CURRENT_SOURCE_DIR}/dev_ftdi/*.cpp")
 endif()
 
 set(LedDevice_RESOURCES ${CURRENT_SOURCE_DIR}/LedDeviceSchemas.qrc )
@@ -102,7 +97,6 @@ add_library(leddevice ${CMAKE_BINARY_DIR}/LedDevice_headers.h ${Leddevice_SOURCE
 target_link_libraries(leddevice
 	hyperion
 	hyperion-utils
-	${CMAKE_THREAD_LIBS_INIT}
 )
 
 if(WIN32)
@@ -135,15 +129,23 @@ endif()
 
 if(ENABLE_DEV_WS281XPWM)
 	target_include_directories(leddevice PUBLIC "${CMAKE_SOURCE_DIR}/dependencies/external/rpi_ws281x")
-	target_link_libraries(leddevice ws281x)
+	target_link_libraries(leddevice ws2811)
 endif()
 
 if(ENABLE_DEV_USB_HID)
 	if(APPLE)
-		target_link_libraries(leddevice ${LIBUSB_1_LIBRARIES} hidapi-mac)
-	else()
-		target_link_libraries(leddevice ${LIBUSB_1_LIBRARIES} hidapi-libusb)
+		find_library(SECURITY Security REQUIRED)
+	elseif(UNIX)
+		find_package(Threads REQUIRED)
 	endif()
+
+	target_link_libraries(leddevice
+		${SECURITY}
+		${CMAKE_THREAD_LIBS_INIT}
+		usb-1.0
+		hidapi
+	)
+
 	if(NOT WIN32)
 		include(CheckCSourceCompiles)
 		# Glibc compatibilty check
@@ -168,8 +170,7 @@ endif()
 
 if(ENABLE_DEV_FTDI)
 	find_package(PkgConfig REQUIRED)
-	pkg_check_modules(LIB_FTDI REQUIRED IMPORTED_TARGET libftdi1 )
+	pkg_check_modules(LIB_FTDI REQUIRED IMPORTED_TARGET libftdi1)
 	target_include_directories(leddevice PRIVATE PkgConfig::LIB_FTDI)
 	target_link_libraries(leddevice PkgConfig::LIB_FTDI)
 endif()
-
