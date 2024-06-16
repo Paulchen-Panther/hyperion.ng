@@ -1,14 +1,31 @@
 if(USE_PRE_BUILD_DEPS)
-	if(PRE_BUILD_DEPS_DIR)
-		# LibUSB
-		set(LIBUSB_ROOT_DIR ${PRE_BUILD_DEPS_DIR})
-		# HIDAPI, QMdnsEngine, FlatBuffers, Protocol Buffers, MbedTLS
-		foreach(BUILD_DEP "absl" "utf8_range" "hidapi" "qmdnsengine" "flatbuffers" "protobuf" "MbedTLS")
-			set(${BUILD_DEP}_DIR "${PRE_BUILD_DEPS_DIR}/lib/cmake/${BUILD_DEP}")
-		endforeach()
-	else()
-		message(FATAL_ERROR "The folder in which the previously created dependencies are located has not been defined. Please set PRE_BUILD_DEPS_DIR to this directory.")
-	endif()
+    if(PRE_BUILD_DEPS_DIR)
+        # Handle expansion of the ~ to home directory
+        if(PRE_BUILD_DEPS_DIR MATCHES "^~")
+            string(REPLACE "~" "$ENV{HOME}" PRE_BUILD_DEPS_DIR "${PRE_BUILD_DEPS_DIR}")
+        endif()
+
+        # Check if the path is relative
+        if(NOT IS_ABSOLUTE ${PRE_BUILD_DEPS_DIR})
+            # Convert to absolute path based on the directory where CMake was executed
+            get_filename_component(PRE_BUILD_DEPS_DIR "${CMAKE_SOURCE_DIR}/${PRE_BUILD_DEPS_DIR}" ABSOLUTE)
+        endif()
+        
+        # Check if the directory exists
+        if(NOT IS_DIRECTORY ${PRE_BUILD_DEPS_DIR})
+            message(FATAL_ERROR "The specified PRE_BUILD_DEPS_DIR (${PRE_BUILD_DEPS_DIR}) does not exist.")
+        endif()
+
+        # Set LIBUSB_ROOT_DIR
+        set(LIBUSB_ROOT_DIR ${PRE_BUILD_DEPS_DIR})
+
+        # Set paths for other dependencies
+        foreach(BUILD_DEP "absl" "utf8_range" "hidapi" "qmdnsengine" "flatbuffers" "protobuf" "MbedTLS")
+            set(${BUILD_DEP}_DIR "${PRE_BUILD_DEPS_DIR}/lib/cmake/${BUILD_DEP}")
+        endforeach()
+    else()
+        message(FATAL_ERROR "The folder in which the previously created dependencies are located has not been defined. Please set PRE_BUILD_DEPS_DIR to this directory.")
+    endif()
 endif()
 
 # =============================================================================
