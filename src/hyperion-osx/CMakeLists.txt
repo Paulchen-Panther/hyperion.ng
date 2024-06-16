@@ -21,4 +21,4 @@ else()
 	target_link_libraries(${PROJECT_NAME} ssdp)
 endif()
 
-install (TARGETS ${PROJECT_NAME} DESTINATION "." COMPONENT "hyperion_osx")
+install (TARGETS ${PROJECT_NAME} DESTINATION "." COMPONENT "hyperion_osx" OPTIONAL)

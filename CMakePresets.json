@@ -81,13 +81,22 @@
         },
         {
             "name": "macos-release",
-            "displayName": "MacOS Release (clang)",
+            "displayName": "MacOS (release) (clang)",
             "description": "Build with Clang as Release without Debug Symbols",
             "inherits": ["base", "release", "clang"],
             "condition": {
                 "type": "equals",
                 "lhs": "${hostSystemName}",
                 "rhs": "Darwin"
+            }
+        },
+        {
+            "name": "macos-release-deps",
+            "displayName": "MacOS Dependencies (release) (clang)",
+            "description": "Build Dependencies with Clang as Release without Debug Symbols",
+            "inherits": ["macos-release"],
+            "cacheVariables": {
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/${presetName}"
             }
         },
         {
@@ -99,9 +108,15 @@
                 "type": "equals",
                 "lhs": "${hostSystemName}",
                 "rhs": "Darwin"
-            },
+            }
+        },
+        {
+            "name": "macos-debug-deps",
+            "displayName": "MacOS Dependencies (debug) (clang)",
+            "description": "Build Dependencies with Clang with Debug Symbols",
+            "inherits": ["macos-debug"],
             "cacheVariables": {
-                "CMAKE_PREFIX_PATH": "${sourceDir}/build"
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/${presetName}"
             }
         },
         {
@@ -152,21 +167,35 @@
     "buildPresets": [
         {
             "name": "macos-release",
-            "displayName": "MacOS Release (clang)",
+            "displayName": "MacOS (release) (clang)",
             "description": "Build with Clang as Release without Debug Symbols",
             "targets": "all",
             "configurePreset": "macos-release"
         },
         {
+            "name": "macos-release-deps",
+            "displayName": "MacOS Dependencies (release) (clang)",
+            "description": "Build Dependencies with Clang as Release without Debug Symbols",
+            "targets": "dependencies/all",
+            "configurePreset": "macos-release-deps"
+        },
+        {
             "name": "macos-debug",
-            "displayName": "MacOS Debug (clang)",
+            "displayName": "MacOS (debug) (clang)",
             "description": "Build with Clang as Debug",
             "targets": "all",
             "configurePreset": "macos-debug"
         },
         {
+            "name": "macos-debug-deps",
+            "displayName": "MacOS Dependencies (debug) (clang)",
+            "description": "Build Dependencies with Clang as Debug",
+            "targets": "dependencies/all",
+            "configurePreset": "macos-debug-deps"
+        },
+        {
             "name": "windows-release",
-            "displayName": "Windows Release (msvc)",
+            "displayName": "Windows (release) (msvc)",
             "description": "Build with MSVC's CL as Release without Debug Symbols",
             "configuration": "Release",
             "targets": "ALL_BUILD",
@@ -174,7 +203,7 @@
         },
         {
             "name": "windows-debug",
-            "displayName": "Windows Debug (msvc)",
+            "displayName": "Windows (debug) (msvc)",
             "description": "Build with MSVC's CL with Debug Symbols",
             "configuration": "Debug",
             "targets": "ALL_BUILD",
@@ -182,14 +211,14 @@
         },
         {
             "name": "linux-release",
-            "displayName": "Linux Release (gcc)",
+            "displayName": "Linux (release) (gcc)",
             "description": "Build with GCC as Release without Debug Symbols",
             "targets": "all",
             "configurePreset": "linux-release"
         },
         {
             "name": "linux-debug",
-            "displayName": "Linux Debug (gcc)",
+            "displayName": "Linux (debug) (gcc)",
             "description": "Build with GCC with Debug Symbols",
             "targets": "all",
             "configurePreset": "linux-debug"

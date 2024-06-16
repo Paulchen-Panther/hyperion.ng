@@ -21,7 +21,7 @@ else()
 	target_link_libraries(${PROJECT_NAME} ssdp)
 endif()
 
-install (TARGETS ${PROJECT_NAME} DESTINATION "share/hyperion/bin" COMPONENT "hyperion_v4l2")
+install (TARGETS ${PROJECT_NAME} DESTINATION "share/hyperion/bin" COMPONENT "hyperion_v4l2" OPTIONAL)
 
 if(CMAKE_HOST_UNIX)
 	install(CODE "execute_process(COMMAND ln -sf \"../share/hyperion/bin/${PROJECT_NAME}\" \"${CMAKE_BINARY_DIR}/symlink_${PROJECT_NAME}\")" COMPONENT "hyperion_v4l2")

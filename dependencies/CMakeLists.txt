@@ -1,8 +1,21 @@
+if(USE_PRE_BUILD_DEPS)
+	if(USE_PRE_BUILD_DEPS_DIR)
+		# LibUSB
+		set(LIBUSB_ROOT_DIR ${USE_PRE_BUILD_DEPS_DIR})
+		# HIDAPI, QMdnsEngine, FlatBuffers, Protocol Buffers, MbedTLS
+		foreach(BUILD_DEP "absl" "utf8_range" "hidapi" "qmdnsengine" "flatbuffers" "protobuf" "MbedTLS")
+			set(${BUILD_DEP}_DIR "${USE_PRE_BUILD_DEPS_DIR}/lib/cmake/${BUILD_DEP}")
+		endforeach()
+	else()
+		message(FATAL_ERROR "The folder in which the previously created dependencies are located has not been defined. Please set PRE_BUILD_DEPS_DIR to this directory.")
+	endif()
+endif()
+
 # =============================================================================
 # LibUSB
 # =============================================================================
 
-if(USE_SYSTEM_LIBUSB_LIBS)
+if(USE_SYSTEM_LIBUSB_LIBS OR USE_PRE_BUILD_DEPS)
 	find_package(LibUSB REQUIRED)
 endif()
 
@@ -20,7 +33,7 @@ if(NOT USE_SYSTEM_LIBUSB_LIBS)
 			CMAKE_ARGS			-DBUILD_SHARED_LIBS:BOOL=OFF # Build libusb as static library
 								-DLIBUSB_BUILD_TESTING:BOOL=OFF # Disable build of libusb tests
 								-DLIBUSB_BUILD_EXAMPLES:BOOL=OFF # Disable build of libusb examples
-								-DLIBUSB_INSTALL_TARGETS:BOOL=OFF # Don't install libusb targets
+								-DLIBUSB_INSTALL_TARGETS:BOOL=ON # Install libusb targets
 								-DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
 								-DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
 								-DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=ON
@@ -47,7 +60,7 @@ if(NOT USE_SYSTEM_LIBUSB_LIBS)
 		set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build statically version of libusb")
 		set(LIBUSB_BUILD_TESTING OFF CACHE BOOL "Disable build of libusb tests")
 		set(LIBUSB_BUILD_EXAMPLES OFF CACHE BOOL "Disable build of libusb examples")
-		set(LIBUSB_INSTALL_TARGETS OFF CACHE INTERNAL "Don't install libusb targets")
+		set(LIBUSB_INSTALL_TARGETS ON CACHE INTERNAL "Install libusb targets")
 		set(CMAKE_WARN_DEPRECATED OFF CACHE INTERNAL "Suppress warnings about 'Compatibility with CMake < 3.5 will be removed from a future version of CMake'")
 		add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/external/libusb-cmake")
 	endif()
@@ -84,7 +97,7 @@ endif()
 # =============================================================================
 
 if(ENABLE_DEV_USB_HID)
-	if(USE_SYSTEM_HIDAPI_LIBS)
+	if(USE_SYSTEM_HIDAPI_LIBS OR USE_PRE_BUILD_DEPS)
 		find_package(hidapi CONFIG QUIET)
 		if(NOT hidapi_FOUND)
 			find_package(hidapi REQUIRED)
@@ -164,7 +177,7 @@ endif()
 #=============================================================================
 
 if(ENABLE_MDNS)
-	if(USE_SYSTEM_QMDNS_LIBS)
+	if(USE_SYSTEM_QMDNS_LIBS OR USE_PRE_BUILD_DEPS)
 		find_package(qmdnsengine CONFIG QUIET)
 		if(NOT qmdnsengine_FOUND)
 			find_package(qmdnsengine REQUIRED)
@@ -207,16 +220,23 @@ endif()
 #=============================================================================
 
 if(ENABLE_FLATBUF_SERVER OR ENABLE_FLATBUF_CONNECT)
-	if(USE_SYSTEM_FLATBUFFERS_LIBS)
-		find_package(Flatbuffers CONFIG QUIET NAMES flatbuffers Flatbuffers FlatBuffers)
-		if(NOT Flatbuffers_FOUND)
+	if(USE_SYSTEM_FLATBUFFERS_LIBS OR USE_PRE_BUILD_DEPS)
+		find_package(flatbuffers CONFIG QUIET NAMES flatbuffers Flatbuffers FlatBuffers)
+		if(NOT flatbuffers_FOUND)
 			find_package(Flatbuffers REQUIRED)
 		endif()
 
-		if(TARGET flatbuffers::flatc AND NOT TARGET flatc)
-			add_executable(flatc IMPORTED GLOBAL)
-			get_target_property(FLATC_EXECUTABLE flatbuffers::flatc IMPORTED_LOCATION_RELEASE)
-			set_target_properties(flatc PROPERTIES IMPORTED_LOCATION ${FLATC_EXECUTABLE})
+		if(NOT TARGET flatc)
+			if(USE_PRE_BUILD_DEPS AND USE_PRE_BUILD_DEPS_DIR)
+				add_executable(flatc IMPORTED GLOBAL)
+				set_target_properties(flatc PROPERTIES
+					IMPORTED_LOCATION ${USE_PRE_BUILD_DEPS_DIR}/bin/flatc${CMAKE_EXECUTABLE_SUFFIX}
+				)
+			elseif(TARGET flatbuffers::flatc)
+				add_executable(flatc IMPORTED GLOBAL)
+				get_target_property(FLATC_EXECUTABLE flatbuffers::flatc IMPORTED_LOCATION_RELEASE)
+				set_target_properties(flatc PROPERTIES IMPORTED_LOCATION ${FLATC_EXECUTABLE})
+			endif()
 		endif()
 	endif()
 
@@ -348,16 +368,23 @@ endif()
 #=============================================================================
 
 if(ENABLE_PROTOBUF_SERVER)
-	if(USE_SYSTEM_PROTO_LIBS)
-		find_package(Protobuf CONFIG QUIET NAMES protobuf Protobuf ProtoBuf)
-		if(NOT Protobuf_FOUND)
+	if(USE_SYSTEM_PROTO_LIBS OR USE_PRE_BUILD_DEPS)
+		find_package(protobuf CONFIG QUIET NAMES protobuf Protobuf ProtoBuf)
+		if(NOT protobuf_FOUND)
 			find_package(Protobuf REQUIRED)
 		endif()
 
-		if(TARGET protobuf::protoc AND NOT TARGET protoc)
-			add_executable(protoc IMPORTED GLOBAL)
-			get_target_property(PROTOC_EXECUTABLE protobuf::protoc IMPORTED_LOCATION_RELEASE)
-			set_target_properties(protoc PROPERTIES IMPORTED_LOCATION ${PROTOC_EXECUTABLE})
+		if(NOT TARGET protoc)
+			if(USE_PRE_BUILD_DEPS AND USE_PRE_BUILD_DEPS_DIR)
+				add_executable(protoc IMPORTED GLOBAL)
+				set_target_properties(protoc PROPERTIES
+					IMPORTED_LOCATION ${USE_PRE_BUILD_DEPS_DIR}/bin/protoc${CMAKE_EXECUTABLE_SUFFIX}
+				)
+			elseif(TARGET protobuf::protoc)
+				add_executable(protoc IMPORTED GLOBAL)
+				get_target_property(PROTOC_EXECUTABLE protobuf::protoc IMPORTED_LOCATION_RELEASE)
+				set_target_properties(protoc PROPERTIES IMPORTED_LOCATION ${PROTOC_EXECUTABLE})
+			endif()
 		endif()
 	endif()
 
@@ -538,7 +565,7 @@ endif()
 #=============================================================================
 
 if(ENABLE_DEV_NETWORK)
-	if(USE_SYSTEM_MBEDTLS_LIBS)
+	if(USE_SYSTEM_MBEDTLS_LIBS OR USE_PRE_BUILD_DEPS)
 		find_package(MbedTLS CONFIG QUIET NAMES mbedtls mbedTLS MbedTLS)
 		if(NOT MbedTLS_FOUND)
 			find_package(MbedTLS REQUIRED)

@@ -39,3 +39,9 @@ NULL
 
 # Docker deploy folder
 deploy/*
+
+# ccache/buildcache
+.*cache/
+
+# release-deps/debug-deps
+*-deps/

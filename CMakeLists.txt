@@ -146,6 +146,10 @@ endif()
 # Build Hyperion with a reduced set of functionality, overwrites other options
 option(HYPERION_LIGHT "Build Hyperion with a reduced set of functionality" OFF)
 
+# Build Hyperion with pre-build dependencies.
+option(USE_PRE_BUILD_DEPS "Build Hyperion with previously created dependencies (see also USE_PRE_BUILD_DEPS_DIR)" OFF)
+set(USE_PRE_BUILD_DEPS_DIR "" CACHE STRING "The folder in which the previously created dependencies are located")
+
 # Grabber options
 cmake_dependent_option(ENABLE_AMLOGIC				"Enable the AMLOGIC video grabber"			ON "NOT HYPERION_LIGHT;PLATFORM_MATCHES_AML"												OFF)
 cmake_dependent_option(ENABLE_DISPMANX				"Enable the RPi dispmanx grabber"			ON "NOT HYPERION_LIGHT;PLATFORM_MATCHES_RPI"												OFF)
@@ -195,12 +199,12 @@ cmake_dependent_option(ENABLE_QT_EXT				"Enable standalone Qt grabber"				ON "EN
 cmake_dependent_option(ENABLE_OSX_EXT				"Enable standalone OSX grabber"				ON "ENABLE_OSX;ENABLE_FLATBUF_CONNECT"														OFF)
 
 # 3rd party
-cmake_dependent_option(USE_SYSTEM_LIBUSB_LIBS		"Use LibUSB library from system"			ON "VCPKG_TOOLCHAIN"																		OFF)
-cmake_dependent_option(USE_SYSTEM_HIDAPI_LIBS		"Use HIDAPI library from system"			ON "VCPKG_TOOLCHAIN"																		OFF)
-cmake_dependent_option(USE_SYSTEM_FLATBUFFERS_LIBS	"Use FlatBuffers library from system"		ON "VCPKG_TOOLCHAIN"																		OFF)
-cmake_dependent_option(USE_SYSTEM_PROTO_LIBS		"Use Protocol Buffers library from system"	ON "VCPKG_TOOLCHAIN"																		OFF)
-cmake_dependent_option(USE_SYSTEM_MBEDTLS_LIBS		"Use mbedTLS library from system"			ON "VCPKG_TOOLCHAIN"																		OFF)
-option(USE_SYSTEM_QMDNS_LIBS						"Use QMdnsEngine library from system"																									OFF)
+cmake_dependent_option(USE_SYSTEM_LIBUSB_LIBS		"Use LibUSB library from system"			ON "USE_PRE_BUILD_DEPS"																		OFF)
+cmake_dependent_option(USE_SYSTEM_HIDAPI_LIBS		"Use HIDAPI library from system"			ON "USE_PRE_BUILD_DEPS"																		OFF)
+cmake_dependent_option(USE_SYSTEM_FLATBUFFERS_LIBS	"Use FlatBuffers library from system"		ON "USE_PRE_BUILD_DEPS"																		OFF)
+cmake_dependent_option(USE_SYSTEM_PROTO_LIBS		"Use Protocol Buffers library from system"	ON "USE_PRE_BUILD_DEPS"																		OFF)
+cmake_dependent_option(USE_SYSTEM_MBEDTLS_LIBS		"Use mbedTLS library from system"			ON "USE_PRE_BUILD_DEPS"																		OFF)
+cmake_dependent_option(USE_SYSTEM_QMDNS_LIBS		"Use QMdnsEngine library from system"		ON "USE_PRE_BUILD_DEPS"																		OFF)
 
 # Tests
 cmake_dependent_option(ENABLE_TESTS					"Compile additional test applications"		ON "DEBUG_BUILD"																			OFF)
@@ -252,7 +256,7 @@ endif()
 # For Windows and OSX, the default Qt installation path are tried to resolved automatically
 #=============================================================================
 
-if(NOT DEFINED QTDIR AND NOT VCPKG_TOOLCHAIN)
+if(NOT DEFINED QTDIR)
 	if(DEFINED ENV{QTDIR})
 		set(QTDIR $ENV{QTDIR})
 	else()
