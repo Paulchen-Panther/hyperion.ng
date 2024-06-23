@@ -175,9 +175,9 @@ if(APPLE)
     install(SCRIPT "${PROJECT_BINARY_DIR}/BundleMacOS.cmake" COMPONENT "Hyperion")
 elseif(NOT WIN32)
 	# install Hyperion/service files/effect folder
-	install (TARGETS ${PROJECT_NAME} DESTINATION "share/hyperion/bin" COMPONENT "Hyperion")
-	install (DIRECTORY ${CMAKE_SOURCE_DIR}/bin/service DESTINATION "share/hyperion" COMPONENT "Hyperion")
-	install (FILES ${CMAKE_SOURCE_DIR}/effects/readme.txt DESTINATION "share/hyperion/effects" COMPONENT "Hyperion")
+	install(TARGETS ${PROJECT_NAME} DESTINATION "share/hyperion/bin" COMPONENT "Hyperion")
+	install(DIRECTORY ${CMAKE_SOURCE_DIR}/bin/service DESTINATION "share/hyperion" COMPONENT "Hyperion")
+	install(FILES ${CMAKE_SOURCE_DIR}/effects/readme.txt DESTINATION "share/hyperion/effects" COMPONENT "Hyperion")
 
 	# install Hyperion icons
 	set(ICON_SIZES 16 22 24 32 36 48 64 72 96 128 192 256 512)
@@ -188,8 +188,8 @@ elseif(NOT WIN32)
 	endforeach(size)
 
 	# install desktop/appstream file
-	install (FILES ${CMAKE_SOURCE_DIR}/cmake/linux/desktop/hyperion.metainfo.xml DESTINATION "share/hyperion/desktop" COMPONENT "Hyperion")
-	install (FILES ${CMAKE_SOURCE_DIR}/cmake/linux/desktop/hyperion.desktop DESTINATION "share/hyperion/desktop" COMPONENT "Hyperion")
+	install(FILES ${CMAKE_SOURCE_DIR}/cmake/linux/desktop/hyperion.metainfo.xml DESTINATION "share/hyperion/desktop" COMPONENT "Hyperion")
+	install(FILES ${CMAKE_SOURCE_DIR}/cmake/linux/desktop/hyperion.desktop DESTINATION "share/hyperion/desktop" COMPONENT "Hyperion")
 
 	# create symlink and copy "updateHyperionUser.sh" script
 	install(CODE "execute_process(COMMAND ln -sf \"../share/hyperion/bin/${PROJECT_NAME}\" \"${CMAKE_BINARY_DIR}/symlink_${PROJECT_NAME}\")" COMPONENT "Hyperion")
@@ -202,8 +202,7 @@ elseif(NOT WIN32)
 		install(SCRIPT "${PROJECT_BINARY_DIR}/BundleLinux.cmake" COMPONENT "Hyperion")
 	endif()
 else()
-	install (TARGETS ${PROJECT_NAME} DESTINATION "bin" COMPONENT "Hyperion")
-	install (FILES ${CMAKE_SOURCE_DIR}/effects/readme.txt DESTINATION "effects" COMPONENT "Hyperion")
+	install(TARGETS ${PROJECT_NAME} DESTINATION "bin" COMPONENT "Hyperion" OPTIONAL)
 
 	if(TARGET Qt${QT_VERSION_MAJOR}::windeployqt)
 		get_target_property(WINDEPLOYQT_EXECUTABLE Qt${QT_VERSION_MAJOR}::windeployqt IMPORTED_LOCATION)

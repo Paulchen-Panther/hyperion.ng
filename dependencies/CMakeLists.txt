@@ -10,7 +10,7 @@ if(USE_PRE_BUILD_DEPS)
             # Convert to absolute path based on the directory where CMake was executed
             get_filename_component(PRE_BUILD_DEPS_DIR "${CMAKE_SOURCE_DIR}/${PRE_BUILD_DEPS_DIR}" ABSOLUTE)
         endif()
-        
+
         # Check if the directory exists
         if(NOT IS_DIRECTORY ${PRE_BUILD_DEPS_DIR})
             message(FATAL_ERROR "The specified PRE_BUILD_DEPS_DIR (${PRE_BUILD_DEPS_DIR}) does not exist.")
@@ -429,8 +429,11 @@ if(ENABLE_PROTOBUF_SERVER)
 		set(protobuf_DEBUG_POSTFIX "" CACHE STRING "Default debug postfix" FORCE)
 
 		# Disable static linking of MSVC runtime libraries under Windows
-		if (WIN32)
+		if(WIN32)
 			set(protobuf_MSVC_STATIC_RUNTIME OFF CACHE BOOL "Build protobuf static")
+			if(USE_PRE_BUILD_DEPS)
+				set(CMAKE_INSTALL_CMAKEDIR "lib/cmake/protobuf")
+			endif()
 		endif()
 
 		# Define the protoc import option
