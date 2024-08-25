@@ -112,6 +112,7 @@ private:
 	void close_device();
 	void init_read(unsigned int buffer_size);
 	void init_mmap();
+	void init_dmabuf(unsigned int buffer_size);
 	void init_userp(unsigned int buffer_size);
 	void init_device(VideoStandard videoStandard);
 	void uninit_device();
@@ -136,6 +137,7 @@ private:
 	{
 			IO_METHOD_READ,
 			IO_METHOD_MMAP,
+			IO_METHOD_DMABUF,
 			IO_METHOD_USERPTR
 	};
 
@@ -153,7 +155,9 @@ private:
 
 	io_method           _ioMethod;
 	int                 _fileDescriptor;
+	bool				_isMultiPlanar;
 	std::vector<buffer> _buffers;
+	std::vector<int>    _dmabuf_fds;
 
 	PixelFormat _pixelFormat, _pixelFormatConfig;
 	int         _lineLength;

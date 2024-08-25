@@ -24,8 +24,10 @@
 #include <QSet>
 
 #include "grabber/video/v4l2/V4L2Grabber.h"
+#include "grabber/video/v4l2/dmabuf.h"
 
 #define CLEAR(x) memset(&(x), 0, sizeof(x))
+#define BUFFER_COUNT 4
 
 #ifndef V4L2_CAP_META_CAPTURE
 	#define V4L2_CAP_META_CAPTURE 0x00800000 // Specified in kernel header v4.16. Required for backward compatibility.
@@ -70,8 +72,8 @@ V4L2Grabber::V4L2Grabber()
 	, _currentDevicePath("none")
 	, _currentDeviceName("none")
 	, _threadManager(nullptr)
-	, _ioMethod(IO_METHOD_MMAP)
 	, _fileDescriptor(-1)
+	, _isMultiPlanar(false)
 	, _pixelFormat(PixelFormat::NO_CHANGE)
 	, _pixelFormatConfig(PixelFormat::NO_CHANGE)
 	, _lineLength(-1)
@@ -303,11 +305,10 @@ void V4L2Grabber::init_read(unsigned int buffer_size)
 void V4L2Grabber::init_mmap()
 {
 	struct v4l2_requestbuffers req;
-
 	CLEAR(req);
 
-	req.count = 4;
-	req.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	req.count = BUFFER_COUNT;
+	req.type = _isMultiPlanar ? V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE : V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	req.memory = V4L2_MEMORY_MMAP;
 
 	if (-1 == xioctl(VIDIOC_REQBUFS, &req))
@@ -332,15 +333,22 @@ void V4L2Grabber::init_mmap()
 
 	_buffers.resize(req.count);
 
-	for (size_t n_buffers = 0; n_buffers < req.count; ++n_buffers)
+	for (size_t i = 0; i < req.count; ++i)
 	{
 		struct v4l2_buffer buf;
-
+		struct v4l2_plane planes[VIDEO_MAX_PLANES];
 		CLEAR(buf);
+		CLEAR(planes);
 
-		buf.type	= V4L2_BUF_TYPE_VIDEO_CAPTURE;
+		buf.type	= _isMultiPlanar ? V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE : V4L2_BUF_TYPE_VIDEO_CAPTURE;
 		buf.memory	= V4L2_MEMORY_MMAP;
-		buf.index	= n_buffers;
+		buf.index	= i;
+
+		if (_isMultiPlanar)
+		{
+			buf.m.planes = planes;
+			buf.length = VIDEO_MAX_PLANES;
+		}
 
 		if (-1 == xioctl(VIDIOC_QUERYBUF, &buf))
 		{
@@ -348,17 +356,87 @@ void V4L2Grabber::init_mmap()
 			return;
 		}
 
-		_buffers[n_buffers].length = buf.length;
-		_buffers[n_buffers].start = mmap(NULL /* start anywhere */,
-						buf.length,
-						PROT_READ | PROT_WRITE /* required */,
-						MAP_SHARED /* recommended */,
-						_fileDescriptor, buf.m.offset
-					);
-
-		if (MAP_FAILED == _buffers[n_buffers].start)
+		if (_isMultiPlanar)
 		{
-			throw_errno_exception("mmap");
+			for (size_t j = 0; j < buf.length; ++j)
+			{
+				_buffers[i].length[j] = buf.m.planes[j].length;
+				_buffers[i].start[j] = mmap(NULL, buf.m.planes[j].length, PROT_READ | PROT_WRITE, MAP_SHARED, _fileDescriptor, buf.m.planes[j].m.mem_offset);
+
+				if (MAP_FAILED == _buffers[i].start[j])
+				{
+					throw_errno_exception("mmap");
+					return;
+				}
+			}
+		}
+		else
+		{
+			_buffers[i].length = buf.length;
+			_buffers[i].start = mmap(NULL, buf.length, PROT_READ | PROT_WRITE, MAP_SHARED, _fileDescriptor, buf.m.offset);
+
+			if (MAP_FAILED == _buffers[i].start)
+			{
+				throw_errno_exception("mmap");
+				return;
+			}
+		}
+	}
+}
+
+void V4L2Grabber::init_dmabuf(unsigned int buffer_size)
+{
+	struct v4l2_requestbuffers req;
+	CLEAR(req);
+
+	req.count = BUFFER_COUNT;
+	req.type = _isMultiPlanar ? V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE : V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	req.memory = V4L2_MEMORY_DMABUF;
+
+	if (-1 == xioctl(VIDIOC_REQBUFS, &req))
+	{
+		if (EINVAL == errno)
+		{
+			throw_exception("'" + _currentDevicePath + "' does not support dmabuf");
+			return;
+		}
+		else
+		{
+			throw_errno_exception("VIDIOC_REQBUFS");
+			return;
+		}
+	}
+
+	if (req.count < 4)
+	{
+		throw_exception("VIDIOC_REQBUFS: too few buffers");
+		return;
+	}
+
+	int dmabuf_heap_fd = dmabuf_heap_open();
+	if (dmabuf_heap_fd < 0)
+	{
+		throw_errno_exception("Could not open dmabuf-heap");
+		return;
+	}
+
+	_buffers.resize(req.count);
+	_dmabuf_fds.resize(req.count);
+
+	for (size_t i = 0; i < req.count; ++i)
+	{
+		_dmabuf_fds[i] = dmabuf_heap_alloc(dmabuf_heap_fd, NULL, buffer_size);
+		if (_dmabuf_fds[i] < 0)
+		{
+			throw_errno_exception("Failed to alloc dmabuf");
+			return;
+		}
+
+		_buffers[i].length = buffer_size;
+		_buffers[i].start = mmap(0, buffer_size, PROT_READ | PROT_WRITE, MAP_SHARED, _dmabuf_fds[i], 0);
+		if (MAP_FAILED == _buffers[i].start)
+		{
+			throw_errno_exception("Failed to map dmabuf");
 			return;
 		}
 	}
@@ -367,10 +445,9 @@ void V4L2Grabber::init_mmap()
 void V4L2Grabber::init_userp(unsigned int buffer_size)
 {
 	struct v4l2_requestbuffers req;
-
 	CLEAR(req);
 
-	req.count  = 4;
+	req.count  = BUFFER_COUNT;
 	req.type   = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	req.memory = V4L2_MEMORY_USERPTR;
 
@@ -422,47 +499,71 @@ void V4L2Grabber::init_device(VideoStandard videoStandard)
 		}
 	}
 
-	if (!(cap.capabilities & V4L2_CAP_VIDEO_CAPTURE))
+	if (cap.capabilities & V4L2_CAP_VIDEO_CAPTURE) // Using single-planar API
+	{
+		_isMultiPlanar = false;
+
+	}
+	else if (caps.capabilities & V4L2_CAP_VIDEO_CAPTURE_MPLANE) // Using multi-planar API
+	{
+		_isMultiPlanar = true;
+	}
+	else
 	{
 		throw_exception("'" + _currentDevicePath + "' is no video capture device");
 		return;
 	}
 
-	switch (_ioMethod)
+	if ((cap.capabilities & V4L2_CAP_READWRITE))
 	{
-		case IO_METHOD_READ:
-		{
-			if (!(cap.capabilities & V4L2_CAP_READWRITE))
-			{
-				throw_exception("'" + _currentDevicePath + "' does not support read i/o");
-				return;
-			}
-		}
-		break;
+		_ioMethod = IO_METHOD_READ;
+	}
+	else if (cap.capabilities & V4L2_CAP_STREAMING)
+	{
+		struct v4l2_requestbuffers buffers;
+		CLEAR(req);
 
-		case IO_METHOD_MMAP:
-		case IO_METHOD_USERPTR:
+		buffers.count = 0; // Query capbilities only
+		buffers.type = format.type;
+		buffers.memory = V4L2_MEMORY_MMAP;
+		if (-1 == xioctl(VIDIOC_REQBUFS, &buffers))
 		{
-			if (!(cap.capabilities & V4L2_CAP_STREAMING))
+			for (uint32_t bit = 1; bit > 0; bit <<= 1)
 			{
-				throw_exception("'" + _currentDevicePath + "' does not support streaming i/o");
-				return;
+				if (!(buffers.capabilities & bit))
+					continue;
+
+				switch (bit)
+				{
+					case V4L2_BUF_CAP_SUPPORTS_MMAP:
+						_ioMethod = IO_METHOD_MMAP;
+					break;
+
+					case V4L2_BUF_CAP_SUPPORTS_DMABUF:
+						_ioMethod = IO_METHOD_DMABUF;
+					break;
+
+					case V4L2_BUF_CAP_SUPPORTS_USERPTR:
+						_ioMethod = IO_METHOD_USERPTR;
+					break;
+
+					default:
+						_ioMethod = IO_METHOD_MMAP;
+					break;
+				}
 			}
 		}
-		break;
 	}
 
-	/* Select video input, video standard and tune here. */
-
+	// select video input, video standard and tune here.
 	struct v4l2_cropcap cropcap;
 	CLEAR(cropcap);
 
-	cropcap.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-
+	(_isMultiPlanar) ? cropcap.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE : cropcap.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	if (0 == xioctl(VIDIOC_CROPCAP, &cropcap))
 	{
 		struct v4l2_crop crop;
-		crop.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+		(_isMultiPlanar) ? cropcap.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE : cropcap.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 		crop.c = cropcap.defrect; /* reset to default */
 
 		if (-1 == xioctl(VIDIOC_S_CROP, &crop))
@@ -543,7 +644,7 @@ void V4L2Grabber::init_device(VideoStandard videoStandard)
 	struct v4l2_format fmt;
 	CLEAR(fmt);
 
-	fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	(_isMultiPlanar) ? fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE : fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	if (-1 == xioctl(VIDIOC_G_FMT, &fmt))
 	{
 		throw_errno_exception("VIDIOC_G_FMT");
@@ -617,7 +718,7 @@ void V4L2Grabber::init_device(VideoStandard videoStandard)
 	struct v4l2_streamparm streamparms;
 	CLEAR(streamparms);
 
-	streamparms.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	(_isMultiPlanar) ? streamparms.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE : streamparms.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	// Check that the driver knows about framerate get/set
 	if (xioctl(VIDIOC_G_PARM, &streamparms) >= 0)
 	{
@@ -760,6 +861,10 @@ void V4L2Grabber::init_device(VideoStandard videoStandard)
 			init_mmap();
 		break;
 
+		case IO_METHOD_DMABUF:
+			init_dmabuf(fmt.fmt.pix.sizeimage);
+		break;
+
 		case IO_METHOD_USERPTR:
 			init_userp(fmt.fmt.pix.sizeimage);
 		break;
@@ -775,20 +880,21 @@ void V4L2Grabber::uninit_device()
 		break;
 
 		case IO_METHOD_MMAP:
-		{
-			for (size_t i = 0; i < _buffers.size(); ++i)
-				if (-1 == munmap(_buffers[i].start, _buffers[i].length))
-				{
-					throw_errno_exception("munmap");
-					return;
-				}
-		}
-		break;
-
+		case IO_METHOD_DMABUF:
 		case IO_METHOD_USERPTR:
 		{
 			for (size_t i = 0; i < _buffers.size(); ++i)
-				free(_buffers[i].start);
+				if (_ioMethod == IO_METHOD_USERPTR)
+					free(_buffers[i].start);
+
+				if (_ioMethod != IO_METHOD_USERPTR)
+					ErrorIf(munmap(_buffers[i].start, _buffers[i].length) == -1), _log, "munmap error code  %d, %s", errno, strerror(errno));
+				}
+
+				if (_ioMethod == IO_METHOD_DMABUF) {
+					dmabuf_heap_close(_dmabuf_fds[i]);
+				}
+			}
 		}
 		break;
 	}
@@ -805,42 +911,43 @@ void V4L2Grabber::start_capturing()
 			break;
 
 		case IO_METHOD_MMAP:
-		{
-			for (size_t i = 0; i < _buffers.size(); ++i)
-			{
-				struct v4l2_buffer buf;
-
-				CLEAR(buf);
-				buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-				buf.memory = V4L2_MEMORY_MMAP;
-				buf.index = i;
-
-				if (-1 == xioctl(VIDIOC_QBUF, &buf))
-				{
-					throw_errno_exception("VIDIOC_QBUF");
-					return;
-				}
-			}
-			v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-			if (-1 == xioctl(VIDIOC_STREAMON, &type))
-			{
-				throw_errno_exception("VIDIOC_STREAMON");
-				return;
-			}
-			break;
-		}
+		case IO_METHOD_DMABUF:
 		case IO_METHOD_USERPTR:
 		{
 			for (size_t i = 0; i < _buffers.size(); ++i)
 			{
 				struct v4l2_buffer buf;
-
+				struct v4l2_plane planes[VIDEO_MAX_PLANES];
 				CLEAR(buf);
-				buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-				buf.memory = V4L2_MEMORY_USERPTR;
+
+				buf.type = _isMultiPlanar ? V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE : V4L2_BUF_TYPE_VIDEO_CAPTURE;
 				buf.index = i;
-				buf.m.userptr = (unsigned long)_buffers[i].start;
-				buf.length = _buffers[i].length;
+
+                if (_ioMethod == IO_METHOD_MMAP)
+				{
+                    buf.memory = V4L2_MEMORY_MMAP;
+				}
+                else if (_ioMethod == IO_METHOD_DMABUF)
+				{
+                    buf.memory = V4L2_MEMORY_DMABUF;
+					if (_isMultiPlanar)
+					{
+						CLEAR(planes);
+						buf.m.planes = planes;
+						buf.length = 1;
+						buf.m.planes[0].m.fd = _dmabuf_fds[i];
+					}
+					else
+					{
+						buf.m.fd = _dmabuf_fds[i];
+					}
+				}
+                else
+				{
+                    buf.memory = V4L2_MEMORY_USERPTR;
+					buf.m.userptr = (unsigned long)_buffers[i].start;
+					buf.length = _buffers[i].length;
+				}
 
 				if (-1 == xioctl(VIDIOC_QBUF, &buf))
 				{
@@ -848,31 +955,28 @@ void V4L2Grabber::start_capturing()
 					return;
 				}
 			}
-			v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-			if (-1 == xioctl(VIDIOC_STREAMON, &type))
-			{
-				throw_errno_exception("VIDIOC_STREAMON");
-				return;
-			}
-			break;
+
+
+			enum v4l2_buf_type type = _isMultiPlanar ? V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE : V4L2_BUF_TYPE_VIDEO_CAPTURE;
+			ErrorIf((xioctl(VIDIOC_STREAMON, &type) == -1), _log, "VIDIOC_STREAMON error code  %d, %s", errno, strerror(errno));
 		}
+		break;
 	}
 }
 
 void V4L2Grabber::stop_capturing()
 {
-	enum v4l2_buf_type type;
-
 	switch (_ioMethod)
 	{
 		case IO_METHOD_READ:
 			break; /* Nothing to do. */
 
 		case IO_METHOD_MMAP:
+		case IO_METHOD_DMABUF:
 		case IO_METHOD_USERPTR:
 		{
-			type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-			ErrorIf((xioctl(VIDIOC_STREAMOFF, &type) == -1), _log, "VIDIOC_STREAMOFF  error code  %d, %s", errno, strerror(errno));
+			enum v4l2_buf_type type = _isMultiPlanar ? V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE : V4L2_BUF_TYPE_VIDEO_CAPTURE;
+			ErrorIf((xioctl(VIDIOC_STREAMOFF, &type) == -1), _log, "VIDIOC_STREAMOFF error code  %d, %s", errno, strerror(errno));
 		}
 		break;
 	}
@@ -885,6 +989,7 @@ int V4L2Grabber::read_frame()
 	try
 	{
 		struct v4l2_buffer buf;
+		struct v4l2_plane planes[VIDEO_MAX_PLANES];
 
 		switch (_ioMethod)
 		{
@@ -937,6 +1042,50 @@ int V4L2Grabber::read_frame()
 				assert(buf.index < _buffers.size());
 
 				rc = process_image(_buffers[buf.index].start, buf.bytesused);
+
+				if (-1 == xioctl(VIDIOC_QBUF, &buf))
+				{
+					throw_errno_exception("VIDIOC_QBUF");
+					return 0;
+				}
+			}
+			break;
+
+			case IO_METHOD_DMABUF:
+			{
+				CLEAR(buf);
+
+				buf.type = _isMultiPlanar ? V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE : V4L2_BUF_TYPE_VIDEO_CAPTURE;
+				buf.memory = V4L2_MEMORY_DMABUF;
+
+				if (_isMultiPlanar)
+				{
+					CLEAR(planes);
+					buf.m.planes = planes;
+					buf.length = 1;
+				}
+
+				if (-1 == xioctl(VIDIOC_DQBUF, &buf))
+				{
+					switch (errno)
+					{
+						case EAGAIN:
+							return 0;
+
+						case EIO: /* Could ignore EIO, see spec. */
+						default:
+						{
+							throw_errno_exception("VIDIOC_DQBUF");
+							stop();
+							enumVideoCaptureDevices();
+						}
+						return 0;
+					}
+				}
+
+				dmabuf_sync_start(_dmabuf_fds[buf.index]);
+				rc = process_image(_buffers[buf.index].start + _isMultiPlanar ? planes[0].data_offset : 0, _isMultiPlanar ? planes[0].bytesused : buf.bytesused);
+				dmabuf_sync_stop(_dmabuf_fds[buf.index]);
 
 				if (-1 == xioctl(VIDIOC_QBUF, &buf))
 				{
@@ -1379,7 +1528,18 @@ void V4L2Grabber::enumVideoCaptureDevices()
 				continue;
 			}
 
-			if (cap.device_caps & V4L2_CAP_META_CAPTURE) // this device has bit 23 set (and bit 1 reset), so it doesn't have capture.
+			V4L2Grabber::DeviceProperties properties;
+
+			if(cap.capabilities & V4L2_CAP_VIDEO_CAPTURE) // Using single-planar API
+			{
+				properties.isMultiPlanar = false;
+
+			}
+			else if(caps.capabilities & V4L2_CAP_VIDEO_CAPTURE_MPLANE) // Using multi-planar API
+			{
+				properties.isMultiPlanar = true;
+			}
+			else
 			{
 				close(fd);
 				continue;
@@ -1389,14 +1549,12 @@ void V4L2Grabber::enumVideoCaptureDevices()
 			struct v4l2_format fmt;
 			CLEAR(fmt);
 
-			fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+			(properties.isMultiPlanar) ? fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE : fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 			if (xioctl(fd, VIDIOC_G_FMT, &fmt) < 0)
 			{
 				close(fd);
 				continue;
 			}
-
-			V4L2Grabber::DeviceProperties properties;
 
 			// collect available device inputs (index & name)
 			struct v4l2_input input;
