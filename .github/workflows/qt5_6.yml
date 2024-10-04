@@ -194,7 +194,6 @@ jobs:
           version: ${{ inputs.qt_version == '6' && '6.7' || '5.15.*' }}
           target: 'desktop'
           modules: ${{ inputs.qt_version == '6' && 'qtserialport' || '' }}
-          arch: 'win64_msvc2019_64'
           cache: 'true'
           cache-key-prefix: 'cache-qt-windows'
 
@@ -243,7 +242,7 @@ jobs:
           echo '::endgroup::'
 
       - name: 💾 Artifact download
-        uses: actions/download-artifact@v4.1.7
+        uses: actions/download-artifact@v4.1.8
         with:
           pattern: artifact-*
           path: all-artifacts

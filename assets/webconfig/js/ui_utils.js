@@ -239,7 +239,7 @@ function showInfoDialog(type, header, message) {
     $('#id_body').html('<i style="margin-bottom:20px" class="fa fa-warning modal-icon-error">');
     if (header == "")
       $('#id_body').append('<h4 style="font-weight:bold;text-transform:uppercase;">' + $.i18n('infoDialog_general_error_title') + '</h4>');
-    $('#id_footer').html('<button type="button" class="btn btn-danger" data-dismiss="modal">' + $.i18n('general_btn_ok') + '</button>');
+    $('#id_footer').html('<button type="button" class="btn btn-danger" data-dismiss-modal="#modal_dialog">' + $.i18n('general_btn_ok') + '</button>');
   }
   else if (type == "select") {
     $('#id_body').html('<img style="margin-bottom:20px" id="id_logo" src="img/hyperion/logo_positiv.png" alt="Redefine ambient light!">');
@@ -256,9 +256,9 @@ function showInfoDialog(type, header, message) {
     $('#id_footer').html('<b>' + $.i18n('InfoDialog_nowrite_foottext') + '</b>');
   }
   else if (type == "import") {
-    $('#id_body').html('<i style="margin-bottom:20px" class="fa fa-warning modal-icon-warning">');
-    $('#id_footer').html('<button type="button" id="id_btn_import" class="btn btn-warning" data-dismiss="modal"><i class="fa fa-fw fa-save"></i>' + $.i18n('general_btn_saverestart') + '</button>');
-    $('#id_footer').append('<button type="button" class="btn btn-danger" data-dismiss="modal"><i class="fa fa-fw fa-close"></i>' + $.i18n('general_btn_cancel') + '</button>');
+    $('#id_body').html('<i style="margin-bottom:20px" class="fa fa-warning modal-icon-warning"></i>');
+    $('#id_footer').html('<button type="button" id="id_btn_import" class="btn btn-warning"><i class="fa fa-fw fa-save"></i>' + $.i18n('general_btn_saverestart') + '</button>');
+    $('#id_footer').append('<button type="button" class="btn btn-danger" data-dismiss-modal="#modal_dialog"><i class="fa fa-fw fa-close"></i>' + $.i18n('general_btn_cancel') + '</button>');
   }
   else if (type == "delInst") {
     $('#id_body').html('<i style="margin-bottom:20px" class="fa fa-remove modal-icon-warning">');
@@ -321,7 +321,7 @@ function showInfoDialog(type, header, message) {
   $(document).on('click', '[data-dismiss-modal]', function () {
     var target = $(this).data('dismiss-modal');
     $($.find(target)).modal('hide');
-});
+  });
 }
 
 function createHintH(type, text, container) {
@@ -478,7 +478,7 @@ function createJsonEditor(container, schema, setconfig, usePanel, arrayre) {
   return editor;
 }
 
-function updateJsonEditorSelection(rootEditor, path, key, addElements, newEnumVals, newTitelVals, newDefaultVal, addSelect, addCustom, addCustomAsFirst, customText) {
+function updateJsonEditorSelection(rootEditor, path, key, addElements, newEnumVals, newTitleVals, newDefaultVal, addSelect, addCustom, addCustomAsFirst, customText) {
   var editor = rootEditor.getEditor(path);
   var orginalProperties = editor.schema.properties[key];
 
@@ -516,8 +516,8 @@ function updateJsonEditorSelection(rootEditor, path, key, addElements, newEnumVa
 
   if (addCustom) {
 
-    if (newTitelVals.length === 0) {
-      newTitelVals = [...newEnumVals];
+    if (newTitleVals.length === 0) {
+      newTitleVals = [...newEnumVals];
     }
 
     if (!!!customText) {
@@ -526,10 +526,10 @@ function updateJsonEditorSelection(rootEditor, path, key, addElements, newEnumVa
 
     if (addCustomAsFirst) {
       newEnumVals.unshift("CUSTOM");
-      newTitelVals.unshift(customText);
+      newTitleVals.unshift(customText);
     } else {
       newEnumVals.push("CUSTOM");
-      newTitelVals.push(customText);
+      newTitleVals.push(customText);
     }
 
     if (newSchema[key].options.infoText) {
@@ -540,7 +540,7 @@ function updateJsonEditorSelection(rootEditor, path, key, addElements, newEnumVa
 
   if (addSelect) {
     newEnumVals.unshift("SELECT");
-    newTitelVals.unshift("edt_conf_enum_please_select");
+    newTitleVals.unshift("edt_conf_enum_please_select");
     newDefaultVal = "SELECT";
   }
 
@@ -548,8 +548,8 @@ function updateJsonEditorSelection(rootEditor, path, key, addElements, newEnumVa
     newSchema[key]["enum"] = newEnumVals;
   }
 
-  if (newTitelVals) {
-    newSchema[key]["options"]["enum_titles"] = newTitelVals;
+  if (newTitleVals) {
+    newSchema[key]["options"]["enum_titles"] = newTitleVals;
   }
   if (newDefaultVal) {
     newSchema[key]["default"] = newDefaultVal;
@@ -572,7 +572,7 @@ function updateJsonEditorSelection(rootEditor, path, key, addElements, newEnumVa
   rootEditor.notifyWatchers(path + "." + key);
 }
 
-function updateJsonEditorMultiSelection(rootEditor, path, key, addElements, newEnumVals, newTitelVals, newDefaultVal) {
+function updateJsonEditorMultiSelection(rootEditor, path, key, addElements, newEnumVals, newTitleVals, newDefaultVal) {
   var editor = rootEditor.getEditor(path);
   var orginalProperties = editor.schema.properties[key];
 
@@ -617,8 +617,8 @@ function updateJsonEditorMultiSelection(rootEditor, path, key, addElements, newE
     newSchema[key]["items"]["enum"] = newEnumVals;
   }
 
-  if (newTitelVals) {
-    newSchema[key]["items"]["options"]["enum_titles"] = newTitelVals;
+  if (newTitleVals) {
+    newSchema[key]["items"]["options"]["enum_titles"] = newTitleVals;
   }
 
   if (newDefaultVal) {
@@ -923,8 +923,8 @@ function createTableRow(list, head, align) {
       el.style.verticalAlign = "middle";
 
     var purifyConfig = {
-            ADD_TAGS: ['button'],
-            ADD_ATTR: ['onclick']
+      ADD_TAGS: ['button'],
+      ADD_ATTR: ['onclick']
     };
     el.innerHTML = DOMPurify.sanitize(list[i], purifyConfig);
     row.appendChild(el);
@@ -1222,7 +1222,7 @@ function getSystemInfo() {
   info += '- Avail Video  Cap.: ' + window.serverInfo.grabbers.video.available + '\n';
   info += '- Avail Audio  Cap.: ' + window.serverInfo.grabbers.audio.available + '\n';
   info += '- Avail Services:    ' + window.serverInfo.services + '\n';
-  info += '- Config path:       ' + shy.rootPath + '\n';
+  info += '- Config database:   ' + shy.configDatabaseFile + '\n';
   info += '- Database:          ' + (shy.readOnlyMode ? "ready-only" : "read/write") + '\n';
   info += '- Mode:              ' + (shy.isGuiMode ? "GUI" : "Non-GUI") + '\n';
 
@@ -1403,7 +1403,7 @@ function loadScript(src, callback, ...params) {
   if (isScriptLoaded(src)) {
     debugMessage('Script ' + src + ' already loaded');
     if (callback && typeof callback === 'function') {
-      callback( ...params);
+      callback(...params);
     }
     return;
   }
