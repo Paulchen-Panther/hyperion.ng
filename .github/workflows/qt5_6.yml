@@ -36,18 +36,18 @@ jobs:
 
   Linux:
     name: 🐧 ${{ matrix.os.description }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os.runner }}
     strategy:
       fail-fast: false
       matrix:
         os: [
-          { distribution: debian, codename: buster,   description: Debian Buster (x86_64),                        architecture: [ amd64, linux/amd64  ], platform: x11 },
-          { distribution: debian, codename: buster,   description: Debian Buster (Raspberry Pi 1 & Zero 1),       architecture: [ armv6, linux/arm/v6 ], platform: rpi },
-          { distribution: debian, codename: buster,   description: Debian Buster (Raspberry Pi 2),                architecture: [ armv7, linux/arm/v7 ], platform: rpi },
-          { distribution: debian, codename: buster,   description: Debian Buster (Raspberry Pi 3/4/5 & Zero 2),   architecture: [ arm64, linux/arm64  ], platform: rpi },
-          { distribution: debian, codename: bullseye, description: Debian Bullseye (x86_64),                      architecture: [ amd64, linux/amd64  ], platform: x11 },
-          { distribution: debian, codename: bullseye, description: Debian Bullseye (Raspberry Pi 2),              architecture: [ armv7, linux/arm/v7 ], platform: rpi },
-          { distribution: debian, codename: bullseye, description: Debian Bullseye (Raspberry Pi 3/4/5 & Zero 2), architecture: [ arm64, linux/arm64  ], platform: rpi }
+          { distribution: debian, codename: buster,   description: Debian Buster (x86_64),                        architecture: [ amd64, linux/amd64  ], platform: x11, runner: ubuntu-latest },
+          { distribution: debian, codename: buster,   description: Debian Buster (Raspberry Pi 1 & Zero 1),       architecture: [ armv6, linux/arm/v6 ], platform: rpi, runner: ubuntu-24.04-arm },
+          { distribution: debian, codename: buster,   description: Debian Buster (Raspberry Pi 2),                architecture: [ armv7, linux/arm/v7 ], platform: rpi, runner: ubuntu-24.04-arm },
+          { distribution: debian, codename: buster,   description: Debian Buster (Raspberry Pi 3/4/5 & Zero 2),   architecture: [ arm64, linux/arm64  ], platform: rpi, runner: ubuntu-24.04-arm },
+          { distribution: debian, codename: bullseye, description: Debian Bullseye (x86_64),                      architecture: [ amd64, linux/amd64  ], platform: x11, runner: ubuntu-latest },
+          { distribution: debian, codename: bullseye, description: Debian Bullseye (Raspberry Pi 2),              architecture: [ armv7, linux/arm/v7 ], platform: rpi, runner: ubuntu-24.04-arm },
+          { distribution: debian, codename: bullseye, description: Debian Bullseye (Raspberry Pi 3/4/5 & Zero 2), architecture: [ arm64, linux/arm64  ], platform: rpi, runner: ubuntu-24.04-arm }
         ]
         isQt5:
           - ${{ inputs.qt_version == '5' }}
@@ -91,168 +91,168 @@ jobs:
         env:
           NAME: ${{ format('{0}_{1}_{2}{3}', matrix.os.distribution, matrix.os.codename, matrix.os.architecture[0], inputs.qt_version == '6' && '_qt6' || '') }}
 
-######################
-###### macOS #########
-######################
+# ######################
+# ###### macOS #########
+# ######################
 
-  macOS:
-    name: 🍏 macOS x64
-    runs-on: macos-latest
-    steps:
-      - name: ⬇ Checkout
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
+#   macOS:
+#     name: 🍏 macOS x64
+#     runs-on: macos-latest
+#     steps:
+#       - name: ⬇ Checkout
+#         uses: actions/checkout@v4
+#         with:
+#           submodules: recursive
 
-      - name: 🔧 Prepare
-        shell: bash
-        run: |
-          echo '::group::Append PR number to version (PR  only)'
-            if [[ "${{ inputs.event_name }}" = "pull_request" ]]; then
-              tr -d '\n' < .version > temp && mv temp .version
-              echo -n "+PR${{ inputs.pull_request_number }}" >> .version
-            fi
-          echo '::endgroup::'
+#       - name: 🔧 Prepare
+#         shell: bash
+#         run: |
+#           echo '::group::Append PR number to version (PR  only)'
+#             if [[ "${{ inputs.event_name }}" = "pull_request" ]]; then
+#               tr -d '\n' < .version > temp && mv temp .version
+#               echo -n "+PR${{ inputs.pull_request_number }}" >> .version
+#             fi
+#           echo '::endgroup::'
 
-          echo '::group::Update/Install dependencies'
-            brew untap --force homebrew/core homebrew/cask
-            brew update || true
-            brew install qt@${{ inputs.qt_version }} vulkan-headers ninja libftdi || true
-          echo '::endgroup::'
+#           echo '::group::Update/Install dependencies'
+#             brew untap --force homebrew/core homebrew/cask
+#             brew update || true
+#             brew install qt@${{ inputs.qt_version }} vulkan-headers ninja libftdi || true
+#           echo '::endgroup::'
 
-      - name: Temporarily downgrade CMake to 3.28.3 # Please remove if GitHub has updated Cmake (greater than 3.30.0)
-        uses: jwlawson/actions-setup-cmake@v2
-        with:
-          cmake-version: '3.28.3'
+#       - name: Temporarily downgrade CMake to 3.28.3 # Please remove if GitHub has updated Cmake (greater than 3.30.0)
+#         uses: jwlawson/actions-setup-cmake@v2
+#         with:
+#           cmake-version: '3.28.3'
 
-      - name: 👷 Build
-        shell: bash
-        run: ./.github/scripts/build.sh
-        env:
-          PLATFORM: osx
+#       - name: 👷 Build
+#         shell: bash
+#         run: ./.github/scripts/build.sh
+#         env:
+#           PLATFORM: osx
 
-      - name: 📦 Upload
-        if: ${{ inputs.publish || inputs.event_name == 'pull_request' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ inputs.event_name == 'pull_request' && env.NAME || format('artifact-{0}', env.NAME) }}
-          path: 'build/Hyperion-*'
-        env:
-          NAME: ${{ inputs.qt_version == '6' && 'macOS_x64_qt6' || 'macOS_x64' }}
+#       - name: 📦 Upload
+#         if: ${{ inputs.publish || inputs.event_name == 'pull_request' }}
+#         uses: actions/upload-artifact@v4
+#         with:
+#           name: ${{ inputs.event_name == 'pull_request' && env.NAME || format('artifact-{0}', env.NAME) }}
+#           path: 'build/Hyperion-*'
+#         env:
+#           NAME: ${{ inputs.qt_version == '6' && 'macOS_x64_qt6' || 'macOS_x64' }}
 
-######################
-###### Windows #######
-######################
+# ######################
+# ###### Windows #######
+# ######################
 
-  windows:
-    name: 🪟 Windows x64
-    runs-on: windows-2022
-    env:
-      VCINSTALLDIR: 'C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC'
-    steps:
-      - name: ⬇ Checkout
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
+#   windows:
+#     name: 🪟 Windows x64
+#     runs-on: windows-2022
+#     env:
+#       VCINSTALLDIR: 'C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC'
+#     steps:
+#       - name: ⬇ Checkout
+#         uses: actions/checkout@v4
+#         with:
+#           submodules: recursive
 
-      - name: 🔧 Prepare PR
-        if: ${{ inputs.event_name == 'pull_request' }}
-        shell: bash
-        run: |
-          echo '::group::Append PR number to version'
-            tr -d '\n' < .version > temp && mv temp .version
-            echo -n "+PR${{ inputs.pull_request_number }}" >> .version
-          echo '::endgroup::'
+#       - name: 🔧 Prepare PR
+#         if: ${{ inputs.event_name == 'pull_request' }}
+#         shell: bash
+#         run: |
+#           echo '::group::Append PR number to version'
+#             tr -d '\n' < .version > temp && mv temp .version
+#             echo -n "+PR${{ inputs.pull_request_number }}" >> .version
+#           echo '::endgroup::'
 
-      - name: 💾 Cache/Restore
-        uses: actions/cache@v4
-        with:
-          path: C:\Users\runneradmin\AppData\Local\Temp\chocolatey
-          key: ${{ runner.os }}${{ '-chocolatey' }}
+#       - name: 💾 Cache/Restore
+#         uses: actions/cache@v4
+#         with:
+#           path: C:\Users\runneradmin\AppData\Local\Temp\chocolatey
+#           key: ${{ runner.os }}${{ '-chocolatey' }}
 
-      - name: 📥 Install DirectX SDK, OpenSSL, libjpeg-turbo
-        shell: powershell
-        run: |
-          choco install --no-progress directx-sdk -y
-          choco install --no-progress ${{env.OPENSSL}} -y
-          Invoke-WebRequest https://netcologne.dl.sourceforge.net/project/libjpeg-turbo/3.0.1/libjpeg-turbo-3.0.1-vc64.exe -OutFile libjpeg-turbo.exe -UserAgent NativeHost
-          .\libjpeg-turbo /S
-        env:
-          OPENSSL: ${{ inputs.qt_version == '6' && 'openssl' || 'openssl --version=1.1.1.2100' }}
+#       - name: 📥 Install DirectX SDK, OpenSSL, libjpeg-turbo
+#         shell: powershell
+#         run: |
+#           choco install --no-progress directx-sdk -y
+#           choco install --no-progress ${{env.OPENSSL}} -y
+#           Invoke-WebRequest https://netcologne.dl.sourceforge.net/project/libjpeg-turbo/3.0.1/libjpeg-turbo-3.0.1-vc64.exe -OutFile libjpeg-turbo.exe -UserAgent NativeHost
+#           .\libjpeg-turbo /S
+#         env:
+#           OPENSSL: ${{ inputs.qt_version == '6' && 'openssl' || 'openssl --version=1.1.1.2100' }}
 
-      - name: Install Vulkan SDK
-        if: ${{ inputs.qt_version == '6' }}
-        uses: jakoch/install-vulkan-sdk-action@v1.0.5
-        with:
-          install_runtime: false
-          cache: true
-          stripdown: true
+#       - name: Install Vulkan SDK
+#         if: ${{ inputs.qt_version == '6' }}
+#         uses: jakoch/install-vulkan-sdk-action@v1.0.5
+#         with:
+#           install_runtime: false
+#           cache: true
+#           stripdown: true
 
-      - name: 📥 Install Qt
-        uses: jurplel/install-qt-action@v4
-        with:
-          version: ${{ inputs.qt_version == '6' && '6.8' || '5.15.*' }}
-          target: 'desktop'
-          modules: ${{ inputs.qt_version == '6' && 'qtserialport qtwebsockets' || '' }}
-          cache: 'true'
-          cache-key-prefix: 'cache-qt-windows'
+#       - name: 📥 Install Qt
+#         uses: jurplel/install-qt-action@v4
+#         with:
+#           version: ${{ inputs.qt_version == '6' && '6.8' || '5.15.*' }}
+#           target: 'desktop'
+#           modules: ${{ inputs.qt_version == '6' && 'qtserialport qtwebsockets' || '' }}
+#           cache: 'true'
+#           cache-key-prefix: 'cache-qt-windows'
 
-      - name: 🛠️ Setup MSVC
-        shell: cmd
-        run: call "${{env.VCINSTALLDIR}}\Auxiliary\Build\vcvars64.bat"
+#       - name: 🛠️ Setup MSVC
+#         shell: cmd
+#         run: call "${{env.VCINSTALLDIR}}\Auxiliary\Build\vcvars64.bat"
 
-      - name: Temporarily downgrade CMake to 3.28.3 # Please remove if GitHub has updated Cmake (greater than 3.30.0)
-        uses: jwlawson/actions-setup-cmake@v2
-        with:
-          cmake-version: '3.28.3'
+#       - name: Temporarily downgrade CMake to 3.28.3 # Please remove if GitHub has updated Cmake (greater than 3.30.0)
+#         uses: jwlawson/actions-setup-cmake@v2
+#         with:
+#           cmake-version: '3.28.3'
 
-      - name: 👷 Build
-        shell: bash
-        run: ./.github/scripts/build.sh
-        env:
-          PLATFORM: windows
+#       - name: 👷 Build
+#         shell: bash
+#         run: ./.github/scripts/build.sh
+#         env:
+#           PLATFORM: windows
 
-      - name: 📦 Upload
-        if: ${{ inputs.publish || inputs.event_name == 'pull_request' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ inputs.event_name == 'pull_request' && env.NAME || format('artifact-{0}', env.NAME) }}
-          path: ${{ inputs.event_name == 'pull_request' && 'build/*.exe' || 'build/Hyperion-*' }}
-        env:
-          NAME: ${{ inputs.qt_version == '6' && 'windows_x64_qt6' || 'windows_x64' }}
+#       - name: 📦 Upload
+#         if: ${{ inputs.publish || inputs.event_name == 'pull_request' }}
+#         uses: actions/upload-artifact@v4
+#         with:
+#           name: ${{ inputs.event_name == 'pull_request' && env.NAME || format('artifact-{0}', env.NAME) }}
+#           path: ${{ inputs.event_name == 'pull_request' && 'build/*.exe' || 'build/Hyperion-*' }}
+#         env:
+#           NAME: ${{ inputs.qt_version == '6' && 'windows_x64_qt6' || 'windows_x64' }}
 
-#####################################
-###### Publish GitHub Releases ######
-#####################################
+# #####################################
+# ###### Publish GitHub Releases ######
+# #####################################
 
-  github_publish:
-    name: 🚀 Publish GitHub Releases
-    if: ${{ inputs.qt_version == '5' && inputs.publish }}
-    needs: [Linux, macOS, windows]
-    runs-on: ubuntu-latest
-    steps:
-      - name: ⬇ Checkout
-        uses: actions/checkout@v4
+#   github_publish:
+#     name: 🚀 Publish GitHub Releases
+#     if: ${{ inputs.qt_version == '5' && inputs.publish }}
+#     needs: [Linux, macOS, windows]
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: ⬇ Checkout
+#         uses: actions/checkout@v4
 
-      - name: 🔧 Prepare
-        run: |
-          echo '::group::Generate environment variables from .version and tag'
-            echo "TAG=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_ENV
-            echo "VERSION=$(tr -d '\n' < .version)" >> $GITHUB_ENV
-          echo '::endgroup::'
+#       - name: 🔧 Prepare
+#         run: |
+#           echo '::group::Generate environment variables from .version and tag'
+#             echo "TAG=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_ENV
+#             echo "VERSION=$(tr -d '\n' < .version)" >> $GITHUB_ENV
+#           echo '::endgroup::'
 
-      - name: 💾 Artifact download
-        uses: actions/download-artifact@v4.1.8
-        with:
-          pattern: artifact-*
-          path: all-artifacts
+#       - name: 💾 Artifact download
+#         uses: actions/download-artifact@v4.1.8
+#         with:
+#           pattern: artifact-*
+#           path: all-artifacts
 
-      - name: 📦 Upload
-        uses: softprops/action-gh-release@v2
-        with:
-          name: Hyperion ${{ env.VERSION }}
-          tag_name: ${{ env.TAG }}
-          files: "all-artifacts/**"
-          draft: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#       - name: 📦 Upload
+#         uses: softprops/action-gh-release@v2
+#         with:
+#           name: Hyperion ${{ env.VERSION }}
+#           tag_name: ${{ env.TAG }}
+#           files: "all-artifacts/**"
+#           draft: true
+#         env:
+#           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
