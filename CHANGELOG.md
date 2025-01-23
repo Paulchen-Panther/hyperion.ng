@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Support for ftdi chip based LED-devices with ws2812, sk6812 apa102 LED types (Many thanks to @nurikk) (#1746)
-- Support for Skydimo devices (being an Adalight variant)
+- Support for Skydimo devices
 - Support gaps on Matrix Layout (#1696)
 - Windows: Added a new grabber that uses the DXGI DDA (Desktop Duplication API). This has much better performance than the DX grabber as it does more of its work on the GPU.
 
@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Allow to force starting Hyperion in read-only mode (`--readonlyMode`)
 - JSON-API: Support to query for a dedicated set of configuration items for a set of instances
 - JSON-API: Support to save a dedicated set of configuration items for a set of instances
+- JSON-API: Limit update emission frequency: Images (25Hz), raw LED-Colors (40Hz) & LED-Device data (200Hz) 
+- Effects: Limit the maximum update rate to 200Hz
 
 **JSON-API**
 - New subscription support for event updates, i.e. `Suspend, Resume, Idle, idleResume, Restart, Quit`.
@@ -41,6 +43,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed: Philip Hue APIv2 support without Entertainment group defined (#1742)
 - Refactored: Database access layer
 - Refactored: Hyperion's configuration database is validated before start-up (and migrated, if required)
+- Refactored: Python to enable parallel effect processing under Python 3.12
+- Fixed: Python 3.12 crashes (#1747)
+- osX Grabber: Use ScreenCaptureKit under macOS 15 and above
+- Removed maximum LED number constraint from Matrix layout schema which was not synced with the UI behaviour (#1804)
+- Fixed bespoke WebSocket implementation by using of QWebSockets (#1816, #1448, #1247, #1130)
 
 **JSON-API**
 - Refactored JSON-API to ensure consistent authorization behaviour across sessions and single requests with token authorization.

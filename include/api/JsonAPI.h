@@ -50,6 +50,8 @@ public:
 	///
 	void initialize();
 
+	QSharedPointer<JsonCallbacks> getCallBack() const;
+
 public slots:
 
 private slots:
@@ -82,7 +84,7 @@ signals:
 	///
 	/// Signal emits with the reply message provided with handleMessage()
 	///
-	void callbackMessage(QJsonObject);
+	void callbackReady(QJsonObject);
 
 	///
 	/// Signal emits whenever a JSON-message should be forwarded
@@ -283,7 +285,6 @@ private:
 	///
 	void handleSystemCommand(const QJsonObject &message, const JsonApiCommand& cmd);
 
-
 	void applyColorAdjustments(const QJsonObject &adjustment, ColorAdjustment *colorAdjustment);
 	void applyColorAdjustment(const QString &colorName, const QJsonObject &adjustment, RgbChannelAdjustment &rgbAdjustment);
 	void applyGammaTransform(const QString &transformName, const QJsonObject &adjustment, RgbTransform &rgbTransform, char channel);
@@ -293,6 +294,8 @@ private:
 	void applyTransform(const QString &transformName, const QJsonObject &adjustment, T &transform, void (T::*setFunction)(bool));
 	template<typename T>
 	void applyTransform(const QString &transformName, const QJsonObject &adjustment, T &transform, void (T::*setFunction)(double));
+	template<typename T>
+	void applyTransform(const QString &transformName, const QJsonObject &adjustment, T &transform, void (T::*setFunction)(int));
 	template<typename T>
 	void applyTransform(const QString &transformName, const QJsonObject &adjustment, T &transform, void (T::*setFunction)(uint8_t));
 

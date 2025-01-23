@@ -263,12 +263,12 @@ if(HYPERION_LIGHT)
 
 	# Disable Services
 	SET ( DEFAULT_EFFECTENGINE                OFF )
-	#SET ( DEFAULT_EXPERIMENTAL                OFF )
-	#SET ( DEFAULT_MDNS                        OFF )
-	#SET ( DEFAULT_REMOTE_CTL                  OFF )
-	
-	#SET ( ENABLE_JSONCHECKS                    OFF )
-	#SET ( ENABLE_DEPLOY_DEPENDENCIES          OFF )
+	SET ( DEFAULT_EXPERIMENTAL                OFF )
+	#SET ( DEFAULT_MDNS                       OFF )
+	SET ( DEFAULT_REMOTE_CTL                  OFF )
+
+	SET ( ENABLE_JSONCHECKS                    ON )
+	SET ( ENABLE_DEPLOY_DEPENDENCIES           ON )
 endif()
 message(STATUS "Grabber options:")
 
@@ -570,7 +570,7 @@ message(STATUS "Found Qt Version: ${QT_VERSION}")
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
 	set(QT_MIN_VERSION "6.2.2")
 else()
-	set(QT_MIN_VERSION "5.5.0")
+	set(QT_MIN_VERSION "5.9.0")
 endif()
 
 if("${QT_VERSION}" VERSION_LESS "${QT_MIN_VERSION}")
