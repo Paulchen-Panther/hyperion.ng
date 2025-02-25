@@ -238,15 +238,15 @@ endif()
 # 	endif(OPENSSL_FOUND)
 # endif()
 
-# if(ENABLE_DEPLOY_DEPENDENCIES)
-# 	# Deploy all dependencies for package creation
-# 	include(${CMAKE_SOURCE_DIR}/cmake/Dependencies.cmake)
+if(ENABLE_DEPLOY_DEPENDENCIES)
+	# Deploy all dependencies for package creation
+	include(${CMAKE_SOURCE_DIR}/cmake/Dependencies.cmake)
 
-# 	if(APPLE) #macOS
-# 		DeployMacOS(${PROJECT_NAME})
-# 	elseif (NOT WIN32) # Linux
-# 		DeployLinux(${PROJECT_NAME})
-# 	elseif(WIN32) # Windows
-# 		DeployWindows(${PROJECT_NAME})
-# 	endif()
-# endif()
+	if(APPLE) #macOS
+		DeployMacOS(${PROJECT_NAME})
+	elseif (NOT WIN32) # Linux
+		DeployLinux(${PROJECT_NAME})
+	elseif(WIN32) # Windows
+		DeployWindows(${PROJECT_NAME})
+	endif()
+endif()

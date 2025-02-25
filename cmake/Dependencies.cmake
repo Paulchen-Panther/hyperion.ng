@@ -526,6 +526,7 @@ macro(DeployWindows TARGET)
 
 	else()
 		# Run CMake after target was built
+		message(STATUS "Prepare POST_BUILD step for target file: ${TARGET}")
 		add_custom_command(
 			TARGET ${TARGET} POST_BUILD
 			COMMAND "${CMAKE_COMMAND}" "-DTARGET_FILE=$<TARGET_FILE:${TARGET}>"
