@@ -83,13 +83,7 @@ jobs:
         uses: ilammy/msvc-dev-cmd@v1
 
       - name: 👷 Build Release
-        shell: cmd
+        shell: bash
         run: |
            cmake --preset windows-release
-           cmake --build --preset windows-release --target package --parallel %NUMBER_OF_PROCESSORS%
-
-      - name: 👷 Build Debug
-        shell: cmd
-        run: |
-           cmake --preset windows-debug
-           cmake --build --preset windows-debug --target package --parallel %NUMBER_OF_PROCESSORS%
+           cmake --build --preset windows-release --target package --parallel

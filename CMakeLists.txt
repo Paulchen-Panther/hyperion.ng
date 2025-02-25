@@ -14,6 +14,10 @@ macro(removeIndent)
 	endif()
 endmacro()
 
+if(POLICY CMP0092)
+	cmake_policy(SET CMP0092 NEW)
+endif()
+
 PROJECT(hyperion)
 
 # Parse semantic version of version file and write version to config
