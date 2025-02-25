@@ -185,7 +185,7 @@ endif()
 # Deploy Qt DLLs into the binary folder.
 # This is necessary for starting the application from within the IDE
 
-if(WIN32)
+if(WIN32 AND NOT DEFINED ENV{GITHUB_ACTIONS})
 	get_target_property(QT_QMAKE_EXECUTABLE Qt${QT_VERSION_MAJOR}::qmake IMPORTED_LOCATION)
 	get_filename_component(QT_BIN_DIR "${QT_QMAKE_EXECUTABLE}" DIRECTORY)
 	find_program(WINDEPLOYQT_EXECUTABLE windeployqt HINTS "${QT_BIN_DIR}")
@@ -194,7 +194,7 @@ if(WIN32)
 		find_program(WINDEPLOYQT_EXECUTABLE windeployqt)
 	endif()
 
-	if(WINDEPLOYQT_EXECUTABLE AND NOT CMAKE_GITHUB_ACTION)
+	if(WINDEPLOYQT_EXECUTABLE)
 		set(WINDEPLOYQT_PARAMS_RUNTIME --verbose 0 --no-compiler-runtime --no-opengl-sw --no-system-d3d-compiler)
 		message(STATUS "Found windeployqt: ${WINDEPLOYQT_EXECUTABLE} PATH_HINT:${QT_BIN_DIR}")
 		add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${WINDEPLOYQT_EXECUTABLE} ${WINDEPLOYQT_PARAMS_RUNTIME} "$<TARGET_FILE:${PROJECT_NAME}>")
