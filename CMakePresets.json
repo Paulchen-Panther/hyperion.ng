@@ -111,8 +111,6 @@
       "name": "msvc",
       "hidden": true,
       "generator": "Ninja",
-      "architecture": "x64",
-      "toolset": "host=x64",
       "cacheVariables": {
         "CMAKE_C_COMPILER": "cl.exe",
         "CMAKE_CXX_COMPILER": "cl.exe"
