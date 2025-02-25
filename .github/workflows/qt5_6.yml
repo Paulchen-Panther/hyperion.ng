@@ -62,7 +62,7 @@ jobs:
           cmd.exe /c start /wait .\installer\libjpeg-turbo.exe /S
           cmd.exe /c start /wait .\installer\dxsdk-jun10.exe /U /F
 
-      - name: Install Vulkan SDK
+      - name: 📥 Install Vulkan SDK
         if: ${{ inputs.qt_version == '6' }}
         uses: jakoch/install-vulkan-sdk-action@v1.0.6
         with:
@@ -83,13 +83,13 @@ jobs:
         uses: ilammy/msvc-dev-cmd@v1
 
       - name: 👷 Build Release
-        shell: bash
+        shell: cmd
         run: |
            cmake --preset windows-release
-           cmake --build --preset windows-release --target package -- -nologo -v:m -maxcpucount
+           cmake --build --preset windows-release --target package --parallel %NUMBER_OF_PROCESSORS%
 
       - name: 👷 Build Debug
-        shell: bash
+        shell: cmd
         run: |
            cmake --preset windows-debug
-           cmake --build --preset windows-debug --target package -- -nologo -v:m -maxcpucount
+           cmake --build --preset windows-debug --target package --parallel %NUMBER_OF_PROCESSORS%
