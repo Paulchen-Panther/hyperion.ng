@@ -185,68 +185,68 @@ endif()
 # Deploy Qt DLLs into the binary folder.
 # This is necessary for starting the application from within the IDE
 
-if(WIN32 AND NOT DEFINED ENV{GITHUB_ACTIONS})
-	get_target_property(QT_QMAKE_EXECUTABLE Qt${QT_VERSION_MAJOR}::qmake IMPORTED_LOCATION)
-	get_filename_component(QT_BIN_DIR "${QT_QMAKE_EXECUTABLE}" DIRECTORY)
-	find_program(WINDEPLOYQT_EXECUTABLE windeployqt HINTS "${QT_BIN_DIR}")
+# if(WIN32 AND NOT DEFINED ENV{GITHUB_ACTIONS})
+# 	get_target_property(QT_QMAKE_EXECUTABLE Qt${QT_VERSION_MAJOR}::qmake IMPORTED_LOCATION)
+# 	get_filename_component(QT_BIN_DIR "${QT_QMAKE_EXECUTABLE}" DIRECTORY)
+# 	find_program(WINDEPLOYQT_EXECUTABLE windeployqt HINTS "${QT_BIN_DIR}")
 
-	if(NOT WINDEPLOYQT_EXECUTABLE)
-		find_program(WINDEPLOYQT_EXECUTABLE windeployqt)
-	endif()
+# 	if(NOT WINDEPLOYQT_EXECUTABLE)
+# 		find_program(WINDEPLOYQT_EXECUTABLE windeployqt)
+# 	endif()
 
-	if(WINDEPLOYQT_EXECUTABLE)
-		set(WINDEPLOYQT_PARAMS_RUNTIME --verbose 0 --no-compiler-runtime --no-opengl-sw --no-system-d3d-compiler)
-		message(STATUS "Found windeployqt: ${WINDEPLOYQT_EXECUTABLE} PATH_HINT:${QT_BIN_DIR}")
-		add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${WINDEPLOYQT_EXECUTABLE} ${WINDEPLOYQT_PARAMS_RUNTIME} "$<TARGET_FILE:${PROJECT_NAME}>")
-	endif()
+# 	if(WINDEPLOYQT_EXECUTABLE)
+# 		set(WINDEPLOYQT_PARAMS_RUNTIME --verbose 0 --no-compiler-runtime --no-opengl-sw --no-system-d3d-compiler)
+# 		message(STATUS "Found windeployqt: ${WINDEPLOYQT_EXECUTABLE} PATH_HINT:${QT_BIN_DIR}")
+# 		add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${WINDEPLOYQT_EXECUTABLE} ${WINDEPLOYQT_PARAMS_RUNTIME} "$<TARGET_FILE:${PROJECT_NAME}>")
+# 	endif()
 
-	find_package(OpenSSL REQUIRED)
-	if(OPENSSL_FOUND)
-		string(REGEX MATCHALL "[0-9]+" openssl_versions "${OPENSSL_VERSION}")
-		list(GET openssl_versions 0 openssl_version_major)
-		list(GET openssl_versions 1 openssl_version_minor)
+# 	find_package(OpenSSL REQUIRED)
+# 	if(OPENSSL_FOUND)
+# 		string(REGEX MATCHALL "[0-9]+" openssl_versions "${OPENSSL_VERSION}")
+# 		list(GET openssl_versions 0 openssl_version_major)
+# 		list(GET openssl_versions 1 openssl_version_minor)
 
-		set(open_ssl_version_suffix)
-		if(openssl_version_major VERSION_EQUAL 1 AND openssl_version_minor VERSION_EQUAL 1)
-			set(open_ssl_version_suffix "-1_1")
-		else()
-			set(open_ssl_version_suffix "-3")
-		endif()
+# 		set(open_ssl_version_suffix)
+# 		if(openssl_version_major VERSION_EQUAL 1 AND openssl_version_minor VERSION_EQUAL 1)
+# 			set(open_ssl_version_suffix "-1_1")
+# 		else()
+# 			set(open_ssl_version_suffix "-3")
+# 		endif()
 
-		if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-			string(APPEND open_ssl_version_suffix "-x64")
-		endif()
+# 		if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+# 			string(APPEND open_ssl_version_suffix "-x64")
+# 		endif()
 
-		find_file(OPENSSL_SSL
-			NAMES "libssl${open_ssl_version_suffix}.dll"
-			PATHS ${OPENSSL_INCLUDE_DIR}/.. ${OPENSSL_INCLUDE_DIR}/../bin
-			NO_DEFAULT_PATH
-		)
+# 		find_file(OPENSSL_SSL
+# 			NAMES "libssl${open_ssl_version_suffix}.dll"
+# 			PATHS ${OPENSSL_INCLUDE_DIR}/.. ${OPENSSL_INCLUDE_DIR}/../bin
+# 			NO_DEFAULT_PATH
+# 		)
 
-		find_file(OPENSSL_CRYPTO
-			NAMES "libcrypto${open_ssl_version_suffix}.dll"
-			PATHS ${OPENSSL_INCLUDE_DIR}/.. ${OPENSSL_INCLUDE_DIR}/../bin
-			NO_DEFAULT_PATH
-		)
+# 		find_file(OPENSSL_CRYPTO
+# 			NAMES "libcrypto${open_ssl_version_suffix}.dll"
+# 			PATHS ${OPENSSL_INCLUDE_DIR}/.. ${OPENSSL_INCLUDE_DIR}/../bin
+# 			NO_DEFAULT_PATH
+# 		)
 
-		add_custom_command(
-			TARGET ${PROJECT_NAME} POST_BUILD
-			COMMAND ${CMAKE_COMMAND} -E copy
-			${OPENSSL_SSL} ${OPENSSL_CRYPTO}
-			$<TARGET_FILE_DIR:${PROJECT_NAME}>
-		)
-	endif(OPENSSL_FOUND)
-endif(WIN32)
+# 		add_custom_command(
+# 			TARGET ${PROJECT_NAME} POST_BUILD
+# 			COMMAND ${CMAKE_COMMAND} -E copy
+# 			${OPENSSL_SSL} ${OPENSSL_CRYPTO}
+# 			$<TARGET_FILE_DIR:${PROJECT_NAME}>
+# 		)
+# 	endif(OPENSSL_FOUND)
+# endif()
 
-if(ENABLE_DEPLOY_DEPENDENCIES)
-	# Deploy all dependencies for package creation
-	include(${CMAKE_SOURCE_DIR}/cmake/Dependencies.cmake)
+# if(ENABLE_DEPLOY_DEPENDENCIES)
+# 	# Deploy all dependencies for package creation
+# 	include(${CMAKE_SOURCE_DIR}/cmake/Dependencies.cmake)
 
-	if(APPLE) #macOS
-		DeployMacOS(${PROJECT_NAME})
-	elseif (NOT WIN32) # Linux
-		DeployLinux(${PROJECT_NAME})
-	elseif(WIN32) # Windows
-		DeployWindows(${PROJECT_NAME})
-	endif()
-endif(ENABLE_DEPLOY_DEPENDENCIES)
+# 	if(APPLE) #macOS
+# 		DeployMacOS(${PROJECT_NAME})
+# 	elseif (NOT WIN32) # Linux
+# 		DeployLinux(${PROJECT_NAME})
+# 	elseif(WIN32) # Windows
+# 		DeployWindows(${PROJECT_NAME})
+# 	endif()
+# endif()
