@@ -8,6 +8,9 @@ add_library(python
 
 if(NOT CMAKE_VERSION VERSION_LESS "3.12")
 	find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
+	if(MSVC)
+		set_target_properties(Python3::Python PROPERTIES MAP_IMPORTED_CONFIG_DEBUG ";RELEASE")
+	endif()
 else()
 	find_package (PythonLibs ${PYTHON_VERSION_STRING} EXACT)
 endif()

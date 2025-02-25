@@ -27,129 +27,10 @@ on:
 
 jobs:
 
-######################
-###### Linux #########
-######################
-
-  Linux:
-    name: 🐧 ${{ matrix.os.description }}
-    runs-on: ${{ matrix.os.architecture[0] == 'amd64' && 'ubuntu-24.04' || 'ubuntu-24.04-arm' }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [
-          { distribution: debian, codename: buster,   description: Debian Buster (x86_64),                        architecture: [ amd64, linux/amd64  ], platform: x11 },
-          { distribution: debian, codename: buster,   description: Debian Buster (Raspberry Pi 1 & Zero 1),       architecture: [ armv6, linux/arm/v6 ], platform: rpi },
-          { distribution: debian, codename: buster,   description: Debian Buster (Raspberry Pi 2),                architecture: [ armv7, linux/arm/v7 ], platform: rpi },
-          { distribution: debian, codename: buster,   description: Debian Buster (Raspberry Pi 3/4/5 & Zero 2),   architecture: [ arm64, linux/arm64  ], platform: rpi },
-          { distribution: debian, codename: bullseye, description: Debian Bullseye (x86_64),                      architecture: [ amd64, linux/amd64  ], platform: x11 },
-          { distribution: debian, codename: bullseye, description: Debian Bullseye (Raspberry Pi 2),              architecture: [ armv7, linux/arm/v7 ], platform: rpi },
-          { distribution: debian, codename: bullseye, description: Debian Bullseye (Raspberry Pi 3/4/5 & Zero 2), architecture: [ arm64, linux/arm64  ], platform: rpi }
-        ]
-        target_lookup: [{ 'arm64': 'arm64', 'armv6': 'armv6l', 'armv7': 'armv7l' }]
-        isQt5:
-          - ${{ inputs.qt_version == '5' }}
-        exclude:
-          - isQt5: true
-            os: { distribution: debian, codename: bullseye }
-          - isQt5: false
-            os: { distribution: debian, codename: buster }
-
-    steps:
-      - name: ⬇ Checkout
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: 🔧 Append PR number to version (PR  only)
-        if: ${{ inputs.event_name == 'pull_request' }}
-        shell: bash
-        run: tr -d '\n' < .version > temp && mv temp .version && echo -n "+PR${{ inputs.pull_request_number }}" >> .version
-
-      - name: 👷 Build
-        shell: bash
-        run: |
-          mkdir deploy
-          docker run --rm --platform=${{ matrix.os.architecture[1] }} ${{ env.ENTRYPOINT }} \
-            -v "${{ github.workspace }}/deploy:/deploy" \
-            -v "${{ github.workspace }}:/source:rw" \
-            -w "/source" \
-            ghcr.io/hyperion-project/${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }} \
-            /bin/bash -c "cmake --preset linux-${{ env.BUILD_TYPE }} -DPLATFORM=${{ matrix.os.platform }} ${{ env.CPACK_SYSTEM_PROCESSOR }} &&
-            cmake --build --preset linux-${{ env.BUILD_TYPE }} --target package --parallel $(nproc) &&
-            cp /source/build/Hyperion-* /deploy/ 2>/dev/null"
-        env:
-          DOCKER_IMAGE: ${{ matrix.os.distribution }}
-          DOCKER_TAG: ${{ matrix.os.codename }}${{ inputs.qt_version == '6' && '-qt6' || '' }}
-          BUILD_TYPE: ${{ inputs.event_name == 'pull_request' && 'debug' || 'release' }}
-          ENTRYPOINT: ${{ matrix.os.architecture[0] != 'amd64' && '--entrypoint /usr/bin/env' || '' }}
-          CPACK_SYSTEM_PROCESSOR: ${{ matrix.os.architecture[0] != 'amd64' && format('-DCPACK_SYSTEM_PROCESSOR={0}', matrix.target_lookup[format('{0}', matrix.os.architecture[0])]) || '' }}
-
-      - name: 📦 Upload
-        if: ${{ inputs.publish || inputs.event_name == 'pull_request' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ inputs.event_name == 'pull_request' && env.NAME || format('artifact-{0}', env.NAME) }}
-          path: ${{ inputs.event_name == 'pull_request' && 'deploy/*.tar.gz' || 'deploy/Hyperion-*' }}
-        env:
-          NAME: ${{ format('{0}_{1}_{2}{3}', matrix.os.distribution, matrix.os.codename, matrix.os.architecture[0], inputs.qt_version == '6' && '_qt6' || '') }}
-
-######################
-###### macOS #########
-######################
-
-  macOS:
-    name: 🍏 macOS ${{ matrix.architecture }}
-    runs-on: ${{ matrix.architecture == 'arm64' && 'macos-14' || 'macos-13' }}
-    strategy:
-      fail-fast: false
-      matrix:
-        architecture: [ arm64, x64 ]
-
-    steps:
-      - name: ⬇ Checkout
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: 🔧 Append Pull Request number to version (PR  only)
-        if: ${{ inputs.event_name == 'pull_request' }}
-        shell: bash
-        run: tr -d '\n' < .version > temp && mv temp .version && echo -n "+PR${{ inputs.pull_request_number }}" >> .version
-
-      - name: 📥 Install dependencies
-        uses: tecolicom/actions-use-homebrew-tools@v1
-        with:
-          tools: qt@${{ inputs.qt_version }} vulkan-headers ninja libftdi
-          key: ${{ runner.os }}-${{ matrix.architecture }}-homebrew-packages-${{ inputs.qt_version }}
-
-      - name: 👷 Build
-        shell: bash
-        run: |
-          cmake --preset macos-${{ env.BUILD_TYPE }}
-          cmake --build --preset macos-${{ env.BUILD_TYPE }} --parallel $(sysctl -n hw.ncpu)
-          cd build; cpack
-        env:
-          BUILD_TYPE: ${{ inputs.event_name == 'pull_request' && 'debug' || 'release' }}
-
-      - name: 📦 Upload
-        if: ${{ inputs.publish || inputs.event_name == 'pull_request' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ inputs.event_name == 'pull_request' && env.NAME || format('artifact-{0}', env.NAME) }}
-          path: 'build/Hyperion-*'
-        env:
-          NAME: ${{ inputs.qt_version == '6' && format('macOS_{0}_qt6', matrix.architecture) || format('macOS_{0}', matrix.architecture) }}
-
-######################
-###### Windows #######
-######################
-
   windows:
     name: 🪟 Windows x64
     runs-on: windows-2022
     env:
-      VCINSTALLDIR: 'C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC'
       LIBJPEG_TURBO_VERSION: 3.0.1
     steps:
       - name: ⬇ Checkout
@@ -199,56 +80,16 @@ jobs:
           cache-key-prefix: 'cache-qt-windows'
 
       - name: 🛠️ Setup MSVC
-        shell: cmd
-        run: call "${{env.VCINSTALLDIR}}\Auxiliary\Build\vcvars64.bat"
+        uses: ilammy/msvc-dev-cmd@v1
 
-      - name: 👷 Build
+      - name: 👷 Build Release
         shell: bash
         run: |
            cmake --preset windows-release
            cmake --build --preset windows-release --target package -- -nologo -v:m -maxcpucount
 
-      - name: 📦 Upload
-        if: ${{ inputs.publish || inputs.event_name == 'pull_request' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ inputs.event_name == 'pull_request' && env.NAME || format('artifact-{0}', env.NAME) }}
-          path: ${{ inputs.event_name == 'pull_request' && 'build/*.exe' || 'build/Hyperion-*' }}
-        env:
-          NAME: ${{ inputs.qt_version == '6' && 'windows_x64_qt6' || 'windows_x64' }}
-
-#####################################
-###### Publish GitHub Releases ######
-#####################################
-
-  github_publish:
-    name: 🚀 Publish GitHub Releases
-    if: ${{ inputs.qt_version == '5' && inputs.publish }}
-    needs: [Linux, macOS, windows]
-    runs-on: ubuntu-latest
-    steps:
-      - name: ⬇ Checkout
-        uses: actions/checkout@v4
-
-      - name: 🔧 Prepare
+      - name: 👷 Build Debug
+        shell: bash
         run: |
-          echo '::group::Generate environment variables from .version and tag'
-            echo "TAG=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_ENV
-            echo "VERSION=$(tr -d '\n' < .version)" >> $GITHUB_ENV
-          echo '::endgroup::'
-
-      - name: 💾 Artifact download
-        uses: actions/download-artifact@v4.1.8
-        with:
-          pattern: artifact-*
-          path: all-artifacts
-
-      - name: 📦 Upload
-        uses: softprops/action-gh-release@v2
-        with:
-          name: Hyperion ${{ env.VERSION }}
-          tag_name: ${{ env.TAG }}
-          files: "all-artifacts/**"
-          draft: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+           cmake --preset windows-debug
+           cmake --build --preset windows-debug --target package -- -nologo -v:m -maxcpucount
