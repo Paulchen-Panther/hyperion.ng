@@ -86,4 +86,4 @@ jobs:
         shell: bash
         run: |
            cmake --preset windows-release
-           cmake --build --preset windows-release --target package --parallel
+           cmake --build --preset windows-release --target package --parallel 1
