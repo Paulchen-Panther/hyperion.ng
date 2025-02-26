@@ -14,6 +14,11 @@ macro(removeIndent)
 	endif()
 endmacro()
 
+# Use release runtime library.
+if(POLICY CMP0091)
+	cmake_policy(SET CMP0091 NEW)
+endif()
+
 # Disable passing /W3 by default on MSVC
 if(POLICY CMP0092)
 	cmake_policy(SET CMP0092 NEW)
@@ -501,15 +506,17 @@ file(MAKE_DIRECTORY ${EXECUTABLE_OUTPUT_PATH})
 include_directories(${CMAKE_SOURCE_DIR}/dependencies/include)
 include_directories(${CMAKE_SOURCE_DIR}/include)
 
-# Prefer static linking over dynamic
-#set(CMAKE_FIND_LIBRARY_SUFFIXES ".a;.so")
-
 # MSVC options
 if(MSVC)
 	# Search for Windows SDK
 	find_package(WindowsSDK REQUIRED)
 	message(STATUS "WINDOWS SDK: ${WINDOWSSDK_LATEST_DIR} ${WINDOWSSDK_LATEST_NAME}")
 	message(STATUS "MSVC VERSION: ${MSVC_VERSION}")
+
+	# Make sure MSVC uses static linking
+	if(NOT CMAKE_VERSION VERSION_LESS "3.15")
+		set(CMAKE_MSVC_RUNTIME_LIBRARY MultiThreaded)
+	endif()
 endif()
 
 # Don't create new dynamic tags (RUNPATH) and setup -rpath to search for shared libs in BINARY/../lib folder (only for Unix)
