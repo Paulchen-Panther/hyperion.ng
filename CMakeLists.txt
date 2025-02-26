@@ -561,7 +561,10 @@ endif()
 
 if(DEFINED QTDIR)
 	message(STATUS "Add QTDIR: ${QTDIR} to CMAKE_PREFIX_PATH")
-	list(PREPEND CMAKE_PREFIX_PATH ${QTDIR} "${QTDIR}/lib")
+	list(PREPEND CMAKE_PREFIX_PATH
+		${QTDIR}
+		${QTDIR}/lib
+	)
 endif()
 
 if(CMAKE_PREFIX_PATH)
