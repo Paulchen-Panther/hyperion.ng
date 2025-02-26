@@ -14,8 +14,9 @@ else()
 	set(PYTHON_VERSION_MAJOR ${Python3_VERSION_MAJOR})
 	set(PYTHON_VERSION_MINOR ${Python3_VERSION_MINOR})
 	set(Python_STDLIB ${Python3_STDLIB})
-	if(MSVC)
-		set_target_properties(Python3::Python PROPERTIES MAP_IMPORTED_CONFIG_DEBUG ";RELEASE")
+
+	if(MSVC AND NOT CMAKE_VERSION VERSION_LESS "3.15")
+		set_target_properties(Python3::Module PROPERTIES MAP_IMPORTED_CONFIG_DEBUG ";RELEASE")
 	endif()
 endif()
 
