@@ -14,7 +14,7 @@ macro(removeIndent)
 	endif()
 endmacro()
 
-# Use release runtime library.
+# Use release runtime library on MSVC
 if(POLICY CMP0091)
 	cmake_policy(SET CMP0091 NEW)
 endif()
@@ -47,7 +47,7 @@ if(NOT NCORES EQUAL 0)
 	set(CMAKE_BUILD_PARALLEL_LEVEL NCORES)
 endif()
 
-# Configure CCache ifavailable
+# Configure CCache if available
 find_program(CCACHE_FOUND ccache)
 if(CCACHE_FOUND)
 	set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
@@ -515,7 +515,7 @@ if(MSVC)
 
 	# Make sure MSVC uses static linking
 	if(NOT CMAKE_VERSION VERSION_LESS "3.15")
-		set(CMAKE_MSVC_RUNTIME_LIBRARY MultiThreaded)
+		set(CMAKE_MSVC_RUNTIME_LIBRARY MultiThreaded$<$<CONFIG:Debug>:Debug>)
 	endif()
 endif()
 
