@@ -34,8 +34,6 @@ find_package_handle_standard_args(TurboJPEG
 )
 
 if(TurboJPEG_FOUND)
-	message(STATUS "Using Turbo JPEG library: ${TurboJPEG_LIBRARY}")
-
 	if(NOT TARGET turbojpeg)
 		add_library(turbojpeg UNKNOWN IMPORTED GLOBAL)
 		set_target_properties(turbojpeg PROPERTIES
