@@ -85,5 +85,13 @@ jobs:
       - name: 👷 Build Release
         shell: cmd
         run: |
-           cmake --preset windows-release
-           cmake --build --preset windows-release --target package --parallel %NUMBER_OF_PROCESSORS%
+           cmake --preset windows-debug
+           cmake --build --preset windows-debug --target package --parallel %NUMBER_OF_PROCESSORS%
+
+      - name: 📦 Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.event_name == 'pull_request' && env.NAME || format('artifact-{0}', env.NAME) }}
+          path: ${{ inputs.event_name == 'pull_request' && 'build/*.exe' || 'build/Hyperion-*' }}
+        env:
+          NAME: ${{ inputs.qt_version == '6' && 'windows_x64_qt6' || 'windows_x64' }}
