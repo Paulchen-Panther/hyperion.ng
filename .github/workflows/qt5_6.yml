@@ -85,8 +85,8 @@ jobs:
       - name: 👷 Build Release
         shell: cmd
         run: |
-           cmake --preset windows-debug
-           cmake --build --preset windows-debug --target package --parallel %NUMBER_OF_PROCESSORS%
+           cmake --preset windows-release
+           cmake --build --preset windows-release --target package --parallel %NUMBER_OF_PROCESSORS%
 
       - name: 📦 Upload
         uses: actions/upload-artifact@v4

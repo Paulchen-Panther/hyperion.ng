@@ -14,10 +14,6 @@ macro(removeIndent)
 	endif()
 endmacro()
 
-if(POLICY CMP0091)
-	cmake_policy(SET CMP0091 NEW)
-endif()
-
 # Disable passing /W3 by default on MSVC
 if(POLICY CMP0092)
 	cmake_policy(SET CMP0092 NEW)
@@ -445,10 +441,6 @@ if(ENABLE_JSONCHECKS OR ENABLE_EFFECTENGINE)
 	else()
 		find_package(Python3 3.5 COMPONENTS Interpreter Development REQUIRED)
 		set(PYTHON_EXECUTABLE ${Python3_EXECUTABLE})
-
-		if(MSVC AND NOT CMAKE_VERSION VERSION_LESS "3.15")
-			set_target_properties(Python3::Module PROPERTIES MAP_IMPORTED_CONFIG_DEBUG ";RELEASE")
-		endif()
 	endif()
 endif()
 
@@ -518,21 +510,6 @@ if(MSVC)
 	find_package(WindowsSDK REQUIRED)
 	message(STATUS "WINDOWS SDK: ${WINDOWSSDK_LATEST_DIR} ${WINDOWSSDK_LATEST_NAME}")
 	message(STATUS "MSVC VERSION: ${MSVC_VERSION}")
-
-	# Static linking in Windows
-	if(NOT CMAKE_VERSION VERSION_LESS "3.15")
-		set(CMAKE_MSVC_RUNTIME_LIBRARY MultiThreaded$<$<CONFIG:Debug>:Debug>)
-	else()
-		foreach(flag_var
-			CMAKE_C_FLAGS CMAKE_C_FLAGS_DEBUG CMAKE_C_FLAGS_RELEASE
-			CMAKE_C_FLAGS_MINSIZEREL CMAKE_C_FLAGS_RELWITHDEBINFO
-			CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE
-			CMAKE_CXX_FLAGS_MINSIZEREL CMAKE_CXX_FLAGS_RELWITHDEBINFO)
-			if(${flag_var} MATCHES "/MD")
-				string(REGEX REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
-			endif()
-		endforeach()
-	endif()
 endif()
 
 # Don't create new dynamic tags (RUNPATH) and setup -rpath to search for shared libs in BINARY/../lib folder (only for Unix)
