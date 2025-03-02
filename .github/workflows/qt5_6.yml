@@ -43,14 +43,14 @@ jobs:
         shell: bash
         run: tr -d '\n' < .version > temp && mv temp .version && echo -n "+PR${{ inputs.pull_request_number }}" >> .version
 
-      - name: 📥 Download and 💾 Cache DirectX SDK
+      - name: 💾 Cache DirectX SDK (if not available)
         uses: ethanjli/cached-download-action@v0.1.2
         with:
           url: https://download.microsoft.com/download/A/E/7/AE743F1F-632B-4809-87A9-AA1BB3458E31/DXSDK_Jun10.exe
           destination: .\installer\dxsdk-jun10.exe
           cache-key: dxsdk-jun10
 
-      - name: 📥 Download and 💾 Cache libjpeg-turbo
+      - name: 💾 Cache libjpeg-turbo (if not available)
         uses: ethanjli/cached-download-action@v0.1.2
         with:
           url: https://sourceforge.net/projects/libjpeg-turbo/files/${{ env.LIBJPEG_TURBO_VERSION }}/libjpeg-turbo-${{ env.LIBJPEG_TURBO_VERSION }}-vc64.exe
@@ -85,8 +85,10 @@ jobs:
       - name: 👷 Build Release
         shell: cmd
         run: |
-           cmake --preset windows-release
-           cmake --build --preset windows-release --target package --parallel %NUMBER_OF_PROCESSORS%
+           cmake --preset windows-${{ env.BUILD_TYPE }}
+           cmake --build --preset windows${{ env.BUILD_TYPE }} --target package --parallel %NUMBER_OF_PROCESSORS%
+        env:
+          BUILD_TYPE: debug
 
       - name: 📦 Upload
         uses: actions/upload-artifact@v4
