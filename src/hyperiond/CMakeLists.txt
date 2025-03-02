@@ -188,8 +188,8 @@ elseif(NOT WIN32)
 	endforeach(size)
 
 	# install desktop/appstream file
-	install(FILES ${CMAKE_SOURCE_DIR}/cmake/desktop/hyperion.metainfo.xml DESTINATION "share/hyperion/desktop" COMPONENT "Hyperion")
-	install(FILES ${CMAKE_SOURCE_DIR}/cmake/desktop/hyperion.desktop DESTINATION "share/hyperion/desktop" COMPONENT "Hyperion")
+	install(FILES ${CMAKE_SOURCE_DIR}/cmake/linux/desktop/hyperion.metainfo.xml DESTINATION "share/hyperion/desktop" COMPONENT "Hyperion")
+	install(FILES ${CMAKE_SOURCE_DIR}/cmake/linux/desktop/hyperion.desktop DESTINATION "share/hyperion/desktop" COMPONENT "Hyperion")
 
 	# create symlink and copy "updateHyperionUser.sh" script
 	install(CODE "execute_process(COMMAND ln -sf \"../share/hyperion/bin/${PROJECT_NAME}\" \"${CMAKE_BINARY_DIR}/symlink_${PROJECT_NAME}\")" COMPONENT "Hyperion")
