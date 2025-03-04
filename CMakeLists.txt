@@ -88,6 +88,8 @@ string(REPLACE "configVersionValue" ${HYPERION_VERSION} DEFAULT_JSON_CONFIG_VAR 
 file(WRITE ${CMAKE_BINARY_DIR}/settings/hyperion.settings.json.default "${DEFAULT_JSON_CONFIG_VAR}")
 
 include(GitVersion)
+message(STATUS "Current Version: ${HYPERION_VERSION}")
+message(STATUS " - Build: ${HYPERION_BUILD_ID}")
 
 #=============================================================================
 # Set build variables
