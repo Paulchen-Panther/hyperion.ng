@@ -120,12 +120,14 @@ jobs:
       - name: 📥 Install dependencies
         uses: tecolicom/actions-use-homebrew-tools@v1
         with:
-          tools: cmake qt@${{ inputs.qt_version }} vulkan-headers ninja libftdi
+          tools: qt@${{ inputs.qt_version }} vulkan-headers ninja libftdi
           key: ${{ runner.os }}-${{ matrix.architecture }}-homebrew-packages-${{ inputs.qt_version }}
+          path: /Applications /Library
 
       - name: 👷 Build
         shell: bash
         run: |
+          find / -type f -name cmake
           cmake --preset macos-${{ env.BUILD_TYPE }}
           cmake --build --preset macos-${{ env.BUILD_TYPE }} --target package --parallel $(sysctl -n hw.ncpu)
         env:
