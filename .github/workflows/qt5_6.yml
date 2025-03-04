@@ -122,12 +122,11 @@ jobs:
         with:
           tools: qt@${{ inputs.qt_version }} vulkan-headers ninja libftdi
           key: ${{ runner.os }}-${{ matrix.architecture }}-homebrew-packages-${{ inputs.qt_version }}
-          path: /Applications /Library
 
       - name: 👷 Build
         shell: bash
         run: |
-          find / -type f -name cmake
+          brew reinstall cmake
           cmake --preset macos-${{ env.BUILD_TYPE }}
           cmake --build --preset macos-${{ env.BUILD_TYPE }} --target package --parallel $(sysctl -n hw.ncpu)
         env:
