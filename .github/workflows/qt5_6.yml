@@ -209,6 +209,7 @@ jobs:
           BUILD_TYPE: ${{ inputs.event_name == 'pull_request' && 'debug' || 'release' }}
 
       - name: 📦 Upload
+        if: ${{ inputs.publish || inputs.event_name == 'pull_request' }}
         uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.event_name == 'pull_request' && env.NAME || format('artifact-{0}', env.NAME) }}
