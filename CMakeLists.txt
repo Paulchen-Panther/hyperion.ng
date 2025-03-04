@@ -622,4 +622,4 @@ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/cmake/cmake_uninstall.cmake.in" "${C
 add_custom_target(uninstall COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)
 
 # enable make package - no code after this line !
-include (${CMAKE_CURRENT_SOURCE_DIR}/cmake/packages.cmake)
+include (${CMAKE_CURRENT_SOURCE_DIR}/cmake/Packaging.cmake)
