@@ -126,7 +126,7 @@ jobs:
       - name: 👷 Build
         shell: bash
         run: |
-          brew reinstall cmake
+          brew reinstall --formula cmake
           cmake --preset macos-${{ env.BUILD_TYPE }}
           cmake --build --preset macos-${{ env.BUILD_TYPE }} --target package --parallel $(sysctl -n hw.ncpu)
         env:
