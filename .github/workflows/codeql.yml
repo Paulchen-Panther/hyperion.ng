@@ -12,7 +12,7 @@ on:
 jobs:
   analyze:
     name: 📊 Analyze
-    runs-on: ubuntu-24.04-arm
+    runs-on: ubuntu-latest
     permissions:
       actions: read
       contents: read
@@ -25,7 +25,6 @@ jobs:
 
     container:
       image: ghcr.io/hyperion-project/debian:buster
-      options: --entrypoint /bin/bash
 
     steps:
       - name: ⬇ Checkout
@@ -44,10 +43,20 @@ jobs:
         if: ${{ matrix.language != 'cpp' }}
         uses: github/codeql-action/autobuild@v3
 
+      - name: 💾 Download Pre-Build Dependencies (C++)
+        if: ${{ matrix.language != 'cpp' }}
+        id: dependencies
+        uses: ./.github/actions/download-pre-built-deps
+        with:
+          os: 'debian_buster'
+          architecture: 'amd64'
+          qt_version: '5'
+          build_type: ${{ github.event_name == 'pull_request' && 'debug' || 'release' }}
+
       - name: 👷 Build (C++)
         if: ${{ matrix.language == 'cpp' }}
         run: |
-          cmake --preset linux-${{ env.BUILD_TYPE }}
+          cmake --preset linux-${{ env.BUILD_TYPE }} ${{ steps.dependencies.outputs.cmakeArgs }}
           cmake --build --preset linux-${{ env.BUILD_TYPE }} --target package
         env:
           BUILD_TYPE: ${{ github.event_name == 'pull_request' && 'debug' || 'release' }}
