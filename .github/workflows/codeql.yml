@@ -12,7 +12,7 @@ on:
 jobs:
   analyze:
     name: 📊 Analyze
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     permissions:
       actions: read
       contents: read
@@ -39,11 +39,11 @@ jobs:
           queries: +security-and-quality
           config-file: ./.github/config/codeql.yml
 
-      - name: 👷 Build
+      - name: 👷 Build (Python & JavaScript)
         if: ${{ matrix.language != 'cpp' }}
         uses: github/codeql-action/autobuild@v3
 
-      - name: 👷 Build
+      - name: 👷 Build (C++)
         if: ${{ matrix.language == 'cpp' }}
         run: |
           cmake --preset linux-${{ env.BUILD_TYPE }}
