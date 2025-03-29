@@ -39,6 +39,13 @@ jobs:
           queries: +security-and-quality
           config-file: ./.github/config/codeql.yml
 
+      - name: 👷 Build
+        run: |
+          cmake --preset linux-${{ env.BUILD_TYPE }}
+          cmake --build --preset linux-${{ env.BUILD_TYPE }} --target package
+        env:
+          BUILD_TYPE: ${{ github.event_name == 'pull_request' && 'debug' || 'release' }}
+
       - name: 👷 Autobuild
         uses: github/codeql-action/autobuild@v3
 
