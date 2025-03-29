@@ -46,7 +46,7 @@ jobs:
       - name: 📥 Install jq (C++)
         if: ${{ matrix.language == 'cpp' }}
         shell: bash
-        run: sudo apt-get install -y jq
+        run: apt-get install -y jq
 
       - name: 💾 Download Pre-Build Dependencies (C++)
         if: ${{ matrix.language == 'cpp' }}
