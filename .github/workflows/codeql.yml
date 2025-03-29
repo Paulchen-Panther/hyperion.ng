@@ -43,6 +43,11 @@ jobs:
         if: ${{ matrix.language != 'cpp' }}
         uses: github/codeql-action/autobuild@v3
 
+      - name: 📥 Install jq (C++)
+        if: ${{ matrix.language == 'cpp' }}
+        shell: bash
+        run: sudo apt-get install -y jq
+
       - name: 💾 Download Pre-Build Dependencies (C++)
         if: ${{ matrix.language == 'cpp' }}
         id: dependencies
