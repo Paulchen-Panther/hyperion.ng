@@ -40,14 +40,16 @@ jobs:
           config-file: ./.github/config/codeql.yml
 
       - name: 👷 Build
+        if: ${{ matrix.language != 'cpp' }}
+        uses: github/codeql-action/autobuild@v3
+
+      - name: 👷 Build
+        if: ${{ matrix.language == 'cpp' }}
         run: |
           cmake --preset linux-${{ env.BUILD_TYPE }}
           cmake --build --preset linux-${{ env.BUILD_TYPE }} --target package
         env:
           BUILD_TYPE: ${{ github.event_name == 'pull_request' && 'debug' || 'release' }}
-
-      - name: 👷 Autobuild
-        uses: github/codeql-action/autobuild@v3
 
       - name: 🏃 Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
