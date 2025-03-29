@@ -24,7 +24,7 @@ jobs:
         language: [ python, javascript, cpp ]
 
     container:
-      image: ghcr.io/hyperion-project/debian:buster
+      image: ghcr.io/hyperion-project/debian:buster-qt6
 
     steps:
       - name: ⬇ Checkout
@@ -55,14 +55,14 @@ jobs:
         with:
           os: 'debian_buster'
           architecture: 'amd64'
-          qt_version: '5'
+          qt_version: '6'
           build_type: ${{ github.event_name == 'pull_request' && 'debug' || 'release' }}
 
       - name: 👷 Build (C++)
         if: ${{ matrix.language == 'cpp' }}
         run: |
           cmake --preset linux-${{ env.BUILD_TYPE }} ${{ steps.dependencies.outputs.cmakeArgs }}
-          cmake --build --preset linux-${{ env.BUILD_TYPE }} --target package
+          cmake --build --preset linux-${{ env.BUILD_TYPE }}
         env:
           BUILD_TYPE: ${{ github.event_name == 'pull_request' && 'debug' || 'release' }}
 
@@ -79,9 +79,6 @@ jobs:
           patterns: |
             -**/dependencies/**
             -**/moc_*.cpp
-            -**/libsrc/flatbufserver/hyperion_request_generated.h
-            -**/libsrc/protoserver/message.pb.cc
-            -**/libsrc/protoserver/message.pb.h
           input: sarif-results/${{ matrix.language }}.sarif
           output: sarif-results/${{ matrix.language }}.sarif
 
