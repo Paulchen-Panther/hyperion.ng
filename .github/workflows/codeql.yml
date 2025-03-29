@@ -44,7 +44,7 @@ jobs:
         uses: github/codeql-action/autobuild@v3
 
       - name: 💾 Download Pre-Build Dependencies (C++)
-        if: ${{ matrix.language != 'cpp' }}
+        if: ${{ matrix.language == 'cpp' }}
         id: dependencies
         uses: ./.github/actions/download-pre-built-deps
         with:
