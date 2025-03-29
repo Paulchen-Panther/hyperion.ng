@@ -25,6 +25,7 @@ jobs:
 
     container:
       image: ghcr.io/hyperion-project/debian:buster
+      options: --entrypoint /bin/bash
 
     steps:
       - name: ⬇ Checkout
