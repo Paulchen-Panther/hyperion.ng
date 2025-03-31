@@ -292,10 +292,15 @@ if(ENABLE_FLATBUF_SERVER OR ENABLE_FLATBUF_CONNECT)
 		set(IMPORT_FLATC "" CACHE STRING "Import the Flatbuffers compiler (flatc_export.cmake) from a native build")
 
 		if(CMAKE_CROSSCOMPILING)
-			message(STATUS "CMAKE_CROSSCOMPILING")
-			# Disable Flatbuffers Compiler (import or build nativly)
+			# Disable Flatbuffers Compiler
 			set(FLATBUFFERS_BUILD_FLATC OFF CACHE BOOL "Enable the build of the flatbuffers compiler")
+		endif()
 
+		# Add Flatbuffers directory to the build
+		add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/external/flatbuffers")
+
+		if(CMAKE_CROSSCOMPILING)
+			message(STATUS "CMAKE_CROSSCOMPILING")
 			if(IMPORT_FLATC)
 				# Import the Flatbuffers Compiler from a native build ...
 				message(STATUS "IMPORT_FLATC: ${IMPORT_FLATC}")
@@ -332,9 +337,6 @@ if(ENABLE_FLATBUF_SERVER OR ENABLE_FLATBUF_CONNECT)
 			# export the flatc compiler so it can be used when cross compiling
 			export(TARGETS flatc FILE "${CMAKE_BINARY_DIR}/flatc_export.cmake")
 		endif()
-
-		# Add Flatbuffers directory to the build
-		add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/external/flatbuffers")
 	endif()
 
 	if(TARGET flatbuffers::flatbuffers OR TARGET FlatBuffers::FlatBuffers)
