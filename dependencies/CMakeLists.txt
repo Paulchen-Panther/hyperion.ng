@@ -32,6 +32,7 @@ if(ENABLE_DEV_USB_HID OR ENABLE_DEV_FTDI)
 	endif()
 
 	if(NOT USE_SYSTEM_LIBUSB_LIBS)
+		include(ExternalProject)
 		ExternalProject_Add(libusb
 			PREFIX				${CMAKE_CURRENT_BINARY_DIR}/external/libusb-cmake
 			BUILD_ALWAYS		ON
@@ -105,6 +106,7 @@ if(ENABLE_DEV_FTDI)
 		set(LIBUSB_LIBRARIES ${LIBUSB_LIBRARIES} CACHE INTERNAL "")
 
 		find_package(Git REQUIRED)
+		include(ExternalProject)
 		ExternalProject_Add(libftdi1
 			DEPENDS				usb-1.0
 			PREFIX				${CMAKE_CURRENT_BINARY_DIR}/external/libftdi1
@@ -293,14 +295,17 @@ if(ENABLE_FLATBUF_SERVER OR ENABLE_FLATBUF_CONNECT)
 		add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/external/flatbuffers")
 
 		if(CMAKE_CROSSCOMPILING)
+			message(STATUS "CMAKE_CROSSCOMPILING")
 			# Disable Flatbuffers Compiler (import or build nativly)
 			set(FLATBUFFERS_BUILD_FLATC OFF CACHE BOOL "Enable the build of the flatbuffers compiler")
 
 			if(IMPORT_FLATC)
 				# Import the Flatbuffers Compiler from a native build ...
+				message(STATUS "IMPORT_FLATC: ${IMPORT_FLATC}")
 				include(${IMPORT_FLATC})
 			else()
 				# ... or build flatc nativly
+				message(STATUS "build flatc nativly")
 				include(ExternalProject)
 				ExternalProject_Add(flatc-host
 					PREFIX				${CMAKE_BINARY_DIR}/dependencies/external/flatc-host
