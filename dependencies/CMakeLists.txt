@@ -291,9 +291,6 @@ if(ENABLE_FLATBUF_SERVER OR ENABLE_FLATBUF_CONNECT)
 		# Define the flatc import option
 		set(IMPORT_FLATC "" CACHE STRING "Import the Flatbuffers compiler (flatc_export.cmake) from a native build")
 
-		# Add Flatbuffers directory to the build
-		add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/external/flatbuffers")
-
 		if(CMAKE_CROSSCOMPILING)
 			message(STATUS "CMAKE_CROSSCOMPILING")
 			# Disable Flatbuffers Compiler (import or build nativly)
@@ -335,6 +332,9 @@ if(ENABLE_FLATBUF_SERVER OR ENABLE_FLATBUF_CONNECT)
 			# export the flatc compiler so it can be used when cross compiling
 			export(TARGETS flatc FILE "${CMAKE_BINARY_DIR}/flatc_export.cmake")
 		endif()
+
+		# Add Flatbuffers directory to the build
+		add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/external/flatbuffers")
 	endif()
 
 	if(TARGET flatbuffers::flatbuffers OR TARGET FlatBuffers::FlatBuffers)
@@ -446,9 +446,6 @@ if(ENABLE_PROTOBUF_SERVER)
 		# Define the protoc import option
 		set(IMPORT_PROTOC "" CACHE STRING "Import the Protobuf compiler (protoc_export.cmake) from a native build")
 
-		# Add Protobuf directory to the build
-		add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/external/protobuf")
-
 		if(CMAKE_CROSSCOMPILING)
 			# Disable Protobuf Compiler (import or build nativly)
 			set(protobuf_BUILD_PROTOC_BINARIES OFF CACHE BOOL "Build protobuf libraries and protoc compiler")
@@ -489,6 +486,9 @@ if(ENABLE_PROTOBUF_SERVER)
 			# export the protoc compiler so it can be used when cross compiling
 			export(TARGETS protoc FILE "${CMAKE_BINARY_DIR}/protoc_export.cmake")
 		endif()
+
+		# Add Protobuf directory to the build
+		add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/external/protobuf")
 	endif()
 
 	if(TARGET protobuf::libprotobuf)
