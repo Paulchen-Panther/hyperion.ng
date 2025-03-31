@@ -311,7 +311,7 @@ if(ENABLE_FLATBUF_SERVER OR ENABLE_FLATBUF_CONNECT)
 				include(ExternalProject)
 				ExternalProject_Add(flatc-host
 					PREFIX				${CMAKE_BINARY_DIR}/dependencies/external/flatc-host
-					BUILD_ALWAYS		OFF
+					BUILD_ALWAYS		ON
 					DOWNLOAD_COMMAND	""
 					INSTALL_COMMAND     ""
 					SOURCE_DIR			${CMAKE_CURRENT_SOURCE_DIR}/external/flatbuffers
