@@ -303,11 +303,9 @@ if(ENABLE_FLATBUF_SERVER OR ENABLE_FLATBUF_CONNECT)
 			message(STATUS "CMAKE_CROSSCOMPILING")
 			if(IMPORT_FLATC)
 				# Import the Flatbuffers Compiler from a native build ...
-				message(STATUS "IMPORT_FLATC: ${IMPORT_FLATC}")
 				include(${IMPORT_FLATC})
 			else()
 				# ... or build flatc nativly
-				message(STATUS "build flatc nativly")
 				include(ExternalProject)
 				ExternalProject_Add(flatc-host
 					PREFIX				${CMAKE_BINARY_DIR}/dependencies/external/flatc-host
@@ -326,13 +324,11 @@ if(ENABLE_FLATBUF_SERVER OR ENABLE_FLATBUF_CONNECT)
 					BUILD_BYPRODUCTS    <BINARY_DIR>/flatc${CMAKE_EXECUTABLE_SUFFIX}
 				)
 
-				add_executable(flatc IMPORTED GOBAL)
+				add_executable(flatc IMPORTED GLOBAL)
 				ExternalProject_Get_Property(flatc-host BINARY_DIR)
 				set_target_properties(flatc PROPERTIES
 					IMPORTED_LOCATION ${BINARY_DIR}/flatc${CMAKE_EXECUTABLE_SUFFIX}
 				)
-
-				message(STATUS "${BINARY_DIR}/flatc${CMAKE_EXECUTABLE_SUFFIX}")
 				add_dependencies(flatc flatc-host)
 			endif()
 		else()
@@ -381,7 +377,7 @@ if(ENABLE_FLATBUF_SERVER OR ENABLE_FLATBUF_CONNECT)
 				OUTPUT ${OUT_FILE}
 				COMMAND "$<TARGET_FILE:flatc>"
 				ARGS -c --no-includes --gen-mutable --gen-object-api -o "${CMAKE_CURRENT_BINARY_DIR}" "${ABS_FIL}"
-				DEPENDS "${ABS_FIL}" "$<TARGET_FILE:flatc>"
+				DEPENDS ${ABS_FIL} flatc
 				COMMENT "Running flatbuffers compiler on ${FIL}"
 				VERBATIM
 			)
@@ -451,9 +447,14 @@ if(ENABLE_PROTOBUF_SERVER)
 		set(IMPORT_PROTOC "" CACHE STRING "Import the Protobuf compiler (protoc_export.cmake) from a native build")
 
 		if(CMAKE_CROSSCOMPILING)
-			# Disable Protobuf Compiler (import or build nativly)
+			# Disable Protobuf Compiler
 			set(protobuf_BUILD_PROTOC_BINARIES OFF CACHE BOOL "Build protobuf libraries and protoc compiler")
+		endif()
 
+		# Add Protobuf directory to the build
+		add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/external/protobuf")
+
+		if(CMAKE_CROSSCOMPILING)
 			if(IMPORT_PROTOC)
 				# Import the Protobuf Compiler from a native build ...
 				include(${IMPORT_FLATC})
@@ -490,9 +491,6 @@ if(ENABLE_PROTOBUF_SERVER)
 			# export the protoc compiler so it can be used when cross compiling
 			export(TARGETS protoc FILE "${CMAKE_BINARY_DIR}/protoc_export.cmake")
 		endif()
-
-		# Add Protobuf directory to the build
-		add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/external/protobuf")
 	endif()
 
 	if(TARGET protobuf::libprotobuf)
