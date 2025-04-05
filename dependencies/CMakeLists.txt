@@ -331,6 +331,8 @@ if(ENABLE_FLATBUF_SERVER OR ENABLE_FLATBUF_CONNECT)
 				set_target_properties(flatc PROPERTIES
 					IMPORTED_LOCATION ${BINARY_DIR}/flatc${CMAKE_EXECUTABLE_SUFFIX}
 				)
+
+				message(STATUS "${BINARY_DIR}/flatc${CMAKE_EXECUTABLE_SUFFIX}")
 				add_dependencies(flatc flatc-host)
 			endif()
 		else()

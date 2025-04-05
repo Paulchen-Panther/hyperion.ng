@@ -191,10 +191,9 @@ if(NOT DEFINED PLATFORM)
 	if(NOT PLATFORM)
 		message(FATAL_ERROR "PLATFORM is not defined and could not be evaluated. Set -DPLATFORM=<rpi|amlogic|amlogic-dev|amlogic64|amlogic64-dev|x11|x11-dev|osx>")
 	endif()
-else()
-	message(STATUS "PLATFORM: ${PLATFORM}")
 endif()
 
+message(STATUS "PLATFORM: ${PLATFORM}")
 if("${PLATFORM}" MATCHES "osx")
 	# add specific prefix paths
 	FIRSTSUBDIR(SUBDIRPY "/usr/local/opt/python3/Frameworks/Python.framework/Versions")
@@ -240,7 +239,11 @@ ADD_DEFINITIONS(${PLATFORM_DEFINE})
 #=============================================================================
 
 option(USE_PRE_BUILT_DEPS "Build Hyperion with previously created dependencies (see also PRE_BUILT_DEPS_DIR)" ${DEFAULT_PRE_BUILT_DEPS})
-set(PRE_BUILT_DEPS_DIR "" CACHE STRING "The folder in which the previously created dependencies are located")
+set(PRE_BUILT_DEPS_DIR "" CACHE STRING "The folder in which the previously created/downloaded dependencies are located")
+if(CMAKE_SYSTEM_NAME MATCHES "Darwin" OR WIN32)
+	option(DOWNLOAD_PRE_BUILT_DEPS "Download pre-built dependencies from GitHub into PRE_BUILT_DEPS_DIR (Windows and macOS only)" OFF)
+endif()
+
 message(STATUS "USE_PRE_BUILT_DEPS = ${USE_PRE_BUILT_DEPS}")
 
 if(USE_PRE_BUILT_DEPS)
@@ -261,8 +264,11 @@ if(USE_PRE_BUILT_DEPS)
 			message(FATAL_ERROR "The specified PRE_BUILT_DEPS_DIR (${PRE_BUILT_DEPS_DIR}) does not exist.")
 		endif()
 
-		message(STATUS "Hyperion is build with previously created dependencies")
-		message(STATUS "Pre-build dependencies path: ${PRE_BUILT_DEPS_DIR}")
+		if(DOWNLOAD_PRE_BUILT_DEPS AND (CMAKE_SYSTEM_NAME MATCHES "Darwin" OR WIN32))
+			message(STATUS "Pre-Built dependencies are downloaded from GitHub to the path: ${PRE_BUILT_DEPS_DIR}")
+		else()
+			message(STATUS "Hyperion is build with previously created dependencies from path: ${PRE_BUILT_DEPS_DIR}")
+		endif()
 
 		# Use pre-built dependencies
 		set(DEFAULT_USE_SYSTEM_LIBUSB_LIBS      ON)
@@ -662,6 +668,11 @@ endif()
 #=============================================================================
 # Add our Code
 #=============================================================================
+
+# Download pre-built dependencies on windows or macos if required
+if(DOWNLOAD_PRE_BUILT_DEPS AND (CMAKE_SYSTEM_NAME MATCHES "Darwin" OR WIN32))
+	include(DownloadPreBuiltDeps)
+endif()
 
 # Add the source/lib directories
 add_subdirectory(dependencies)
