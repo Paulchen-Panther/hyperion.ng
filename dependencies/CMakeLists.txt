@@ -381,7 +381,7 @@ if(ENABLE_FLATBUF_SERVER OR ENABLE_FLATBUF_CONNECT)
 				OUTPUT ${OUT_FILE}
 				COMMAND "$<TARGET_FILE:flatc>"
 				ARGS -c --no-includes --gen-mutable --gen-object-api -o "${CMAKE_CURRENT_BINARY_DIR}" "${ABS_FIL}"
-				DEPENDS ${ABS_FIL} flatc
+				DEPENDS "${ABS_FIL}" "$<TARGET_FILE:flatc>"
 				COMMENT "Running flatbuffers compiler on ${FIL}"
 				VERBATIM
 			)
