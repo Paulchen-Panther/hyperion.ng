@@ -166,7 +166,7 @@ jobs:
     name: 🪟 Windows ${{ matrix.architecture }}
     runs-on: ${{ matrix.architecture == 'arm64' && 'windows-11-arm' || 'windows-2022' }}
     env:
-      LIBJPEG_TURBO_VERSION: 3.0.1
+      LIBJPEG_TURBO_VERSION: 3.1.0
     strategy:
       fail-fast: false
       matrix:
@@ -198,7 +198,7 @@ jobs:
       - name: 💾 Restore libjpeg-turbo (if available)
         uses: ethanjli/cached-download-action@v0.1.2
         with:
-          url: https://sourceforge.net/projects/libjpeg-turbo/files/${{ env.LIBJPEG_TURBO_VERSION }}/libjpeg-turbo-${{ env.LIBJPEG_TURBO_VERSION }}-vc64.exe
+          url: https://github.com/libjpeg-turbo/libjpeg-turbo/releases/download/${{ env.LIBJPEG_TURBO_VERSION }}/libjpeg-turbo-${{ env.LIBJPEG_TURBO_VERSION }}-vc64.exe
           destination: .\installer\libjpeg-turbo.exe
           cache-key: libjpeg-turbo
 
@@ -209,13 +209,13 @@ jobs:
           7z x -aoa .\installer\libjpeg-turbo.exe bin include lib -oC:\turbojpeg
           echo "TURBOJPEG_DIR=C:\turbojpeg" | Out-File -FilePath $env:GITHUB_ENV -Append
 
-      - name: 📥 Install Vulkan SDK
-        if: ${{ inputs.qt_version == '6' }}
-        uses: jakoch/install-vulkan-sdk-action@v1
-        with:
-          install_runtime: false
-          cache: true
-          stripdown: true
+      # - name: 📥 Install Vulkan SDK
+      #   if: ${{ inputs.qt_version == '6' }}
+      #   uses: jakoch/install-vulkan-sdk-action@v1
+      #   with:
+      #     install_runtime: false
+      #     cache: true
+      #     stripdown: true
 
       - name: 🛠️ Setup Python
         uses: actions/setup-python@v5
@@ -228,7 +228,7 @@ jobs:
       - name: 📥 Install Qt
         run: |
           pip install aqtinstall
-          aqt install-qt ${{ matrix.architecture == 'arm64' && 'windows_arm64' || 'windows' }} desktop "${{ env.QT_VERSION }}" win64_${{ env.ARCH }} --autodesktop --outputdir "${{ github.workspace }}\Qt"
+          aqt install-qt ${{ matrix.architecture == 'arm64' && 'windows_arm64' || 'windows' }} desktop "${{ env.QT_VERSION }}" win64_${{ env.ARCH }} --autodesktop --outputdir "${{ github.workspace }}\Qt" ${{ inputs.qt_version == '6' && '-m qtserialport qtwebsockets' }}
           echo "QTDIR=$(Resolve-Path '${{ github.workspace }}\Qt\${{ env.QT_VERSION }}\${{ env.ARCH }}\' | Select -ExpandProperty Path)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
         env:
           QT_VERSION: ${{ inputs.qt_version == '6' && '6.8.*' || '5.15.*' }}
@@ -238,15 +238,6 @@ jobs:
         uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: ${{ matrix.architecture }}
-
-      # - name: 💾 Download Pre-Build Dependencies
-      #   id: dependencies
-      #   uses: ./.github/actions/download-pre-built-deps
-      #   with:
-      #     os: 'windows'
-      #     architecture: 'x64'
-      #     qt_version: ${{ inputs.qt_version }}
-      #     build_type: ${{ inputs.event_name == 'pull_request' && 'debug' || 'release' }}
 
       - name: 👷 Build
         shell: cmd
