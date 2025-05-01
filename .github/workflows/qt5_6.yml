@@ -217,7 +217,7 @@ jobs:
       #     cache: true
       #     stripdown: true
 
-      - name: 🛠️ Setup Python
+      - name: 📥 Install Python (x64)
         uses: actions/setup-python@v5
         # aqt depends on pyppmd, which isn't supported on WoA as of pyppmd 1.1.1
         # force x64 python, which will run under emulation of WoA.
@@ -233,6 +233,13 @@ jobs:
         env:
           QT_VERSION: ${{ inputs.qt_version == '6' && '6.8.*' || '5.15.*' }}
           ARCH: ${{ matrix.architecture == 'arm64' && 'msvc2022_arm64' || inputs.qt_version == '6' && 'msvc2022_64' || 'msvc2019_64' }}
+
+      - name: 📥 Install Python (arm64)
+        if: matrix.architecture == 'arm64'
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.13
+          architecture: arm64
 
       - name: 🛠️ Setup MSVC
         uses: ilammy/msvc-dev-cmd@v1
