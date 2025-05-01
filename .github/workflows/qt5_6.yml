@@ -228,7 +228,7 @@ jobs:
       - name: 📥 Install Qt
         run: |
           pip install aqtinstall
-          aqt install-qt ${{ matrix.architecture == 'arm64' && 'windows_arm64' || 'windows' }} desktop "${{ env.QT_VERSION }}" win64_${{ env.ARCH }} --autodesktop --outputdir "${{ github.workspace }}\Qt" ${{ inputs.qt_version == '6' && '-m qtserialport qtwebsockets' }}
+          aqt install-qt ${{ matrix.architecture == 'arm64' && 'windows_arm64' || 'windows' }} desktop "${{ env.QT_VERSION }}" win64_${{ env.ARCH }} --autodesktop --outputdir "${{ github.workspace }}\Qt" ${{ inputs.qt_version == '6' && '-m qtserialport qtwebsockets' || '' }}
           echo "QTDIR=$(Resolve-Path '${{ github.workspace }}\Qt\${{ env.QT_VERSION }}\${{ env.ARCH }}\' | Select -ExpandProperty Path)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
         env:
           QT_VERSION: ${{ inputs.qt_version == '6' && '6.8.*' || '5.15.*' }}
