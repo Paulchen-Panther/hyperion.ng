@@ -66,16 +66,7 @@ jobs:
         shell: bash
         run: tr -d '\n' < .version > temp && mv temp .version && echo -n "+PR${{ inputs.pull_request_number }}" >> .version
 
-      - name: 💾 Download Pre-Build Dependencies
-        id: dependencies
-        uses: ./.github/actions/download-pre-built-deps
-        with:
-          os: ${{ matrix.os.distribution }}_${{ matrix.os.codename }}
-          architecture: ${{ matrix.os.architecture[0] }}
-          qt_version: ${{ inputs.qt_version }}
-          build_type: ${{ inputs.event_name == 'pull_request' && 'debug' || 'release' }}
-
-      - name: 👷 Build ${{ env.HINT }}
+      - name: 👷 Build
         shell: bash
         run: |
           mkdir deploy
@@ -85,7 +76,7 @@ jobs:
             -v "/tmp/deps:/tmp/deps:rw" \
             -w "/source" \
             ghcr.io/hyperion-project/${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }} \
-            /bin/bash -c "cmake --preset linux-${{ env.BUILD_TYPE }} ${{ steps.dependencies.outputs.cmakeArgs }} -DPLATFORM=${{ matrix.os.platform }} ${{ env.CPACK_SYSTEM_PROCESSOR }} &&
+            /bin/bash -c "cmake --preset linux-${{ env.BUILD_TYPE }} -DPLATFORM=${{ matrix.os.platform }} ${{ env.CPACK_SYSTEM_PROCESSOR }} &&
             cmake --build --preset linux-${{ env.BUILD_TYPE }} --target package &&
             cp /source/build/Hyperion-* /deploy/ 2>/dev/null"
         env:
@@ -94,7 +85,6 @@ jobs:
           BUILD_TYPE: ${{ inputs.event_name == 'pull_request' && 'debug' || 'release' }}
           ENTRYPOINT: ${{ matrix.os.architecture[0] != 'amd64' && '--entrypoint /usr/bin/env' || '' }}
           CPACK_SYSTEM_PROCESSOR: ${{ matrix.os.architecture[0] != 'amd64' && format('-DCPACK_SYSTEM_PROCESSOR={0}', matrix.target_lookup[format('{0}', matrix.os.architecture[0])]) || '' }}
-          HINT: ${{ steps.dependencies.outputs.cmakeArgs != '' && '(with pre-built dependencies)' || '(full build)' }}
 
       - name: 📦 Upload
         if: ${{ inputs.publish || inputs.event_name == 'pull_request' }}
@@ -134,23 +124,14 @@ jobs:
           tools: qt@${{ inputs.qt_version }} vulkan-headers coreutils
           key: ${{ runner.os }}-${{ matrix.architecture }}-homebrew-packages-${{ inputs.qt_version }}
 
-      - name: 💾 Download Pre-Build Dependencies
-        id: dependencies
-        uses: ./.github/actions/download-pre-built-deps
-        with:
-          os: 'macos'
-          architecture: ${{ matrix.architecture }}
-          qt_version: ${{ inputs.qt_version }}
-          build_type: ${{ inputs.event_name == 'pull_request' && 'debug' || 'release' }}
-
-      - name: 👷 Build ${{ env.HINT }}
+      - name: 👷 Build
         shell: bash
         run: |
           # Remove once issue with Homebrew cache action is fixed
           brew reinstall --formula cmake
 
           # Build
-          cmake --preset macos-${{ env.BUILD_TYPE }} ${{ steps.dependencies.outputs.cmakeArgs }}
+          cmake --preset macos-${{ env.BUILD_TYPE }}
           cmake --build --preset macos-${{ env.BUILD_TYPE }}
           # CPack workaround for macOS 13
           attempt=0
@@ -167,7 +148,6 @@ jobs:
           done
         env:
           BUILD_TYPE: ${{ inputs.event_name == 'pull_request' && 'debug' || 'release' }}
-          HINT: ${{ steps.dependencies.outputs.cmakeArgs != '' && '(with pre-built dependencies)' || '(full build)' }}
 
       - name: 📦 Upload
         if: ${{ inputs.publish || inputs.event_name == 'pull_request' }}
@@ -183,10 +163,20 @@ jobs:
 ######################
 
   windows:
-    name: 🪟 Windows x64
-    runs-on: windows-2022
+    name: 🪟 Windows ${{ matrix.architecture }}
+    runs-on: ${{ matrix.architecture == 'arm64' && 'windows-11-arm' || 'windows-2022' }}
     env:
       LIBJPEG_TURBO_VERSION: 3.0.1
+    strategy:
+      fail-fast: false
+      matrix:
+        architecture: [ arm64, x64 ]
+        isQt5:
+          - ${{ inputs.qt_version == '5' }}
+        exclude:
+          - isQt5: true
+            architecture: arm64
+
     steps:
       - name: ⬇ Checkout
         uses: actions/checkout@v4
@@ -227,35 +217,44 @@ jobs:
           cache: true
           stripdown: true
 
-      - name: 📥 Install Qt
-        uses: jurplel/install-qt-action@v4
+      - name: 🛠️ Setup Python
+        uses: actions/setup-python@v5
+        # aqt depends on pyppmd, which isn't supported on WoA as of pyppmd 1.1.1
+        # force x64 python, which will run under emulation of WoA.
         with:
-          version: ${{ inputs.qt_version == '6' && '6.8' || '5.15.*' }}
-          target: 'desktop'
-          modules: ${{ inputs.qt_version == '6' && 'qtserialport qtwebsockets' || '' }}
-          cache: 'true'
-          cache-key-prefix: 'cache-qt-windows'
+          python-version: 3.13
+          architecture: x64
+
+      - name: 📥 Install Qt
+        run: |
+          pip install aqtinstall
+          aqt install-qt ${{ matrix.architecture == 'arm64' && 'windows_arm64' || 'windows' }} desktop "${{ env.QT_VERSION }}" win64_${{ env.ARCH }} --autodesktop --outputdir "${{ github.workspace }}\Qt"
+          echo "QTDIR=$(Resolve-Path '${{ github.workspace }}\Qt\${{ env.QT_VERSION }}\${{ env.ARCH }}\' | Select -ExpandProperty Path)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        env:
+          QT_VERSION: ${{ inputs.qt_version == '6' && '6.8.*' || '5.15.*' }}
+          ARCH: ${{ matrix.architecture == 'arm64' && 'msvc2022_arm64' || inputs.qt_version == '6' && 'msvc2022_64' || 'msvc2019_64' }}
 
       - name: 🛠️ Setup MSVC
         uses: ilammy/msvc-dev-cmd@v1
-
-      - name: 💾 Download Pre-Build Dependencies
-        id: dependencies
-        uses: ./.github/actions/download-pre-built-deps
         with:
-          os: 'windows'
-          architecture: 'x64'
-          qt_version: ${{ inputs.qt_version }}
-          build_type: ${{ inputs.event_name == 'pull_request' && 'debug' || 'release' }}
+          arch: ${{ matrix.architecture }}
 
-      - name: 👷 Build ${{ env.HINT }}
+      # - name: 💾 Download Pre-Build Dependencies
+      #   id: dependencies
+      #   uses: ./.github/actions/download-pre-built-deps
+      #   with:
+      #     os: 'windows'
+      #     architecture: 'x64'
+      #     qt_version: ${{ inputs.qt_version }}
+      #     build_type: ${{ inputs.event_name == 'pull_request' && 'debug' || 'release' }}
+
+      - name: 👷 Build
         shell: cmd
         run: |
-           cmake --preset windows-${{ env.BUILD_TYPE }} ${{ steps.dependencies.outputs.cmakeArgs }}
+           cmake --preset windows-${{ env.BUILD_TYPE }}
            cmake --build --preset windows-${{ env.BUILD_TYPE }} --target package
         env:
           BUILD_TYPE: ${{ inputs.event_name == 'pull_request' && 'debug' || 'release' }}
-          HINT: ${{ steps.dependencies.outputs.cmakeArgs != '' && '(with pre-built dependencies)' || '(full build)' }}
 
       - name: 📦 Upload
         if: ${{ inputs.publish || inputs.event_name == 'pull_request' }}

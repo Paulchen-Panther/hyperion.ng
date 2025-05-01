@@ -205,6 +205,13 @@ else()
 	install(TARGETS ${PROJECT_NAME} DESTINATION "bin" COMPONENT "Hyperion" OPTIONAL)
 	install(FILES ${CMAKE_SOURCE_DIR}/effects/readme.txt DESTINATION "effects" COMPONENT "Hyperion")
 
+	if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+		set(CMAKE_INSTALL_UCRT_LIBRARIES true)
+		set(CMAKE_INSTALL_DEBUG_LIBRARIES true)
+		set(CMAKE_INSTALL_DEBUG_LIBRARIES_ONLY true)
+	endif()
+	include(InstallRequiredSystemLibraries)
+
 	if(TARGET Qt${QT_VERSION_MAJOR}::windeployqt)
 		get_target_property(WINDEPLOYQT_EXECUTABLE Qt${QT_VERSION_MAJOR}::windeployqt IMPORTED_LOCATION)
 	endif()
