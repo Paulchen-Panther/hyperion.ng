@@ -248,7 +248,7 @@ jobs:
           qt_version: ${{ inputs.qt_version }}
           build_type: ${{ inputs.event_name == 'pull_request' && 'debug' || 'release' }}
 
-      - name: 👷 Build ${{ env.HINT }}
+      - name: 👷 Build
         shell: cmd
         run: |
            cmake --preset windows-${{ env.BUILD_TYPE }} ${{ steps.dependencies.outputs.cmakeArgs }} -DENABLE_DX=${{ matrix.architecture == 'x64' && 'ON' || 'OFF' }}

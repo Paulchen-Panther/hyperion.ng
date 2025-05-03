@@ -12,6 +12,13 @@ find_path(TurboJPEG_INCLUDE_DIR
 	NAMES
 		turbojpeg.h
 	PATHS
+		/usr
+		/usr/local
+		/opt/local
+		/opt/homebrew
+		/sw
+		${CMAKE_BINARY_DIR}
+	HINTS
 		${TurboJPEG_PATHS}
 	PATH_SUFFIXES
 		include
@@ -23,6 +30,13 @@ find_library(TurboJPEG_LIBRARY
 		turbojpeg
 		turbojpeg-static
 	PATHS
+		/usr
+		/usr/local
+		/opt/local
+		/opt/homebrew
+		/sw
+		${CMAKE_BINARY_DIR}
+	HINTS
 		${TurboJPEG_PATHS}
 	PATH_SUFFIXES
 		bin

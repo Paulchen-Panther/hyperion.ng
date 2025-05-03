@@ -26,6 +26,10 @@ target_link_libraries(${PROJECT_NAME} hyperion)
 
 # Add Turbo JPEG library
 if(ENABLE_V4L2 OR ENABLE_MF)
+	if(USE_PRE_BUILT_DEPS)
+		set(ENV{TURBOJPEG_DIR} ${PRE_BUILT_DEPS_DIR})
+	endif()
+
 	find_package(TurboJPEG)
 	if(TURBOJPEG_FOUND)
 		target_compile_definitions(${PROJECT_NAME} PRIVATE HAVE_TURBO_JPEG)
