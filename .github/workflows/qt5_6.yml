@@ -202,13 +202,13 @@ jobs:
           7z x -aoa .\installer\dxsdk-jun10.exe DXSDK/Include DXSDK/Lib -oC:\
           echo "DXSDK_DIR=C:\DXSDK" | Out-File -FilePath $env:GITHUB_ENV -Append
 
-      # - name: 📥 Install Vulkan SDK
-      #   if: ${{ inputs.qt_version == '6' }}
-      #   uses: jakoch/install-vulkan-sdk-action@v1
-      #   with:
-      #     install_runtime: false
-      #     cache: true
-      #     stripdown: true
+      - name: 📥 Install Vulkan SDK
+        if: ${{ inputs.qt_version == '6' }}
+        uses: jakoch/install-vulkan-sdk-action@v1
+        with:
+          install_runtime: false
+          cache: true
+          stripdown: true
 
       - name: 📥 Install Python (x64)
         uses: actions/setup-python@v5
@@ -251,7 +251,7 @@ jobs:
       - name: 👷 Build
         shell: cmd
         run: |
-           cmake --preset windows-${{ env.BUILD_TYPE }} ${{ steps.dependencies.outputs.cmakeArgs }} -DENABLE_DX=${{ matrix.architecture == 'x64' && 'ON' || 'OFF' }}
+           cmake --preset windows-${{ env.BUILD_TYPE }} ${{ steps.dependencies.outputs.cmakeArgs }} -DCPACK_SYSTEM_PROCESSOR=${{ matrix.architecture }} -DENABLE_DX=${{ matrix.architecture == 'x64' && 'ON' || 'OFF' }}
            cmake --build --preset windows-${{ env.BUILD_TYPE }} --target package
         env:
           BUILD_TYPE: ${{ inputs.event_name == 'pull_request' && 'debug' || 'release' }}
