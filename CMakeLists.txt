@@ -41,14 +41,6 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
 #=============================================================================
-# The parameter CUSTOM_SYSTEM_PROCESSOR can be used to customize CMAKE_SYSTEM_PROCESSOR
-#=============================================================================
-
-if(CUSTOM_SYSTEM_PROCESSOR)
-	set(CMAKE_SYSTEM_PROCESSOR "${CUSTOM_SYSTEM_PROCESSOR}")
-endif()
-
-#=============================================================================
 # Append our cmake module path (for include, find, etc.)
 # Include the helper macros/functions
 #=============================================================================
@@ -68,25 +60,6 @@ message(STATUS "Building with ccache: ${CACHE_PROG}")
 	set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ${CACHE_PROG})
 	set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ${CACHE_PROG})
 endif()
-
-#=============================================================================
-# TEST OUTPUT
-#=============================================================================
-
-message(STATUS "CMAKE_CROSSCOMPILING = ${CMAKE_CROSSCOMPILING}")
-
-if(WIN32)
-	message(STATUS "ENV{PROCESSOR_ARCHITEW6432} = $ENV{PROCESSOR_ARCHITEW6432}")
-	message(STATUS "ENV{PROCESSOR_ARCHITECTURE} = $ENV{PROCESSOR_ARCHITECTURE}")
-endif()
-
-message(STATUS "CMAKE_HOST_SYSTEM_NAME = ${CMAKE_HOST_SYSTEM_NAME}")
-message(STATUS "CMAKE_SYSTEM_NAME = ${CMAKE_SYSTEM_NAME}")
-
-# set in Modules/CMakeDetermineSystem.cmake
-message(STATUS "CMAKE_HOST_SYSTEM_PROCESSOR = ${CMAKE_HOST_SYSTEM_PROCESSOR}")
-message(STATUS "CMAKE_SYSTEM_PROCESSOR = ${CMAKE_SYSTEM_PROCESSOR}")
-
 
 #=============================================================================
 # Set output directories and add the project/dependencies include directory
@@ -231,6 +204,10 @@ if("${PLATFORM}" MATCHES "osx")
 	set(DEFAULT_OSX         ON)
 	set(DEFAULT_AUDIO       OFF)
 
+elseif ("${PLATFORM}" MATCHES "windows")
+	if(${CMAKE_SYSTEM_PROCESSOR} NOT MATCHES "i386|i686|amd64|x86_64|AMD64")
+		set(DEFAULT_DX       OFF)
+	endif()
 elseif ("${PLATFORM}" MATCHES "rpi")
 	set(DEFAULT_DISPMANX   ON)
 	set(DEFAULT_DEV_WS281XPWM  ON)

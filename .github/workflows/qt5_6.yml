@@ -76,7 +76,7 @@ jobs:
   #           -v "/tmp/deps:/tmp/deps:rw" \
   #           -w "/source" \
   #           ghcr.io/hyperion-project/${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }} \
-  #           /bin/bash -c "cmake --preset linux-${{ env.BUILD_TYPE }} -DPLATFORM=${{ matrix.os.platform }} ${{ env.CUSTOM_SYSTEM_PROCESSOR }} &&
+  #           /bin/bash -c "cmake --preset linux-${{ env.BUILD_TYPE }} -DPLATFORM=${{ matrix.os.platform }} ${{ env.CPACK_SYSTEM_PROCESSOR }} &&
   #           cmake --build --preset linux-${{ env.BUILD_TYPE }} --target package &&
   #           cp /source/build/Hyperion-* /deploy/ 2>/dev/null"
   #       env:
@@ -84,7 +84,7 @@ jobs:
   #         DOCKER_TAG: ${{ matrix.os.codename }}${{ inputs.qt_version == '6' && '-qt6' || '' }}
   #         BUILD_TYPE: ${{ inputs.event_name == 'pull_request' && 'debug' || 'release' }}
   #         ENTRYPOINT: ${{ matrix.os.architecture[0] != 'amd64' && '--entrypoint /usr/bin/env' || '' }}
-  #         CUSTOM_SYSTEM_PROCESSOR: ${{ matrix.os.architecture[0] != 'amd64' && format('-DCUSTOM_SYSTEM_PROCESSOR={0}', matrix.target_lookup[format('{0}', matrix.os.architecture[0])]) || '' }}
+  #         CPACK_SYSTEM_PROCESSOR: ${{ matrix.os.architecture[0] != 'amd64' && format('-DCPACK_SYSTEM_PROCESSOR={0}', matrix.target_lookup[format('{0}', matrix.os.architecture[0])]) || '' }}
 
   #     - name: 📦 Upload
   #       if: ${{ inputs.publish || inputs.event_name == 'pull_request' }}
@@ -202,7 +202,7 @@ jobs:
           7z x -aoa .\installer\dxsdk-jun10.exe DXSDK/Include DXSDK/Lib -oC:\
           echo "DXSDK_DIR=C:\DXSDK" | Out-File -FilePath $env:GITHUB_ENV -Append
 
-      - name: 📥 Install Vulkan SDK
+      - name: 📥 Install Vulkan SDK (Qt6)
         if: ${{ inputs.qt_version == '6' }}
         uses: jakoch/install-vulkan-sdk-action@v1
         with:
@@ -210,7 +210,7 @@ jobs:
           cache: true
           stripdown: true
 
-      - name: 📥 Install Python (x64)
+      - name: 📥 Prepare aqt/Qt installation
         uses: actions/setup-python@v5
         # aqt depends on pyppmd, which isn't supported on WoA as of pyppmd 1.1.1
         # force x64 python, which will run under emulation of WoA.
@@ -218,7 +218,7 @@ jobs:
           python-version: 3.13
           architecture: x64
 
-      - name: 📥 Install Qt
+      - name: 📥 Install Qt via aqt
         run: |
           pip install aqtinstall
           aqt install-qt ${{ matrix.architecture == 'arm64' && 'windows_arm64' || 'windows' }} desktop "${{ env.QT_VERSION }}" win64_${{ env.ARCH }} --autodesktop --outputdir "${{ github.workspace }}\Qt" ${{ inputs.qt_version == '6' && '-m qtserialport qtwebsockets' || '' }}
@@ -254,7 +254,7 @@ jobs:
       - name: 👷 Build
         shell: cmd
         run: |
-           cmake --preset windows-${{ env.BUILD_TYPE }} ${{ steps.dependencies.outputs.cmakeArgs }} -DCUSTOM_SYSTEM_PROCESSOR=${{ matrix.architecture }} -DENABLE_DX=${{ matrix.architecture == 'x64' && 'ON' || 'OFF' }}
+           cmake --preset windows-${{ env.BUILD_TYPE }} ${{ steps.dependencies.outputs.cmakeArgs }}
           #  cmake --build --preset windows-${{ env.BUILD_TYPE }} --target package
         env:
           BUILD_TYPE: ${{ inputs.event_name == 'pull_request' && 'debug' || 'release' }}

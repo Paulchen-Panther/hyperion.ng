@@ -72,7 +72,8 @@ if(EXISTS @CMAKE_BINARY_DIR@/bin/@PROJECT_NAME@@CMAKE_EXECUTABLE_SUFFIX@)
 	# endif()
 
 	if(NOT PYTHON_VERSION STREQUAL "")
-		set(PYTHON_EMBED_URL "https://www.python.org/ftp/python/${PYTHON_VERSION}/python-${PYTHON_VERSION}-embed-amd64.zip")
+		string(TOLOWER ${CMAKE_SYSTEM_PROCESSOR} PYTHON_ARCH)
+		set(PYTHON_EMBED_URL "https://www.python.org/ftp/python/${PYTHON_VERSION}/python-${PYTHON_VERSION}-embed-${PYTHON_ARCH}.zip")
 		get_filename_component(PYTHON_EMBED_ARCHIVE ${PYTHON_EMBED_URL} NAME)
 
 		# Download embed python package (release build only)
