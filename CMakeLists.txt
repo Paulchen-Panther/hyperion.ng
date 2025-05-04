@@ -644,14 +644,14 @@ if(CMAKE_PREFIX_PATH)
 	message(STATUS "CMAKE_PREFIX_PATH used: ${CMAKE_PREFIX_PATH}")
 endif()
 
+# find QT libs
+find_package(QT NAMES Qt6 Qt5 COMPONENTS Core Gui Network Sql Widgets REQUIRED)
+message(STATUS "Found Qt Version: ${QT_VERSION}")
+
 # INTERFACE target WrapVulkanHeaders::WrapVulkanHeaders for Qt6
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
 	add_library(WrapVulkanHeaders::WrapVulkanHeaders INTERFACE)
 endif()
-
-# find QT libs
-find_package(QT NAMES Qt6 Qt5 COMPONENTS Core Gui Network Sql Widgets REQUIRED)
-message(STATUS "Found Qt Version: ${QT_VERSION}")
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
 	set(QT_MIN_VERSION "6.2.2")
