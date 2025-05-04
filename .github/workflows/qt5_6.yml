@@ -131,7 +131,7 @@ jobs:
       - name: 📥 Install dependencies
         uses: tecolicom/actions-use-homebrew-tools@v1
         with:
-          tools: qt@${{ inputs.qt_version }} vulkan-headers coreutils
+          tools: qt@${{ inputs.qt_version }} coreutils
           key: ${{ runner.os }}-${{ matrix.architecture }}-homebrew-packages-${{ inputs.qt_version }}
 
       - name: 💾 Download Pre-Build Dependencies
@@ -221,14 +221,6 @@ jobs:
         run: |
           7z x -aoa .\installer\dxsdk-jun10.exe DXSDK/Include DXSDK/Lib -oC:\
           echo "DXSDK_DIR=C:\DXSDK" | Out-File -FilePath $env:GITHUB_ENV -Append
-
-      # - name: 📥 Install Vulkan SDK (Qt6)
-      #   if: ${{ inputs.qt_version == '6' }}
-      #   uses: jakoch/install-vulkan-sdk-action@v1
-      #   with:
-      #     install_runtime: false
-      #     cache: true
-      #     stripdown: true
 
       - name: 📥 Prepare aqt/Qt installation
         uses: actions/setup-python@v5

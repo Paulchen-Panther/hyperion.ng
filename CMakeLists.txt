@@ -648,11 +648,6 @@ endif()
 find_package(QT NAMES Qt6 Qt5 COMPONENTS Core Gui Network Sql Widgets REQUIRED)
 message(STATUS "Found Qt Version: ${QT_VERSION}")
 
-# INTERFACE target WrapVulkanHeaders::WrapVulkanHeaders for Qt6
-if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
-	add_library(WrapVulkanHeaders::WrapVulkanHeaders INTERFACE)
-endif()
-
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
 	set(QT_MIN_VERSION "6.2.2")
 else()
@@ -661,6 +656,11 @@ endif()
 
 if("${QT_VERSION}" VERSION_LESS "${QT_MIN_VERSION}")
 	message(FATAL_ERROR "Your Qt version is to old! Minimum required ${QT_MIN_VERSION}")
+endif()
+
+# Pseydo target WrapVulkanHeaders::WrapVulkanHeaders for Qt6
+if(${QT_VERSION_MAJOR} GREATER_EQUAL 6 AND NOT TARGET WrapVulkanHeaders::WrapVulkanHeaders)
+	add_library(WrapVulkanHeaders::WrapVulkanHeaders INTERFACE IMPORTED)
 endif()
 
 find_package(Qt${QT_VERSION_MAJOR} ${QT_VERSION} COMPONENTS Core Gui Network Sql Widgets REQUIRED)
