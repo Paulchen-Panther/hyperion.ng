@@ -55,21 +55,21 @@ if(EXISTS @CMAKE_BINARY_DIR@/bin/@PROJECT_NAME@@CMAKE_EXECUTABLE_SUFFIX@)
 	file(WRITE "${CMAKE_INSTALL_PREFIX}/bin/qt.conf" "[Paths]\nPlugins=../lib/\n")
 
 	# Copy libjpeg-turbo to 'hyperion'
-	# if(ENABLE_MF AND NOT TurboJPEG_INCLUDE_DIR STREQUAL "")
-	# 	get_filename_component(TURBOJPEG_DIR "${TurboJPEG_INCLUDE_DIR}" DIRECTORY)
-	# 	foreach(comp "turbojpeg" "jpeg62")
-	# 		find_file(${comp}
-	# 			NAMES
-	# 				"${comp}.dll"
-	# 			PATHS
-	# 				${TURBOJPEG_DIR}
-	# 			PATH_SUFFIXES
-	# 				bin
-	# 		)
+	if(ENABLE_MF AND NOT TurboJPEG_INCLUDE_DIR STREQUAL "")
+		get_filename_component(TURBOJPEG_DIR "${TurboJPEG_INCLUDE_DIR}" DIRECTORY)
+		foreach(comp "turbojpeg" "jpeg62")
+			find_file(${comp}
+				NAMES
+					"${comp}.dll"
+				PATHS
+					${TURBOJPEG_DIR}
+				PATH_SUFFIXES
+					bin
+			)
 
-	# 		file(INSTALL FILES ${${comp}} DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
-	# 	endforeach()
-	# endif()
+			file(INSTALL FILES ${${comp}} DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
+		endforeach()
+	endif()
 
 	if(NOT PYTHON_VERSION STREQUAL "")
 		string(TOLOWER "@CMAKE_SYSTEM_PROCESSOR@" PYTHON_ARCH)
