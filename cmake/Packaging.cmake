@@ -28,11 +28,6 @@ if(DEB_BUILDER_FOUND)
 	set(CPACK_GENERATOR ${CPACK_GENERATOR} "DEB")
 endif()
 
-# Parameter CPACK_SYSTEM_PROCESSOR overwrites CMAKE_SYSTEM_PROCESSOR
-if(CPACK_SYSTEM_PROCESSOR)
-	set(CMAKE_SYSTEM_PROCESSOR ${CPACK_SYSTEM_PROCESSOR})
-endif()
-
 # Apply to all packages, some of these can be overwritten with generator specific content
 # https://cmake.org/cmake/help/v3.5/module/CPack.html
 
