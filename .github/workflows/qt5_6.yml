@@ -222,29 +222,20 @@ jobs:
           7z x -aoa .\installer\dxsdk-jun10.exe DXSDK/Include DXSDK/Lib -oC:\
           echo "DXSDK_DIR=C:\DXSDK" | Out-File -FilePath $env:GITHUB_ENV -Append
 
-      - name: 📥 Prepare aqt/Qt installation
-        uses: actions/setup-python@v5
-        # aqt depends on pyppmd, which isn't supported on WoA as of pyppmd 1.1.1
-        # force x64 python, which will run under emulation of WoA.
+      - name: 📥 Install Qt
+        uses: jdpurcell/install-qt-action@v5
         with:
-          python-version: 3.13
-          architecture: x64
+          version: ${{ inputs.qt_version == '6' && '6.8.*' || '5.15.*' }}
+          target: 'desktop'
+          modules: ${{ inputs.qt_version == '6' && 'qtserialport qtwebsockets' || '' }}
+          cache: 'true'
+          cache-key-prefix: 'cache-qt-windows'
 
-      - name: 📥 Install Qt via aqt
-        run: |
-          pip install aqtinstall
-          aqt install-qt ${{ matrix.architecture == 'arm64' && 'windows_arm64' || 'windows' }} desktop "${{ env.QT_VERSION }}" win64_${{ env.ARCH }} --autodesktop --outputdir "${{ github.workspace }}\Qt" ${{ inputs.qt_version == '6' && '-m qtserialport qtwebsockets' || '' }}
-          echo "QTDIR=$(Resolve-Path '${{ github.workspace }}\Qt\${{ env.QT_VERSION }}\${{ env.ARCH }}\' | Select -ExpandProperty Path)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-        env:
-          QT_VERSION: ${{ inputs.qt_version == '6' && '6.8.*' || '5.15.*' }}
-          ARCH: ${{ matrix.architecture == 'arm64' && 'msvc2022_arm64' || inputs.qt_version == '6' && 'msvc2022_64' || 'msvc2019_64' }}
-
-      - name: 📥 Install Python (arm64)
-        if: matrix.architecture == 'arm64'
+      - name: 📥 Install Python
         uses: actions/setup-python@v5
         with:
           python-version: 3.13
-          architecture: arm64
+          architecture: ${{ matrix.architecture }}
 
       - name: 📥 Install latest CMake and Ninja
         uses: lukka/get-cmake@latest
@@ -273,7 +264,7 @@ jobs:
           HINT: ${{ steps.dependencies.outputs.cmakeArgs != '' && '(with pre-built dependencies)' || '(full build)' }}
 
       - name: 📦 Upload
-        if: ${{ inputs.publish || inputs.event_name == 'pull_request' }}
+        # if: ${{ inputs.publish || inputs.event_name == 'pull_request' }}
         uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.event_name == 'pull_request' && env.NAME || format('artifact-{0}', env.NAME) }}
