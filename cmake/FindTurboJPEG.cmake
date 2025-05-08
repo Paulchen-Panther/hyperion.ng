@@ -18,8 +18,9 @@ find_path(TurboJPEG_INCLUDE_DIR
 
 find_library(TurboJPEG_LIBRARY
 	NAMES
-		libturbojpeg
+		turbojpeg-static
 		turbojpeg
+		libturbojpeg
 	PATHS
 		"C:/libjpeg-turbo64"
 	HINTS
