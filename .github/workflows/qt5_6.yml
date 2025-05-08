@@ -223,6 +223,8 @@ jobs:
           echo "DXSDK_DIR=C:\DXSDK" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - name: 📥 Install Qt
+        # If the following PR is merged, you can switch back to jurplel/install-qt-action
+        # https://github.com/jurplel/install-qt-action/pull/273
         uses: jdpurcell/install-qt-action@v5
         with:
           version: ${{ inputs.qt_version == '6' && '6.8.*' || '5.15.*' }}

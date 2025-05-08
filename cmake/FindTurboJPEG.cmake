@@ -3,23 +3,15 @@
 #  TurboJPEG_INCLUDE_DIR
 #  TurboJPEG_LIBRARY
 
-set(TurboJPEG_PATHS
-	"$ENV{TURBOJPEG_DIR}"
-	"C:/libjpeg-turbo64"
-)
+set(TURBOJPEG_ROOT_DIR "${TURBOJPEG_ROOT_DIR}" CACHE PATH "Root directory to search for TurboJPEG")
 
 find_path(TurboJPEG_INCLUDE_DIR
 	NAMES
 		turbojpeg.h
 	PATHS
-		/usr
-		/usr/local
-		/opt/local
-		/opt/homebrew
-		/sw
-		${CMAKE_BINARY_DIR}
+		"C:/libjpeg-turbo64"
 	HINTS
-		${TurboJPEG_PATHS}
+		${TURBOJPEG_ROOT_DIR}
 	PATH_SUFFIXES
 		include
 )
@@ -28,16 +20,10 @@ find_library(TurboJPEG_LIBRARY
 	NAMES
 		libturbojpeg
 		turbojpeg
-		turbojpeg-static
 	PATHS
-		/usr
-		/usr/local
-		/opt/local
-		/opt/homebrew
-		/sw
-		${CMAKE_BINARY_DIR}
+		"C:/libjpeg-turbo64"
 	HINTS
-		${TurboJPEG_PATHS}
+		${TURBOJPEG_ROOT_DIR}
 	PATH_SUFFIXES
 		bin
 		lib
