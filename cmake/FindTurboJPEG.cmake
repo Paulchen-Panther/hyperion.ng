@@ -20,6 +20,7 @@ find_library(TurboJPEG_LIBRARY
 	NAMES
 		turbojpeg-static
 		turbojpeg
+		libturbojpeg-static
 		libturbojpeg
 	PATHS
 		"C:/libjpeg-turbo64"
