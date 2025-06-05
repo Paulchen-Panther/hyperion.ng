@@ -190,7 +190,13 @@ jobs:
       - name: 🔧 Append Pull Request number to version (PR  only)
         if: ${{ inputs.event_name == 'pull_request' }}
         shell: bash
-        run: tr -d '\n' < .version > temp && mv temp .version && echo -n "+PR${{ inputs.pull_request_number }}" >> .version
+        run: tr -d '\n' < .version > temp && mv temp .version && echo -n "+PR${{ inputs.pull_request_number }}" >> .
+
+      - name: 📥 Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.13.3
+          architecture: ${{ matrix.architecture }}
 
       - name: 📥 Install Qt
         # If the following PR is merged, you can switch back to jurplel/install-qt-action
@@ -202,12 +208,6 @@ jobs:
           modules: ${{ inputs.qt_version == '6' && 'qtserialport qtwebsockets' || '' }}
           cache: 'true'
           cache-key-prefix: 'cache-qt-windows'
-
-      - name: 📥 Install Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: 3.13.3
-          architecture: ${{ matrix.architecture }}
 
       - name: 📥 Install latest CMake and Ninja
         uses: lukka/get-cmake@latest
