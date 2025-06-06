@@ -424,6 +424,13 @@ if(ENABLE_PROTOBUF_SERVER)
 	endif()
 
 	if(NOT USE_SYSTEM_PROTO_LIBS)
+		# protobuf patch
+		find_package(Git REQUIRED)
+		execute_process(
+			COMMAND ${GIT_EXECUTABLE} apply --ignore-space-change --ignore-whitespace ${CMAKE_CURRENT_LIST_DIR}/patch/protobuf/xpaclri.diff
+			WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/external/protobuf
+		)
+
 		# Build Protobuf as static library
 		set(protobuf_BUILD_SHARED_LIBS OFF CACHE BOOL "Build protobuf shared")
 
