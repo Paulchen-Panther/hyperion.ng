@@ -6,9 +6,6 @@
 	path = dependencies/external/flatbuffers
 	url = https://github.com/google/flatbuffers
 	branch = master
-[submodule "dependencies/external/protobuf"]
-	path = dependencies/external/protobuf
-	url = https://github.com/protocolbuffers/protobuf
 [submodule "dependencies/external/qmdnsengine"]
 	path = dependencies/external/qmdnsengine
 	url = https://github.com/nitroshare/qmdnsengine.git
@@ -21,3 +18,6 @@
 [submodule "dependencies/external/libusb-cmake"]
 	path = dependencies/external/libusb-cmake
 	url = https://github.com/libusb/libusb-cmake
+[submodule "dependencies/external/protobuf"]
+	path = dependencies/external/protobuf
+	url = https://github.com/protocolbuffers/protobuf
