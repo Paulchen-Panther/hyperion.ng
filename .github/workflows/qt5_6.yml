@@ -219,6 +219,7 @@ jobs:
           arch: ${{ matrix.architecture }}
 
       - name: 💾 Download Pre-Build Dependencies
+        if: inputs.event_name == 'pull_request'
         id: dependencies
         uses: ./.github/actions/download-pre-built-deps
         with:
