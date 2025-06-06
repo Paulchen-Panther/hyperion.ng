@@ -195,7 +195,7 @@ jobs:
       - name: 📥 Install Python
         uses: actions/setup-python@v5
         with:
-          setup-python: 'false'
+          python-version: '3.13.3'
           architecture: ${{ matrix.architecture }}
 
       - name: 📥 Install Qt
@@ -208,6 +208,7 @@ jobs:
           modules: ${{ inputs.qt_version == '6' && 'qtserialport qtwebsockets' || '' }}
           cache: 'true'
           cache-key-prefix: 'cache-qt-windows'
+          setup-python: 'false'
 
       - name: 📥 Install latest CMake and Ninja
         uses: lukka/get-cmake@latest
