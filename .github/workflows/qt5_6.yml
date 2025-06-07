@@ -86,7 +86,7 @@ jobs:
             -v "/tmp/deps:/tmp/deps:rw" \
             -w "/source" \
             ghcr.io/hyperion-project/${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }} \
-            /bin/bash -c "${{ env.PREPARE_ARMV6_BULLSEYE_QT6 }} cmake --preset linux-${{ env.BUILD_TYPE }} ${{ steps.dependencies.outputs.cmakeArgs }} -DPLATFORM=${{ matrix.os.platform }} ${{ env.CPACK_SYSTEM_PROCESSOR }} &&
+            /bin/bash -c "cmake --preset linux-${{ env.BUILD_TYPE }} ${{ steps.dependencies.outputs.cmakeArgs }} -DPLATFORM=${{ matrix.os.platform }} ${{ env.CPACK_SYSTEM_PROCESSOR }} &&
             cmake --build --preset linux-${{ env.BUILD_TYPE }} --target package &&
             cp /source/build/Hyperion-* /deploy/ 2>/dev/null"
         env:
@@ -96,7 +96,6 @@ jobs:
           ENTRYPOINT: ${{ matrix.os.architecture[0] != 'amd64' && '--entrypoint /usr/bin/env' || '' }}
           CPACK_SYSTEM_PROCESSOR: ${{ matrix.os.architecture[0] != 'amd64' && format('-DCPACK_SYSTEM_PROCESSOR={0}', matrix.target_lookup[format('{0}', matrix.os.architecture[0])]) || '' }}
           HINT: ${{ steps.dependencies.outputs.cmakeArgs != '' && '(with pre-built dependencies)' || '(full build)' }}
-          PREPARE_ARMV6_BULLSEYE_QT6: ${{ matrix.os.distribution == 'debian' && matrix.os.codename == 'bullseye' && inputs.qt_version == '6' && 'echo "deb http://deb.debian.org/debian bullseye-backports main contrib non-free" | tee -a /etc/apt/sources.list && apt update &&' || '' }}
 
       - name: 📦 Upload
         if: ${{ inputs.publish || inputs.event_name == 'pull_request' }}
