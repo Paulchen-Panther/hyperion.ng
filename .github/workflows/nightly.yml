@@ -29,13 +29,11 @@ jobs:
         id: check_latest_commit
         continue-on-error: true
         run: |
-          echo "Commit: ${{ steps.checkout.outputs.commit }}"
-          # last_commit_sha=$(git ls-remote https://github.com/hyperion-project/hyperion.ng HEAD | cut -f 1)
-          # if [[ -n "$(git rev-list --after="24 hours" ${last_commit_sha})" ]]; then
-          #   echo "commit-has-changed=true" >> $GITHUB_OUTPUT
-          # else
-          #   echo "commit-has-changed=false" >> $GITHUB_OUTPUT
-          # fi
+          if [[ -n "$(git rev-list --after="24 hours" ${{ steps.checkout.outputs.commit }})" ]]; then
+            echo "commit-has-changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "commit-has-changed=false" >> $GITHUB_OUTPUT
+          fi
 
   # Build Debian Bullseye Artifacts
   linux:
