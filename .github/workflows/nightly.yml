@@ -1,7 +1,7 @@
 name: 🌙 Nightly builds
 run-name: |
   ${{ github.event_name == 'schedule' && '⏰ Scheduled nightly build' || '' }}
-  ${{ github.event_name == 'workflow_dispatch' && '👷 Manually nightly build' || '' }}
+  ${{ github.event_name == 'workflow_dispatch' && '👷 Triggered nightly build' || '' }}
 
 # Create nightly builds at the end of every day
 on:
@@ -79,6 +79,8 @@ jobs:
     needs: [check, linux, macos, windows]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
       - name: 💾 Download artifacts
         uses: actions/download-artifact@v4
         with:
@@ -101,8 +103,14 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: nightly
-          name: 'Hyperion nightly build $$'
+          name: 'Nightly build $$'
           prerelease: true
           body: |
             ${{ steps.read_template.outputs.NIGHTLY_BODY }}
           files: "all-artifacts/**"
+
+      - name: 🧹 Cleanup
+        uses: geekyeggo/delete-artifact@v5
+        with:
+          name: artifact-*
+          failOnError: false
