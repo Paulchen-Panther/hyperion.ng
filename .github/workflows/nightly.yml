@@ -73,8 +73,7 @@ jobs:
   nightly:
     name: 🚀 Publish to GitHub
     if: ${{ needs.check.outputs.should_run == 'true' || inputs.forceRun }}
-    needs: [check]
-    needs: [linux, macos, windows]
+    needs: [check, linux, macos, windows]
     runs-on: ubuntu-latest
     steps:
       - name: 💾 Download artifacts
