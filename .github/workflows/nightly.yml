@@ -1,4 +1,4 @@
-name: 🌑️ GitHub nightly builds
+name: 🌑️ Nightly builds
 
 # Create nightly builds at the end of every day
 on:
