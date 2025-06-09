@@ -104,7 +104,8 @@ jobs:
           prerelease: true
           body: |
             ${{ steps.nightly_template.outputs.body }}
-          files: 'all-artifacts/**'
+          files: all-artifacts/*
+
 
       - name: 🧹 Cleanup
         uses: geekyeggo/delete-artifact@v5
