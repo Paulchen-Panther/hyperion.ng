@@ -97,7 +97,7 @@ jobs:
       - name: 📦 Upload Nightly builds
         uses: andelf/nightly-release@main
         env:
-          GITHUB_TOKEN: ${{ secrets.HYPERION_BOT_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: nightly
           name: 'Nightly build $$'
