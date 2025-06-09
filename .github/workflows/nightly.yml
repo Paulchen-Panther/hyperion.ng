@@ -86,7 +86,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           pattern: artifact-*
-          path: all-artifacts
+          merge-multiple: true
 
       - name: 📑 Read nightly template
         uses: markpatterson27/markdown-to-output@v1
@@ -102,10 +102,13 @@ jobs:
           tag_name: nightly
           name: 'Nightly build $$'
           prerelease: true
-          body: |
-            ${{ steps.nightly_template.outputs.body }}
-          files: all-artifacts/*
-
+          body: ${{ steps.nightly_template.outputs.body }}
+          files: |
+            *.deb
+            *.tar.gz
+            *.exe
+            *.zip
+            *.dmg
 
       - name: 🧹 Cleanup
         uses: geekyeggo/delete-artifact@v5
