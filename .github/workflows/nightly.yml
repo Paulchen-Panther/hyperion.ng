@@ -1,4 +1,7 @@
 name: 🌙 Nightly builds
+run-name: |
+  ${{ github.event_name == 'schedule' && '⏰ Scheduled nightly build' || '' }}
+  ${{ github.event_name == 'workflow_dispatch' && '👷 Manually nightly build' || '' }}
 
 # Create nightly builds at the end of every day
 on:
