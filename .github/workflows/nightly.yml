@@ -22,16 +22,20 @@ jobs:
     outputs:
       should_run: ${{ steps.check_latest_commit.outputs.commit-has-changed }}
     steps:
+      - uses: actions/checkout@v4
+        id: checkout
+
       - name: ⬇ Check if latest commit is less than 1 day old
         id: check_latest_commit
         continue-on-error: true
         run: |
-          last_commit_sha=$(git ls-remote https://github.com/hyperion-project/hyperion.ng.git HEAD | cut -f 1)
-          if [[ -n "$(git rev-list --after="24 hours" ${last_commit_sha})" ]]; then
-            echo "commit-has-changed=true" >> $GITHUB_OUTPUT
-          else
-            echo "commit-has-changed=false" >> $GITHUB_OUTPUT
-          fi
+          echo "Commit: ${{ steps.checkout.outputs.commit }}"
+          # last_commit_sha=$(git ls-remote https://github.com/hyperion-project/hyperion.ng HEAD | cut -f 1)
+          # if [[ -n "$(git rev-list --after="24 hours" ${last_commit_sha})" ]]; then
+          #   echo "commit-has-changed=true" >> $GITHUB_OUTPUT
+          # else
+          #   echo "commit-has-changed=false" >> $GITHUB_OUTPUT
+          # fi
 
   # Build Debian Bullseye Artifacts
   linux:
