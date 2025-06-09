@@ -1,4 +1,4 @@
-name: 🌑️ Nightly builds
+name: 🌙 Nightly builds
 
 # Create nightly builds at the end of every day
 on:
@@ -47,55 +47,59 @@ jobs:
       publish: true
       nightly: true
 
-  # # Build macOS Artifacts
-  # macos:
-  #   name: 🍏 macOS
-  #   if: ${{ needs.check.outputs.should_run == 'true' || inputs.forceRun }}
-  #   needs: [check]
-  #   uses: ./.github/workflows/macos.yml
-  #   secrets: inherit
-  #   with:
-  #     publish: true
-  #     nightly: true
+  # Build macOS Artifacts
+  macos:
+    name: 🍏 macOS
+    if: ${{ needs.check.outputs.should_run == 'true' || inputs.forceRun }}
+    needs: [check]
+    uses: ./.github/workflows/macos.yml
+    secrets: inherit
+    with:
+      publish: true
+      nightly: true
 
-  # # Build Windows Artifacts
-  # windows:
-  #   name: 🪟 Windows
-  #   if: ${{ needs.check.outputs.should_run == 'true' || inputs.forceRun }}
-  #   needs: [check]
-  #   uses: ./.github/workflows/windows.yml
-  #   secrets: inherit
-  #   with:
-  #     publish: true
-  #     nightly: true
+  # Build Windows Artifacts
+  windows:
+    name: 🪟 Windows
+    if: ${{ needs.check.outputs.should_run == 'true' || inputs.forceRun }}
+    needs: [check]
+    uses: ./.github/workflows/windows.yml
+    secrets: inherit
+    with:
+      publish: true
+      nightly: true
 
   # Publish to GitHub
   nightly:
     name: 🚀 Publish to GitHub
     if: ${{ needs.check.outputs.should_run == 'true' || inputs.forceRun }}
-    # needs: [check, linux, macos, windows]
-    needs: [check, linux]
+    needs: [check, linux, macos, windows]
     runs-on: ubuntu-latest
     steps:
       - name: 💾 Download artifacts
         uses: actions/download-artifact@v4
         with:
           pattern: artifact-*
-          merge-multiple: true
+          path: all-artifacts
 
-      - name: ✏️ Generate changelog
-        id: changelog
-        uses: janheinrichmerker/action-github-changelog-generator@v2.4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          sinceTag: 2.0.16
+      - name: 🔧 Prepare
+        id: read_template
+        shell: bash
+        run: |
+          TEMPLATE=$(cat ./.github/nightly.md)
+          TEMPLATE="${TEMPLATE//'%'/'%25'}"
+          TEMPLATE="${TEMPLATE//$'\n'/'%0A'}"
+          TEMPLATE="${TEMPLATE//$'\r'/'%0D'}"
+          echo "NIGHTLY_BODY=$TEMPLATE" >> "$GITHUB_OUTPUT"
 
-      - name: 📦 Upload Nightly Release
+      - name: 📦 Upload Nightly builds
         uses: andelf/nightly-release@main
-        with:
-          tag_name: nightly
-          name: 'Nightly Release $$'
-          prerelease: true
-          body: ${{ steps.changelog.outputs.changelog }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: nightly
+          name: 'Hyperion nightly build $$'
+          prerelease: true
+          body: |
+            ${{ steps.read_template.outputs.NIGHTLY_BODY }}
+          files: "all-artifacts/**"
