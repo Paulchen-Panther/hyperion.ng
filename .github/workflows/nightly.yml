@@ -30,7 +30,7 @@ jobs:
         continue-on-error: true
         run: |
           if [[ -n "$(git rev-list --after="24 hours" ${{ steps.checkout.outputs.commit }})" ]]; then
-            echo "::set-output name=should_run::true"
+            echo "should_run=true" >> $GITHUB_OUTPUT
           fi
 
   # Build Debian Bullseye Artifacts
