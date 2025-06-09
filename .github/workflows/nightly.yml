@@ -50,33 +50,34 @@ jobs:
       publish: true
       nightly: true
 
-  # Build macOS Artifacts
-  macos:
-    name: 🍏 macOS
-    if: ${{ needs.check.outputs.should_run == 'true' || inputs.forceRun }}
-    needs: [check]
-    uses: ./.github/workflows/macos.yml
-    secrets: inherit
-    with:
-      publish: true
-      nightly: true
+  # # Build macOS Artifacts
+  # macos:
+  #   name: 🍏 macOS
+  #   if: ${{ needs.check.outputs.should_run == 'true' || inputs.forceRun }}
+  #   needs: [check]
+  #   uses: ./.github/workflows/macos.yml
+  #   secrets: inherit
+  #   with:
+  #     publish: true
+  #     nightly: true
 
-  # Build Windows Artifacts
-  windows:
-    name: 🪟 Windows
-    if: ${{ needs.check.outputs.should_run == 'true' || inputs.forceRun }}
-    needs: [check]
-    uses: ./.github/workflows/windows.yml
-    secrets: inherit
-    with:
-      publish: true
-      nightly: true
+  # # Build Windows Artifacts
+  # windows:
+  #   name: 🪟 Windows
+  #   if: ${{ needs.check.outputs.should_run == 'true' || inputs.forceRun }}
+  #   needs: [check]
+  #   uses: ./.github/workflows/windows.yml
+  #   secrets: inherit
+  #   with:
+  #     publish: true
+  #     nightly: true
 
   # Publish to GitHub
   nightly:
     name: 🚀 Publish to GitHub
     if: ${{ needs.check.outputs.should_run == 'true' || inputs.forceRun }}
-    needs: [check, linux, macos, windows]
+    # needs: [check, linux, macos, windows]
+    needs: [check, linux]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -87,27 +88,23 @@ jobs:
           pattern: artifact-*
           path: all-artifacts
 
-      - name: 🔧 Prepare
-        id: read_template
-        shell: bash
-        run: |
-          TEMPLATE=$(cat ./.github/nightly.md)
-          TEMPLATE="${TEMPLATE//'%'/'%25'}"
-          TEMPLATE="${TEMPLATE//$'\n'/'%0A'}"
-          TEMPLATE="${TEMPLATE//$'\r'/'%0D'}"
-          echo "NIGHTLY_BODY=$TEMPLATE" >> "$GITHUB_OUTPUT"
+      - name: 📑 Read nightly template
+        uses: markpatterson27/markdown-to-output@v1
+        id: nightly_template
+        with:
+          filepath: ./.github/nightly.md
 
       - name: 📦 Upload Nightly builds
         uses: andelf/nightly-release@main
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.HYPERION_BOT_TOKEN }}
         with:
           tag_name: nightly
           name: 'Nightly build $$'
           prerelease: true
           body: |
-            ${{ steps.read_template.outputs.NIGHTLY_BODY }}
-          files: "all-artifacts/**"
+            ${{ steps.nightly_template.outputs.body }}
+          files: 'all-artifacts/**'
 
       - name: 🧹 Cleanup
         uses: geekyeggo/delete-artifact@v5
