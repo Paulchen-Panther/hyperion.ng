@@ -20,7 +20,7 @@ jobs:
     name: 🔀 Check latest commit
     runs-on: ubuntu-latest
     outputs:
-      should_run: ${{ steps.check_latest_commit.outputs.commit-has-changed }}
+      should_run: ${{ steps.check_latest_commit.outputs.should_run }}
     steps:
       - uses: actions/checkout@v4
         id: checkout
@@ -30,9 +30,7 @@ jobs:
         continue-on-error: true
         run: |
           if [[ -n "$(git rev-list --after="24 hours" ${{ steps.checkout.outputs.commit }})" ]]; then
-            echo "commit-has-changed=true" >> $GITHUB_OUTPUT
-          else
-            echo "commit-has-changed=false" >> $GITHUB_OUTPUT
+            echo "::set-output name=should_run::true"
           fi
 
   # Build Debian Bullseye Artifacts
