@@ -50,8 +50,8 @@ jobs:
         isTrixie:
           - ${{ inputs.codename == 'trixie' }}
         exclude:
-          - isTrixie: true
-            os: { architecture: [ armv7, linux/arm/v7 ] }
+          # - isTrixie: true
+          #   os: { architecture: [ armv7, linux/arm/v7 ] }
           - isTrixie: true
             os: { architecture: [ armv6, linux/arm/v6 ] }
 
