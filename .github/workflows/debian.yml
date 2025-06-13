@@ -51,7 +51,9 @@ jobs:
           - ${{ inputs.codename == 'trixie' }}
         exclude:
           - isTrixie: true
-            os.architecture[0]: [ armv6, armv7 ]
+            os.architecture: [ armv6, linux/arm/v6 ]
+          - isTrixie: true
+            os.architecture: [ armv7, linux/arm/v7 ]
 
     steps:
       - name: ⬇ Checkout
