@@ -385,7 +385,7 @@ if(ENABLE_FLATBUF_SERVER OR ENABLE_FLATBUF_CONNECT)
 				COMMAND "$<TARGET_FILE:flatc>"
 				ARGS -c --no-includes --gen-mutable --gen-object-api -o "${CMAKE_CURRENT_BINARY_DIR}" "${ABS_FIL}"
 				DEPENDS ${ABS_FIL} flatc
-				COMMENT "Running flatbuffers compiler on ${FIL}"
+				COMMENT "Running FlatBuffers Compiler '$<TARGET_FILE:flatc>' on '${FIL}'"
 				VERBATIM
 			)
 			set_property(SOURCE ${OUT_FILE} PROPERTY SKIP_AUTOMOC ON)
@@ -424,10 +424,10 @@ if(ENABLE_PROTOBUF_SERVER)
 	endif()
 
 	if(NOT USE_SYSTEM_PROTO_LIBS)
-		
+
 		# Enable ProtoBuf verbose mode
 		set(protobuf_VERBOSE OFF CACHE BOOL "Build protobuf verbose")
-		
+
 		# Build Protobuf as static library
 		set(protobuf_BUILD_SHARED_LIBS OFF CACHE BOOL "Build protobuf shared")
 
@@ -439,7 +439,7 @@ if(ENABLE_PROTOBUF_SERVER)
 
 		# Enable build of libupb
 		set(protobuf_BUILD_LIBUPB ON CACHE BOOL "Build libupb")
-		
+
 		# Force all dependencies to be downloaded from GitHub
 		set(protobuf_FORCE_FETCH_DEPENDENCIES ON CACHE INTERNAL "Force all dependencies to be downloaded from GitHub")
 
@@ -575,7 +575,7 @@ if(ENABLE_PROTOBUF_SERVER)
 				COMMAND "$<TARGET_FILE:protoc>"
 				ARGS --cpp_out ${CMAKE_CURRENT_BINARY_DIR} ${_protobuf_include_path} ${ABS_FIL}
 				DEPENDS ${ABS_FIL} protoc
-				COMMENT "Running C++ protocol buffer compiler on ${FIL}"
+				COMMENT "Running C++ Protocol Buffers Compiler '$<TARGET_FILE:protoc>' on '${FIL}'"
 				VERBATIM
 			)
 			set_property(SOURCE "${CMAKE_CURRENT_BINARY_DIR}/${FIL_WE}.pb.cc" PROPERTY SKIP_AUTOMOC ON)
