@@ -42,7 +42,7 @@ jobs:
       - name: ⬇ Checkout
         uses: actions/checkout@v5
         with:
-          submodules: recursive	
+          submodules: recursive
           fetch-depth: 0  # Ensures all tags are fetched
 
       - name: 🔧 Prepare
@@ -61,23 +61,21 @@ jobs:
           tools: qt@6 coreutils
           key: ${{ runner.os }}-${{ matrix.os.architecture }}-homebrew-packages
 
-      - name: 💾 Download Pre-Build Dependencies
-        id: dependencies
-        uses: ./.github/actions/download-pre-built-deps
-        with:
-          os: 'macos'
-          architecture: ${{ matrix.os.architecture }}
-          build_type: ${{ inputs.event_name == 'pull_request' && 'debug' || 'release' }}
+      # - name: 💾 Download Pre-Build Dependencies
+      #   id: dependencies
+      #   uses: ./.github/actions/download-pre-built-deps
+      #   with:
+      #     os: 'macos'
+      #     architecture: ${{ matrix.os.architecture }}
+      #     build_type: ${{ inputs.event_name == 'pull_request' && 'debug' || 'release' }}
 
-      - name: 👷 Build ${{ env.HINT }}
+      - name: 👷 Build
         shell: bash
         run: |
-          # Build
-          cmake --preset macos-${{ env.BUILD_TYPE }} ${{ steps.dependencies.outputs.cmakeArgs }}
+          cmake --preset macos-${{ env.BUILD_TYPE }}
           cmake --build --preset macos-${{ env.BUILD_TYPE }} --target package
         env:
           BUILD_TYPE: ${{ inputs.event_name == 'pull_request' && 'debug' || 'release' }}
-          HINT: ${{ steps.dependencies.outputs.cmakeArgs != '' && '(with pre-built dependencies)' || '(full build)' }}
 
       - name: 📦 Upload
         if: ${{ inputs.publish || inputs.event_name == 'pull_request' }}
