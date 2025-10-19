@@ -61,21 +61,23 @@ jobs:
           tools: qt@6 coreutils
           key: ${{ runner.os }}-${{ matrix.os.architecture }}-homebrew-packages
 
-      # - name: 💾 Download Pre-Build Dependencies
-      #   id: dependencies
-      #   uses: ./.github/actions/download-pre-built-deps
-      #   with:
-      #     os: 'macos'
-      #     architecture: ${{ matrix.os.architecture }}
-      #     build_type: ${{ inputs.event_name == 'pull_request' && 'debug' || 'release' }}
+      - name: 💾 Download Pre-Build Dependencies
+        id: dependencies
+        uses: ./.github/actions/download-pre-built-deps
+        with:
+          os: 'macos'
+          architecture: ${{ matrix.os.architecture }}
+          build_type: ${{ inputs.event_name == 'pull_request' && 'debug' || 'release' }}
 
-      - name: 👷 Build
+      - name: 👷 Build ${{ env.HINT }}
         shell: bash
         run: |
-          cmake --preset macos-${{ env.BUILD_TYPE }}
+          cmake --preset macos-${{ env.BUILD_TYPE }} ${{ steps.dependencies.outputs.cmakeArgs }}
           cmake --build --preset macos-${{ env.BUILD_TYPE }} --target package
         env:
           BUILD_TYPE: ${{ inputs.event_name == 'pull_request' && 'debug' || 'release' }}
+          HINT: ${{ steps.dependencies.outputs.cmakeArgs != '' && '(with pre-built dependencies)' || '(full build)' }}
+
 
       - name: 📦 Upload
         if: ${{ inputs.publish || inputs.event_name == 'pull_request' }}
