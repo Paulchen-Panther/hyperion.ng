@@ -415,6 +415,11 @@ if(ENABLE_PROTOBUF_SERVER)
 				set_target_properties(protoc PROPERTIES
 					IMPORTED_LOCATION ${PRE_BUILT_DEPS_DIR}/bin/protoc${CMAKE_EXECUTABLE_SUFFIX}
 				)
+
+				file(STRINGS "${PRE_BUILT_DEPS_DIR}/include/google/protobuf/runtime_version.h" ver REGEX "#define PROTOBUF_OSS_VERSION [0-9]+")
+				message(STATUS "Protocol Buffers version: ${ver}")
+
+
 			elseif(TARGET protobuf::protoc)
 				add_executable(protoc IMPORTED GLOBAL)
 				getTargetImportedLocation(PROTOC_EXECUTABLE protobuf::protoc)
