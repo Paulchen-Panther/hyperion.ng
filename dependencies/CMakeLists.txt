@@ -440,9 +440,6 @@ if(ENABLE_PROTOBUF_SERVER)
 		# Enable build of libupb
 		set(protobuf_BUILD_LIBUPB ON CACHE BOOL "Build libupb")
 
-		# Force all dependencies to be downloaded from GitHub
-		set(protobuf_FORCE_FETCH_DEPENDENCIES ON CACHE INTERNAL "Force all dependencies to be downloaded from GitHub")
-
 		# Build abeil (3rd party sub-module) with C++ version requirements
 		set(ABSL_PROPAGATE_CXX_STD ON CACHE BOOL "Build abseil-cpp with C++ version requirements propagated")
 
@@ -465,15 +462,14 @@ if(ENABLE_PROTOBUF_SERVER)
 			set(protobuf_BUILD_PROTOC_BINARIES OFF CACHE BOOL "Build protobuf libraries and protoc compiler")
 		endif()
 
-		include(FetchContent)
+		# Apply patches to Protobuf
+		execute_process(
+			COMMAND git apply -q "${CMAKE_CURRENT_SOURCE_DIR}/patch/protobuf/atomic.diff"
+			WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/external/protobuf"
+		)
 
 		# Add Protobuf directory to the build
-		FetchContent_Declare(
-			protobuf
-			SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/protobuf"
-			PATCH_COMMAND git apply "${CMAKE_CURRENT_SOURCE_DIR}/patch/protobuf/atomic.diff"
-		)
-		FetchContent_MakeAvailable(protobuf)
+		add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/external/protobuf")
 
 		if(CMAKE_CROSSCOMPILING)
 			if(IMPORT_PROTOC)
@@ -486,7 +482,6 @@ if(ENABLE_PROTOBUF_SERVER)
 					PREFIX				${CMAKE_BINARY_DIR}/dependencies/external/protoc-host
 					BUILD_ALWAYS		OFF
 					DOWNLOAD_COMMAND	""
-					PATCH_COMMAND		git apply "${CMAKE_CURRENT_SOURCE_DIR}/patch/protobuf/atomic.diff"
 					INSTALL_COMMAND     ""
 					SOURCE_DIR			${CMAKE_CURRENT_SOURCE_DIR}/external/protobuf
 					CMAKE_ARGS          -Dprotobuf_BUILD_LIBPROTOC:BOOL=OFF
