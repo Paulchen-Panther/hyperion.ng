@@ -55,11 +55,19 @@ jobs:
             echo -n "+nightly$(date '+%Y%m%d')" >> .version
           fi
 
-      - name: 📥 Install dependencies
-        uses: tecolicom/actions-use-homebrew-tools@v1
+      # - name: 📥 Install dependencies
+      #   uses: tecolicom/actions-use-homebrew-tools@v1
+      #   with:
+      #     tools: coreutils
+      #     key: ${{ runner.os }}-${{ matrix.os.architecture }}-homebrew-packages
+
+      - name: 📥 Install Qt
+        uses: jurplel/install-qt-action@v4
         with:
-          tools: qt@6 coreutils
-          key: ${{ runner.os }}-${{ matrix.os.architecture }}-homebrew-packages
+          version: '6.8'
+          target: 'desktop'
+          cache: 'true'
+          cache-key-prefix: 'cache-qt-macos'
 
       - name: 💾 Download Pre-Build Dependencies
         id: dependencies
