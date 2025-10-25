@@ -55,11 +55,11 @@ jobs:
             echo -n "+nightly$(date '+%Y%m%d')" >> .version
           fi
 
-      # - name: 📥 Install dependencies
-      #   uses: tecolicom/actions-use-homebrew-tools@v1
-      #   with:
-      #     tools: coreutils
-      #     key: ${{ runner.os }}-${{ matrix.os.architecture }}-homebrew-packages
+      - name: 📥 Install dependencies
+        uses: tecolicom/actions-use-homebrew-tools@v1
+        with:
+          tools: coreutils
+          key: ${{ runner.os }}-${{ matrix.os.architecture }}-homebrew-packages
 
       - name: 📥 Install Qt
         uses: jurplel/install-qt-action@v4
