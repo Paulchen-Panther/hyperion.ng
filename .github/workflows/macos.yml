@@ -66,6 +66,7 @@ jobs:
         with:
           version: '6.8'
           target: 'desktop'
+          modules: 'qtserialport qtwebsockets'
           cache: 'true'
           cache-key-prefix: 'cache-qt-macos'
 
