@@ -63,14 +63,16 @@ jobs:
           architecture: ${{ matrix.os.architecture }}
           build_type: ${{ inputs.event_name == 'pull_request' && 'debug' || 'release' }}
 
-      - name: 📥 Install Qt
+      - name: 📥 Install Qt ${{ env.QT_VERSION }}
         uses: jurplel/install-qt-action@v4
         with:
-          version: '6.8'
+          version: ${{ env.QT_VERSION }}
           target: 'desktop'
           modules: 'qtserialport qtwebsockets'
           cache: 'true'
           cache-key-prefix: 'cache-qt-macos'
+        env:
+          QT_VERSION: ${{ steps.dependencies.outputs.qtVersion != '' && steps.dependencies.outputs.qtVersion || '' }}
 
       - name: 👷 Build ${{ env.HINT }}
         shell: bash
