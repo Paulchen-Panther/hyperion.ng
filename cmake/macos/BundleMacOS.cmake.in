@@ -49,7 +49,7 @@ if(EXISTS ${MAC_BUNDLE_INSTALL_BIN_DIR}/@MAC_BUNDLE_NAME@)
 	foreach(plugin "platforms" "sqldrivers" "imageformats" "tls")
 		if(EXISTS ${QT_INSTALL_PLUGINS}/${plugin})
 			file(GLOB files "${QT_INSTALL_PLUGINS}/${plugin}/*.dylib")
-			list(FILTER files EXCLUDE REGEX ".*(sqlodbc|sqlpsql|libmimerapi)\\.(dylib)$")
+			list(FILTER files EXCLUDE REGEX ".*(sqlodbc|sqlpsql|sqlmimer)\\.(dylib)$")
 
 			file(GET_RUNTIME_DEPENDENCIES
 				LIBRARIES
