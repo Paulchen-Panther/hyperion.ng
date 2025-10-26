@@ -55,11 +55,13 @@ jobs:
             echo -n "+nightly$(date '+%Y%m%d')" >> .version
           fi
 
-      - name: 📥 Install dependencies
-        uses: tecolicom/actions-use-homebrew-tools@v1
+      - name: 💾 Download Pre-Build Dependencies
+        id: dependencies
+        uses: ./.github/actions/download-pre-built-deps
         with:
-          tools: coreutils
-          key: ${{ runner.os }}-${{ matrix.os.architecture }}-homebrew-packages
+          os: 'macos'
+          architecture: ${{ matrix.os.architecture }}
+          build_type: ${{ inputs.event_name == 'pull_request' && 'debug' || 'release' }}
 
       - name: 📥 Install Qt
         uses: jurplel/install-qt-action@v4
@@ -70,14 +72,6 @@ jobs:
           cache: 'true'
           cache-key-prefix: 'cache-qt-macos'
 
-      - name: 💾 Download Pre-Build Dependencies
-        id: dependencies
-        uses: ./.github/actions/download-pre-built-deps
-        with:
-          os: 'macos'
-          architecture: ${{ matrix.os.architecture }}
-          build_type: ${{ inputs.event_name == 'pull_request' && 'debug' || 'release' }}
-
       - name: 👷 Build ${{ env.HINT }}
         shell: bash
         run: |
@@ -86,7 +80,6 @@ jobs:
         env:
           BUILD_TYPE: ${{ inputs.event_name == 'pull_request' && 'debug' || 'release' }}
           HINT: ${{ steps.dependencies.outputs.cmakeArgs != '' && '(with pre-built dependencies)' || '(full build)' }}
-
 
       - name: 📦 Upload
         if: ${{ inputs.publish || inputs.event_name == 'pull_request' }}
