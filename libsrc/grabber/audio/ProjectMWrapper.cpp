@@ -7,21 +7,32 @@
 // Qt
 #include <QDir>
 
-// EGL headers
-#include <EGL/egl.h>
-
-// OpenGL ES headers
-#include <GLES3/gl3.h>
+// Platform-specific OpenGL/context headers
+#ifdef __linux__
+#  include <EGL/egl.h>
+#  include <GLES3/gl3.h>
+#elif defined(__APPLE__)
+#  define GL_SILENCE_DEPRECATION
+#  include <OpenGL/OpenGL.h>   // CGL API
+#  include <OpenGL/gl3.h>      // OpenGL 3.2 Core functions
+#endif
 
 // projectM header (umbrella - includes core.h, parameters.h, render_opengl.h, etc.)
 #include <projectM-4/projectM.h>
 
 struct ProjectMWrapperPrivate
 {
-	EGLDisplay display  { EGL_NO_DISPLAY };
-	EGLContext context  { EGL_NO_CONTEXT };
-	EGLSurface surface  { EGL_NO_SURFACE };
-	projectm_handle pm  { nullptr };
+#ifdef __linux__
+	EGLDisplay    display { EGL_NO_DISPLAY };
+	EGLContext    context { EGL_NO_CONTEXT };
+	EGLSurface    surface { EGL_NO_SURFACE };
+#elif defined(__APPLE__)
+	CGLContextObj context  { nullptr };
+	GLuint        fbo      { 0 };
+	GLuint        rboColor { 0 };
+	GLuint        rboDepth { 0 };
+#endif
+	projectm_handle pm { nullptr };
 };
 
 ProjectMWrapper::ProjectMWrapper()
@@ -47,7 +58,8 @@ bool ProjectMWrapper::init(int width, int height, const QString& presetPath)
 	_width  = width;
 	_height = height;
 
-	// ---- EGL setup --------------------------------------------------------
+#ifdef __linux__
+	// ---- EGL headless context setup (Linux) --------------------------------
 
 	_p->display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
 	if (_p->display == EGL_NO_DISPLAY)
@@ -133,19 +145,73 @@ bool ProjectMWrapper::init(int width, int height, const QString& presetPath)
 		return false;
 	}
 
+#elif defined(__APPLE__)
+	// ---- CGL headless context setup (macOS) --------------------------------
+
+	CGLPixelFormatAttribute attribs[] = {
+		kCGLPFAOpenGLProfile, (CGLPixelFormatAttribute)kCGLOGLPVersion_3_2_Core,
+		kCGLPFAColorSize,     (CGLPixelFormatAttribute)24,
+		kCGLPFADepthSize,     (CGLPixelFormatAttribute)16,
+		(CGLPixelFormatAttribute)0
+	};
+
+	CGLPixelFormatObj pix = nullptr;
+	GLint npix = 0;
+	CGLError cglErr = CGLChoosePixelFormat(attribs, &pix, &npix);
+	if (cglErr != kCGLNoError || pix == nullptr)
+	{
+		Error(_log, "ProjectM: CGLChoosePixelFormat failed: %s", CGLErrorString(cglErr));
+		return false;
+	}
+
+	cglErr = CGLCreateContext(pix, nullptr, &_p->context);
+	CGLDestroyPixelFormat(pix);
+	if (cglErr != kCGLNoError)
+	{
+		Error(_log, "ProjectM: CGLCreateContext failed: %s", CGLErrorString(cglErr));
+		return false;
+	}
+
+	cglErr = CGLSetCurrentContext(_p->context);
+	if (cglErr != kCGLNoError)
+	{
+		Error(_log, "ProjectM: CGLSetCurrentContext failed: %s", CGLErrorString(cglErr));
+		CGLDestroyContext(_p->context);
+		_p->context = nullptr;
+		return false;
+	}
+
+	// Create an FBO so glReadPixels can read back rendered pixels without a drawable
+	glGenFramebuffers(1, &_p->fbo);
+	glBindFramebuffer(GL_FRAMEBUFFER, _p->fbo);
+
+	glGenRenderbuffers(1, &_p->rboColor);
+	glBindRenderbuffer(GL_RENDERBUFFER, _p->rboColor);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_RGB8, _width, _height);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, _p->rboColor);
+
+	glGenRenderbuffers(1, &_p->rboDepth);
+	glBindRenderbuffer(GL_RENDERBUFFER, _p->rboDepth);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, _width, _height);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, _p->rboDepth);
+
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+	{
+		Error(_log, "ProjectM: FBO is not complete");
+		CGLSetCurrentContext(nullptr);
+		CGLDestroyContext(_p->context);
+		_p->context = nullptr;
+		return false;
+	}
+#endif
+
 	// ---- projectM setup ---------------------------------------------------
 
 	_p->pm = projectm_create();
 	if (_p->pm == nullptr)
 	{
 		Error(_log, "ProjectM: projectm_create failed");
-		eglMakeCurrent(_p->display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
-		eglDestroyContext(_p->display, _p->context);
-		_p->context = EGL_NO_CONTEXT;
-		eglDestroySurface(_p->display, _p->surface);
-		_p->surface = EGL_NO_SURFACE;
-		eglTerminate(_p->display);
-		_p->display = EGL_NO_DISPLAY;
+		cleanup();
 		return false;
 	}
 
@@ -188,6 +254,7 @@ void ProjectMWrapper::cleanup()
 		_p->pm = nullptr;
 	}
 
+#ifdef __linux__
 	if (_p->display != EGL_NO_DISPLAY)
 	{
 		eglMakeCurrent(_p->display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
@@ -207,6 +274,34 @@ void ProjectMWrapper::cleanup()
 		eglTerminate(_p->display);
 		_p->display = EGL_NO_DISPLAY;
 	}
+#elif defined(__APPLE__)
+	if (_p->context != nullptr)
+	{
+		// Make context current before deleting GL objects; log but continue on failure
+		if (CGLSetCurrentContext(_p->context) != kCGLNoError)
+			Warning(_log, "ProjectM: CGLSetCurrentContext failed during cleanup; GL objects may leak");
+
+		if (_p->fbo != 0)
+		{
+			glDeleteFramebuffers(1, &_p->fbo);
+			_p->fbo = 0;
+		}
+		if (_p->rboColor != 0)
+		{
+			glDeleteRenderbuffers(1, &_p->rboColor);
+			_p->rboColor = 0;
+		}
+		if (_p->rboDepth != 0)
+		{
+			glDeleteRenderbuffers(1, &_p->rboDepth);
+			_p->rboDepth = 0;
+		}
+
+		CGLSetCurrentContext(nullptr);
+		CGLDestroyContext(_p->context);
+		_p->context = nullptr;
+	}
+#endif
 }
 
 void ProjectMWrapper::addPCMData(const int16_t* buffer, int length)
@@ -222,12 +317,23 @@ bool ProjectMWrapper::renderFrame(Image<ColorRgb>& image)
 	if (!_initialised || _p->pm == nullptr)
 		return false;
 
-	// Make our EGL context current in case it was released
+	// Make the platform context current before rendering
+#ifdef __linux__
 	if (!eglMakeCurrent(_p->display, _p->surface, _p->surface, _p->context))
 	{
 		Error(_log, "ProjectM: eglMakeCurrent failed before render (error 0x%x)", eglGetError());
 		return false;
 	}
+#elif defined(__APPLE__)
+	CGLError cglErr = CGLSetCurrentContext(_p->context);
+	if (cglErr != kCGLNoError)
+	{
+		Error(_log, "ProjectM: CGLSetCurrentContext failed before render: %s", CGLErrorString(cglErr));
+		return false;
+	}
+	// Bind our FBO so projectM renders into it and glReadPixels can read it back
+	glBindFramebuffer(GL_FRAMEBUFFER, _p->fbo);
+#endif
 
 	// Render one frame
 	projectm_opengl_render_frame(_p->pm);
