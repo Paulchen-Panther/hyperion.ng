@@ -1,0 +1,96 @@
+name: ProjectM Build Test
+
+on:
+  push:
+    branches:
+      - '**'
+    tags:
+      - '*'
+  pull_request:
+    branches:
+      - 'master'
+
+jobs:
+
+  projectm:
+    name: 🎵 ProjectM Build Test (Debian Trixie amd64)
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+
+    steps:
+      - name: ⬇ Checkout
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: 💾 Download Pre-Build Dependencies
+        id: dependencies
+        uses: ./.github/actions/download-pre-built-deps
+        with:
+          os: debian_trixie
+          architecture: amd64
+          build_type: debug
+
+      - name: 💾 Cache projectM 4 install
+        id: cache-projectm
+        uses: actions/cache@v4
+        with:
+          path: /tmp/projectm-install
+          key: projectm-4.1.6-trixie-amd64-v1
+
+      - name: 🔨 Build and install projectM 4 from source
+        if: steps.cache-projectm.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          mkdir -p /tmp/projectm-install
+          docker run --rm \
+            -v /tmp/projectm-install:/projectm-install \
+            ghcr.io/hyperion-project/debian:trixie-qt6 \
+            /bin/bash -c "
+              set -e
+              apt-get update -qq
+              apt-get install -y --no-install-recommends libgles2-mesa-dev libegl1-mesa-dev
+              curl -fsSL -o /tmp/libprojectM.tar.gz \
+                https://github.com/projectM-visualizer/projectm/releases/download/v4.1.6/libprojectM-4.1.6.tar.gz
+              mkdir -p /tmp/projectm-src
+              tar -xzf /tmp/libprojectM.tar.gz -C /tmp/projectm-src --strip-components=1
+              cmake -B /tmp/projectm-build \
+                -S /tmp/projectm-src \
+                -DCMAKE_BUILD_TYPE=Release \
+                -DBUILD_TESTING=OFF \
+                -DBUILD_DOCS=OFF \
+                -DENABLE_SDL_UI=OFF \
+                -DENABLE_PLAYLIST=OFF \
+                -DENABLE_GLES=ON \
+                -DENABLE_SYSTEM_GLM=OFF \
+                -DENABLE_SYSTEM_PROJECTM_EVAL=OFF \
+                -DCMAKE_INSTALL_PREFIX=/projectm-install \
+                -DCMAKE_INSTALL_LIBDIR=lib
+              cmake --build /tmp/projectm-build --parallel
+              cmake --install /tmp/projectm-build"
+
+      - name: 👷 Build Hyperion with ENABLE_PROJECTM=ON
+        shell: bash
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}:/source:rw" \
+            -v /tmp/deps:/tmp/deps:ro \
+            -v /tmp/projectm-install:/tmp/projectm-install:ro \
+            -w /source \
+            -e LANG="C.UTF-8" \
+            -e LC_ALL="C.UTF-8" \
+            -e PKG_CONFIG_PATH="/tmp/projectm-install/lib/pkgconfig" \
+            ghcr.io/hyperion-project/debian:trixie-qt6 \
+            /bin/bash -c "
+              set -e
+              git config --global --add safe.directory /source
+              apt-get update -qq
+              apt-get install -y --no-install-recommends libgles2-mesa-dev libegl1-mesa-dev
+              cmake --preset linux-debug \
+                ${{ steps.dependencies.outputs.cmakeArgs }} \
+                -DPLATFORM=x11 \
+                -DENABLE_PROJECTM=ON \
+                -DCMAKE_PREFIX_PATH=/tmp/projectm-install
+              cmake --build --preset linux-debug --target audio-grabber"
