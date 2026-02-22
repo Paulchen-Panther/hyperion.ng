@@ -4,13 +4,16 @@
 
 #include <utils/Logger.h>
 
+// Qt
+#include <QDir>
+
 // EGL headers
 #include <EGL/egl.h>
 
 // OpenGL ES headers
 #include <GLES3/gl3.h>
 
-// projectM header
+// projectM header (umbrella - includes core.h, parameters.h, render_opengl.h, etc.)
 #include <projectM-4/projectM.h>
 
 struct ProjectMWrapperPrivate
@@ -151,8 +154,20 @@ bool ProjectMWrapper::init(int width, int height, const QString& presetPath)
 
 	if (!presetPath.isEmpty())
 	{
-		projectm_set_preset_path(_p->pm, presetPath.toUtf8().constData());
-		projectm_set_shuffle_enabled(_p->pm, true);
+		// projectM 4 core API has no "set preset directory" function.
+		// Scan the directory for the first .milk preset and load it.
+		const QDir dir(presetPath);
+		const QStringList presets = dir.entryList(QStringList() << "*.milk", QDir::Files);
+		if (!presets.isEmpty())
+		{
+			const QString firstPreset = dir.absoluteFilePath(presets.first());
+			projectm_load_preset_file(_p->pm, firstPreset.toUtf8().constData(), false /* no smooth transition */);
+			Debug(_log, "ProjectM: loaded preset: %s", QSTRING_CSTR(firstPreset));
+		}
+		else
+		{
+			Warning(_log, "ProjectM: no .milk presets found in: %s", QSTRING_CSTR(presetPath));
+		}
 	}
 
 	_initialised = true;
