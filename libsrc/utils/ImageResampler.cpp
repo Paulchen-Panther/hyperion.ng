@@ -2,6 +2,8 @@
 #include <utils/ColorSys.h>
 #include <utils/Logger.h>
 
+#define DIV_ROUND_UP(n, d) (((n) + (d) - 1) / (d))
+
 ImageResampler::ImageResampler()
 	: _horizontalDecimation(8)
 	, _verticalDecimation(8)
@@ -58,7 +60,6 @@ void ImageResampler::processImage(const uint8_t * data, int width, int height, s
 	switch (_flipMode)
 	{
 		case FlipMode::NO_CHANGE:
-		//use the initalized values
 			break;
 		case FlipMode::HORIZONTAL:
 			xDestStart = 0;
@@ -197,16 +198,104 @@ void ImageResampler::processImage(const uint8_t * data, int width, int height, s
 		}
 
 		case PixelFormat::NV12:
+		case PixelFormat::P010:
+		{
+			const bool is10bit = (pixelFormat == PixelFormat::P010);
+
+			for (int yDest = yDestStart, ySource = cropTop + (_verticalDecimation >> 1); yDest <= yDestEnd; ySource += _verticalDecimation, ++yDest)
+			{
+				for (int xDest = xDestStart, xSource = cropLeft + (_horizontalDecimation >> 1); xDest <= xDestEnd; xSource += _horizontalDecimation, ++xDest)
+				{
+					ColorRgb & rgb = outputImage(abs(xDest), abs(yDest));
+
+					uint8_t y, u, v;
+					if (is10bit)
+					{
+						const uint16_t* yRow = (const uint16_t*)(data + lineLength * (size_t)ySource);
+						const uint16_t* uvRow = (const uint16_t*)(data + lineLength * (size_t)(height + ySource / 2));
+						y = (uint8_t)(yRow[xSource] >> 8);
+						u = (uint8_t)(uvRow[(xSource >> 1) << 1] >> 8);
+						v = (uint8_t)(uvRow[((xSource >> 1) << 1) + 1] >> 8);
+					}
+					else
+					{
+						size_t uOffset = (height + ySource / 2) * lineLength;
+						y = data[lineLength * ySource + xSource];
+						u = data[uOffset + ((xSource >> 1) << 1)];
+						v = data[uOffset + ((xSource >> 1) << 1) + 1];
+					}
+
+					ColorSys::yuv2rgb(y, u, v, rgb.red, rgb.green, rgb.blue);
+				}
+			}
+			break;
+		}
+
+		case PixelFormat::NV21:
 		{
 			for (int yDest = yDestStart, ySource = cropTop + (_verticalDecimation >> 1); yDest <= yDestEnd; ySource += _verticalDecimation, ++yDest)
 			{
-				size_t uOffset = (height + ySource / 2) * lineLength;
+				size_t vOffset = (height + ySource / 2) * lineLength;
 				for (int xDest = xDestStart, xSource = cropLeft + (_horizontalDecimation >> 1); xDest <= xDestEnd; xSource += _horizontalDecimation, ++xDest)
 				{
 					ColorRgb & rgb = outputImage(abs(xDest), abs(yDest));
 					uint8_t y = data[lineLength * ySource + xSource];
-					uint8_t u = data[uOffset + ((xSource >> 1) << 1)];
-					uint8_t v = data[uOffset + ((xSource >> 1) << 1) + 1];
+					uint8_t v = data[vOffset + ((xSource >> 1) << 1)];
+					uint8_t u = data[vOffset + ((xSource >> 1) << 1) + 1];
+					ColorSys::yuv2rgb(y, u, v, rgb.red, rgb.green, rgb.blue);
+				}
+			}
+			break;
+		}
+
+		case PixelFormat::P030:
+		{
+			const size_t uvLineLength = (size_t)DIV_ROUND_UP(width / 2, 3) * 2 * 4;
+			const size_t yPlaneBytes  = (size_t)lineLength * (size_t)height;
+
+			for (int yDest = yDestStart, ySource = cropTop + (_verticalDecimation >> 1); yDest <= yDestEnd; ySource += _verticalDecimation, ++yDest)
+			{
+				const size_t uvRowOffset = yPlaneBytes + (size_t)(ySource / 2) * uvLineLength;
+				for (int xDest = xDestStart, xSource = cropLeft + (_horizontalDecimation >> 1); xDest <= xDestEnd; xSource += _horizontalDecimation, ++xDest)
+				{
+					ColorRgb & rgb = outputImage(abs(xDest), abs(yDest));
+
+					// Y sample
+					const size_t yWordIdx = (size_t)(xSource / 3);
+					const int ySubPixel = xSource % 3;
+					const uint32_t yWord = ((const uint32_t*)(data + (size_t)lineLength * (size_t)ySource))[yWordIdx];
+					uint16_t y10 = (yWord >> (ySubPixel * 10)) & 0x3FF;
+					uint8_t y = (uint8_t)(y10 >> 2);
+
+					// UV sample
+					const int chromaX = xSource / 2;
+					const size_t uvPairIdx = (size_t)(chromaX / 3);
+					const int uvSubPixel = chromaX % 3;
+
+					const uint32_t* uvWords = (const uint32_t*)(data + uvRowOffset) + uvPairIdx * 2;
+					const uint32_t wordA = uvWords[0];
+					const uint32_t wordB = uvWords[1];
+
+					uint16_t u10, v10;
+					switch (uvSubPixel)
+					{
+						case 0:
+							u10 = wordA & 0x3FF;
+							v10 = (wordA >> 10) & 0x3FF;
+							break;
+						case 1:
+							u10 = (wordA >> 20) & 0x3FF;
+							v10 = wordB & 0x3FF;
+							break;
+						case 2:
+						default:
+							u10 = (wordB >> 10) & 0x3FF;
+							v10 = (wordB >> 20) & 0x3FF;
+							break;
+					}
+					uint8_t u = (uint8_t)(u10 >> 2);
+					uint8_t v = (uint8_t)(v10 >> 2);
+
 					ColorSys::yuv2rgb(y, u, v, rgb.red, rgb.green, rgb.blue);
 				}
 			}
@@ -230,15 +319,12 @@ void ImageResampler::processImage(const uint8_t * data, int width, int height, s
 			}
 			break;
 		}
+
 		case PixelFormat::MJPEG:
-		break;
-		case PixelFormat::NV21:
-		case PixelFormat::P030:
-			Warning(Logger::getInstance("ImageResampler"), "%s",
-					QSTRING_CSTR(QString("Pixel format %1 not supported yet").arg(pixelFormatToString(pixelFormat))));
 			break;
+
 		case PixelFormat::NO_CHANGE:
 			Error(Logger::getInstance("ImageResampler"), "Invalid pixel format given");
-		break;
+			break;
 	}
 }

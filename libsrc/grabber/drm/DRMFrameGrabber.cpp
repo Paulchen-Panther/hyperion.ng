@@ -29,128 +29,131 @@
 
 static QString getDrmFormat(uint32_t format)
 {
-    return QString::fromLatin1(reinterpret_cast<const char*>(&format), sizeof format);
+	return QString::fromLatin1(reinterpret_cast<const char*>(&format), sizeof format);
 }
 
 static QString getDrmModifierName(uint64_t modifier)
 {
-    uint64_t vendor = modifier >> 56;
-    uint64_t mod = modifier & 0x00FFFFFFFFFFFFFF;
-    QString name = QString("VENDOR: 0x%1, MOD: 0x%2").arg(vendor, 2, 16, QChar('0')).arg(mod, 14, 16, QChar('0'));
+	uint64_t vendor = modifier >> 56;
+	uint64_t mod = modifier & 0x00FFFFFFFFFFFFFF;
+	QString name = QString("VENDOR: 0x%1, MOD: 0x%2").arg(vendor, 2, 16, QChar('0')).arg(mod, 14, 16, QChar('0'));
 
-    switch (modifier)
-    {
-    case DRM_FORMAT_MOD_INVALID:
-        return "DRM_FORMAT_MOD_INVALID";
-    case DRM_FORMAT_MOD_LINEAR:
-        return "DRM_FORMAT_MOD_LINEAR";
-    default:
-        break;
-    }
+	switch (modifier)
+	{
+	case DRM_FORMAT_MOD_INVALID:
+		return "DRM_FORMAT_MOD_INVALID";
+	case DRM_FORMAT_MOD_LINEAR:
+		return "DRM_FORMAT_MOD_LINEAR";
+	default:
+		break;
+	}
 
-    switch (vendor)
-    {
-    case DRM_FORMAT_MOD_VENDOR_INTEL:
-        switch (mod)
-        {
-        case I915_FORMAT_MOD_X_TILED:
-            return "I915_FORMAT_MOD_X_TILED";
-        case I915_FORMAT_MOD_Y_TILED:
-            return "I915_FORMAT_MOD_Y_TILED";
-        case I915_FORMAT_MOD_Yf_TILED:
-            return "I915_FORMAT_MOD_Yf_TILED";
-        case I915_FORMAT_MOD_Y_TILED_CCS:
-            return "I915_FORMAT_MOD_Y_TILED_CCS";
-        case I915_FORMAT_MOD_Yf_TILED_CCS:
-            return "I915_FORMAT_MOD_Yf_TILED_CCS";
-        default:
-            return QString("DRM_FORMAT_MOD_INTEL_UNKNOWN [0x%1]").arg(mod, 14, 16, QChar('0'));
-        }
-    case DRM_FORMAT_MOD_VENDOR_AMD:
-        if (mod & AMD_FMT_MOD_TILE_VER_GFX9)
-            return "AMD_FMT_MOD_TILE_VER_GFX9";
-        if (mod & AMD_FMT_MOD_TILE_VER_GFX10)
-            return "AMD_FMT_MOD_TILE_VER_GFX10";
-        if (mod & AMD_FMT_MOD_TILE_VER_GFX11)
-            return "AMD_FMT_MOD_TILE_VER_GFX11";
-        if (mod & AMD_FMT_MOD_TILE_VER_GFX12)
-            return "AMD_FMT_MOD_TILE_VER_GFX12";
-        if (mod & AMD_FMT_MOD_DCC_BLOCK_128B)
-            return "AMD_FMT_MOD_DCC_BLOCK_128B";
-        if (mod & AMD_FMT_MOD_DCC_BLOCK_256B)
-            return "AMD_FMT_MOD_DCC_BLOCK_256B";
-        return QString("DRM_FORMAT_MOD_AMD_UNKNOWN [0x%1]").arg(mod, 14, 16, QChar('0'));
-    case DRM_FORMAT_MOD_VENDOR_NVIDIA:
-        if (mod & 0x10)
-            return "DRM_FORMAT_MOD_NVIDIA_BLOCK_LINEAR_2D";
-        return QString("DRM_FORMAT_MOD_NVIDIA_UNKNOWN [0x%1]").arg(mod , 14, 16, QChar('0'));
-    case DRM_FORMAT_MOD_VENDOR_BROADCOM:
-        switch (fourcc_mod_broadcom_mod(modifier))
-        {
-        case DRM_FORMAT_MOD_BROADCOM_SAND32:
-            return "DRM_FORMAT_MOD_BROADCOM_SAND32";
-        case DRM_FORMAT_MOD_BROADCOM_SAND64:
-            return "DRM_FORMAT_MOD_BROADCOM_SAND64";
-        case DRM_FORMAT_MOD_BROADCOM_SAND128:
-            return "DRM_FORMAT_MOD_BROADCOM_SAND128";
-        case DRM_FORMAT_MOD_BROADCOM_SAND256:
-            return "DRM_FORMAT_MOD_BROADCOM_SAND256";
-        case DRM_FORMAT_MOD_BROADCOM_VC4_T_TILED:
-            return "DRM_FORMAT_MOD_BROADCOM_VC4_T_TILED";
-        default:
-            return QString("DRM_FORMAT_MOD_BROADCOM_UNKNOWN [0x%1]").arg(mod, 14, 16, QChar('0'));
-        }
-    case DRM_FORMAT_MOD_VENDOR_ARM:
-        if ((modifier & DRM_FORMAT_MOD_ARM_AFBC(0)) == DRM_FORMAT_MOD_ARM_AFBC(0))
-            return "DRM_FORMAT_MOD_ARM_AFBC";
-        return QString("DRM_FORMAT_MOD_ARM_UNKNOWN [0x%1]").arg(mod, 14, 16, QChar('0'));
-        
-    default:
-        break;
-    }
+	switch (vendor)
+	{
+	case DRM_FORMAT_MOD_VENDOR_INTEL:
+		switch (mod)
+		{
+		case I915_FORMAT_MOD_X_TILED:
+			return "I915_FORMAT_MOD_X_TILED";
+		case I915_FORMAT_MOD_Y_TILED:
+			return "I915_FORMAT_MOD_Y_TILED";
+		case I915_FORMAT_MOD_Yf_TILED:
+			return "I915_FORMAT_MOD_Yf_TILED";
+		case I915_FORMAT_MOD_Y_TILED_CCS:
+			return "I915_FORMAT_MOD_Y_TILED_CCS";
+		case I915_FORMAT_MOD_Yf_TILED_CCS:
+			return "I915_FORMAT_MOD_Yf_TILED_CCS";
+		default:
+			return QString("DRM_FORMAT_MOD_INTEL_UNKNOWN [0x%1]").arg(mod, 14, 16, QChar('0'));
+		}
+	case DRM_FORMAT_MOD_VENDOR_AMD:
+		if (mod & AMD_FMT_MOD_TILE_VER_GFX9)
+			return "AMD_FMT_MOD_TILE_VER_GFX9";
+		if (mod & AMD_FMT_MOD_TILE_VER_GFX10)
+			return "AMD_FMT_MOD_TILE_VER_GFX10";
+		if (mod & AMD_FMT_MOD_TILE_VER_GFX11)
+			return "AMD_FMT_MOD_TILE_VER_GFX11";
+		if (mod & AMD_FMT_MOD_TILE_VER_GFX12)
+			return "AMD_FMT_MOD_TILE_VER_GFX12";
+		if (mod & AMD_FMT_MOD_DCC_BLOCK_128B)
+			return "AMD_FMT_MOD_DCC_BLOCK_128B";
+		if (mod & AMD_FMT_MOD_DCC_BLOCK_256B)
+			return "AMD_FMT_MOD_DCC_BLOCK_256B";
+		return QString("DRM_FORMAT_MOD_AMD_UNKNOWN [0x%1]").arg(mod, 14, 16, QChar('0'));
+	case DRM_FORMAT_MOD_VENDOR_NVIDIA:
+		if (mod & 0x10)
+			return "DRM_FORMAT_MOD_NVIDIA_BLOCK_LINEAR_2D";
+		return QString("DRM_FORMAT_MOD_NVIDIA_UNKNOWN [0x%1]").arg(mod , 14, 16, QChar('0'));
+	case DRM_FORMAT_MOD_VENDOR_BROADCOM:
+		switch (fourcc_mod_broadcom_mod(modifier))
+		{
+		case DRM_FORMAT_MOD_BROADCOM_SAND32:
+			return "DRM_FORMAT_MOD_BROADCOM_SAND32";
+		case DRM_FORMAT_MOD_BROADCOM_SAND64:
+			return "DRM_FORMAT_MOD_BROADCOM_SAND64";
+		case DRM_FORMAT_MOD_BROADCOM_SAND128:
+			return "DRM_FORMAT_MOD_BROADCOM_SAND128";
+		case DRM_FORMAT_MOD_BROADCOM_SAND256:
+			return "DRM_FORMAT_MOD_BROADCOM_SAND256";
+		case DRM_FORMAT_MOD_BROADCOM_VC4_T_TILED:
+			return "DRM_FORMAT_MOD_BROADCOM_VC4_T_TILED";
+		default:
+			return QString("DRM_FORMAT_MOD_BROADCOM_UNKNOWN [0x%1]").arg(mod, 14, 16, QChar('0'));
+		}
+	case DRM_FORMAT_MOD_VENDOR_ARM:
+		if ((modifier & DRM_FORMAT_MOD_ARM_AFBC(0)) == DRM_FORMAT_MOD_ARM_AFBC(0))
+			return "DRM_FORMAT_MOD_ARM_AFBC";
+		return QString("DRM_FORMAT_MOD_ARM_UNKNOWN [0x%1]").arg(mod, 14, 16, QChar('0'));
 
-    return name;
+	default:
+		break;
+	}
+
+	return name;
 }
 
 static PixelFormat GetPixelFormatForDrmFormat(uint32_t format)
 {
-    switch (format)
-    {
+	switch (format)
+	{
 #ifdef DRM_FORMAT_RGB565
-    case DRM_FORMAT_RGB565: return PixelFormat::BGR16;
+	case DRM_FORMAT_RGB565: return PixelFormat::BGR16;
 #endif
-    case DRM_FORMAT_XRGB8888: return PixelFormat::BGR32;
-    case DRM_FORMAT_ARGB8888: return PixelFormat::BGR32;
-    case DRM_FORMAT_XBGR8888: return PixelFormat::RGB32;
-    case DRM_FORMAT_ABGR8888: return PixelFormat::RGB32;
-    case DRM_FORMAT_NV12:     return PixelFormat::NV12;
+	case DRM_FORMAT_XRGB8888: return PixelFormat::BGR32;
+	case DRM_FORMAT_ARGB8888: return PixelFormat::BGR32;
+	case DRM_FORMAT_XBGR8888: return PixelFormat::RGB32;
+	case DRM_FORMAT_ABGR8888: return PixelFormat::RGB32;
+	case DRM_FORMAT_NV12:     return PixelFormat::NV12;
 #ifdef DRM_FORMAT_NV21
-    case DRM_FORMAT_NV21:     return PixelFormat::NV21;
+	case DRM_FORMAT_NV21:     return PixelFormat::NV21;
+#endif
+#ifdef DRM_FORMAT_P010
+	case DRM_FORMAT_P010:     return PixelFormat::P010;
 #endif
 #ifdef DRM_FORMAT_P030
-    case DRM_FORMAT_P030:     return PixelFormat::P030;
+	case DRM_FORMAT_P030:     return PixelFormat::P030;
 #endif
-    case DRM_FORMAT_YUV420:   return PixelFormat::I420;
-    default:                  return PixelFormat::NO_CHANGE;
-    }
+	case DRM_FORMAT_YUV420:   return PixelFormat::I420;
+	default:                  return PixelFormat::NO_CHANGE;
+	}
 }
 
 // Code from: https://gitlab.freedesktop.org/drm/igt-gpu-tools/-/blob/master/lib/igt_vc4.c#L339
 static size_t vc4_sand_tiled_offset(size_t column_width, size_t column_size, size_t x, size_t y, size_t bpp)
 {
-    size_t offset = 0;
-    size_t cols_x;
-    size_t pix_x;
+	size_t offset = 0;
+	size_t cols_x;
+	size_t pix_x;
 
-    /* Offset to the beginning of the relevant column. */
-    cols_x = x / column_width;
-    offset += cols_x * column_size;
+	/* Offset to the beginning of the relevant column. */
+	cols_x = x / column_width;
+	offset += cols_x * column_size;
 
-    /* Offset to the relevant pixel. */
-    pix_x = x % column_width;
-    offset += (column_width * y + pix_x) * bpp / 8;
+	/* Offset to the relevant pixel. */
+	pix_x = x % column_width;
+	offset += (column_width * y + pix_x) * bpp / 8;
 
-    return offset;
+	return offset;
 }
 
 // Forward declarations for QDebug operators
@@ -158,302 +161,294 @@ QDebug operator<<(QDebug dbg, const drmModeFB2* fb);
 QDebug operator<<(QDebug dbg, const drmModePlane* plane);
 
 DRMFrameGrabber::DRMFrameGrabber(int deviceIdx, int cropLeft, int cropRight, int cropTop, int cropBottom)
-    : Grabber("GRABBER-DRM", cropLeft, cropRight, cropTop, cropBottom), _deviceFd(-1), _crtc(nullptr)
+	: Grabber("GRABBER-DRM", cropLeft, cropRight, cropTop, cropBottom), _deviceFd(-1), _crtc(nullptr)
 {
-    _input = deviceIdx;
-    _useImageResampler = true;
+	_input = deviceIdx;
+	_useImageResampler = true;
 }
 
 DRMFrameGrabber::~DRMFrameGrabber()
 {
-    freeResources();
-    closeDevice();
+	freeResources();
+	closeDevice();
 }
 
 void DRMFrameGrabber::freeResources()
 {
-    _connectors.clear();
-    _encoders.clear();
+	_connectors.clear();
+	_encoders.clear();
 
-    if (_crtc != nullptr)
-    {
-        drmModeFreeCrtc(_crtc);
-        _crtc = nullptr;
-    }
+	if (_crtc != nullptr)
+	{
+		drmModeFreeCrtc(_crtc);
+		_crtc = nullptr;
+	}
 
-    for (auto const &[id, plane] : _planes)
-    {
-        if (plane != nullptr)
-        {
-            drmModeFreePlane(plane);
-        }
-    }
-    _planes.clear();
+	for (auto const &[id, plane] : _planes)
+	{
+		if (plane != nullptr)
+		{
+			drmModeFreePlane(plane);
+		}
+	}
+	_planes.clear();
 
-    for (auto const &[id, framebuffer] : _framebuffers)
-    {
-        drmModeFreeFB2(framebuffer);
-    }
-    _framebuffers.clear();
+	for (auto const &[id, framebuffer] : _framebuffers)
+	{
+		drmModeFreeFB2(framebuffer);
+	}
+	_framebuffers.clear();
 }
 
 bool DRMFrameGrabber::setupScreen()
 {
-    freeResources();
-    closeDevice();
+	freeResources();
+	closeDevice();
 
-    bool success = openDevice() && getScreenInfo();
-    setEnabled(success);
+	bool success = openDevice() && getScreenInfo();
+	setEnabled(success);
 
-    if (!success)
-    {
-        freeResources();
-        closeDevice();
-    }
+	if (!success)
+	{
+		freeResources();
+		closeDevice();
+	}
 
-    return success;
+	return success;
 }
 
 bool DRMFrameGrabber::setWidthHeight(int width, int height)
 {
-    if (Grabber::setWidthHeight(width, height))
-    {
-        return setupScreen();
-    }
+	if (Grabber::setWidthHeight(width, height))
+	{
+		return setupScreen();
+	}
 
-    return false;
+	return false;
 }
 
 struct LinearFramebufferParams
 {
-    int deviceFd;
-    const drmModeFB2* framebuffer;
-    int w;
-    int h;
-    PixelFormat pixelFormat;
-    const ImageResampler& imageResampler;
-    QSharedPointer<Logger> log;
-    Image<ColorRgb>& image;
+	int deviceFd;
+	const drmModeFB2* framebuffer;
+	int w;
+	int h;
+	PixelFormat pixelFormat;
+	const ImageResampler& imageResampler;
+	QSharedPointer<Logger> log;
+	Image<ColorRgb>& image;
 };
 
 static bool processLinearFramebuffer(const LinearFramebufferParams& params)
 {
-    int size = 0;
-    int lineLength = 0;
-    int fb_dmafd = 0;
+	int size = 0;
+	int fb_dmafd = 0;
+	int lineLength = (int)params.framebuffer->pitches[0];
 
-    if (params.pixelFormat == PixelFormat::I420 || params.pixelFormat == PixelFormat::NV12
+	if (params.pixelFormat == PixelFormat::I420 || params.pixelFormat == PixelFormat::NV12
 #ifdef DRM_FORMAT_NV21
-        || params.pixelFormat == PixelFormat::NV21
+		|| params.pixelFormat == PixelFormat::NV21
 #endif
-    )
-    {
-        size = (params.w * params.h * 3) / 2;
-        lineLength = params.w;
-    }
+	)
+	{
+		size = (params.w * params.h * 3) / 2;
+	}
+#ifdef DRM_FORMAT_P010
+	else if (params.pixelFormat == PixelFormat::P010)
+	{
+		size = lineLength * params.h + lineLength * DIV_ROUND_UP(params.h, 2);
+	}
+#endif
 #ifdef DRM_FORMAT_P030
-    else if (params.pixelFormat == PixelFormat::P030)
-    {
-        size = (params.w * params.h * 2) + (DIV_ROUND_UP(params.w, 2) * DIV_ROUND_UP(params.h, 2) * 4); // Y16 + UV32 per 2px
-        lineLength = params.w * 2; // 16bpp luma
-    }
+	else if (params.pixelFormat == PixelFormat::P030)
+	{
+		size = lineLength * params.h + DIV_ROUND_UP(params.w / 2, 3) * 4 * 2 * DIV_ROUND_UP(params.h, 2);
+	}
 #endif
-    else if (params.pixelFormat == PixelFormat::BGR16)
-    {
-        size = params.w * params.h * 2;
-        lineLength = params.w * 2;
-    }
-    else if (params.pixelFormat == PixelFormat::RGB32 || params.pixelFormat == PixelFormat::BGR32)
-    {
-        size = params.w * params.h * 4;
-        lineLength = params.w * 4;
-    }
+	else if (params.pixelFormat == PixelFormat::BGR16)
+	{
+		size = params.w * params.h * 2;
+	}
+	else if (params.pixelFormat == PixelFormat::RGB32 || params.pixelFormat == PixelFormat::BGR32)
+	{
+		size = params.w * params.h * 4;
+	}
 
-    if (size == 0)
-    {
-        Error(params.log, "Computed framebuffer size is 0 for linear layout");
-        return false;
-    }
+	if (size == 0)
+	{
+		Error(params.log, "Computed framebuffer size is 0 for linear layout");
+		return false;
+	}
 
-    int ret = drmPrimeHandleToFD(params.deviceFd, params.framebuffer->handles[0], O_RDONLY, &fb_dmafd);
-    if (ret != 0)
-    {
-        Error(params.log, "drmPrimeHandleToFD failed (handle=%u): %s", params.framebuffer->handles[0], strerror(errno));
-        return false;
-    }
+	int ret = drmPrimeHandleToFD(params.deviceFd, params.framebuffer->handles[0], O_RDONLY, &fb_dmafd);
+	if (ret != 0)
+	{
+		Error(params.log, "drmPrimeHandleToFD failed (handle=%u): %s", params.framebuffer->handles[0], strerror(errno));
+		return false;
+	}
 
-    auto* mmapFrameBuffer = (uint8_t*)mmap(nullptr, size, PROT_READ, MAP_SHARED, fb_dmafd, 0);
-    if (mmapFrameBuffer != MAP_FAILED)
-    {
-        params.imageResampler.processImage(mmapFrameBuffer, params.w, params.h, lineLength, params.pixelFormat, params.image);
-        munmap(mmapFrameBuffer, size);
-        close(fb_dmafd);
-        return true;
-    }
+	auto* mmapFrameBuffer = (uint8_t*)mmap(nullptr, size, PROT_READ, MAP_SHARED, fb_dmafd, 0);
+	if (mmapFrameBuffer != MAP_FAILED)
+	{
+		params.imageResampler.processImage(mmapFrameBuffer, params.w, params.h, lineLength, params.pixelFormat, params.image);
+		munmap(mmapFrameBuffer, size);
+		close(fb_dmafd);
+		return true;
+	}
 
-    Error(params.log, "Format: %s failed. Error: %s", QSTRING_CSTR(getDrmFormat(params.framebuffer->pixel_format)), strerror(errno));
-    close(fb_dmafd);
-    return false;
+	Error(params.log, "Format: %s failed. Error: %s", QSTRING_CSTR(getDrmFormat(params.framebuffer->pixel_format)), strerror(errno));
+	close(fb_dmafd);
+	return false;
 }
 
 // --- Broadcom SAND helpers (format-agnostic dispatcher) ---
 
 struct PlaneInfo
 {
-    int bpp;             // bits per pixel on this plane (8, 16, 32)
-    int width;           // plane width in pixels
-    int height;          // plane height in pixels
-    int stride;          // destination packed bytes per line
-    size_t srcBaseOffset; // source base offset (fb->offsets[idx])
-    size_t dstBaseOffset; // destination base offset in packed buffer
-    int fbPlaneIdx;      // FB plane index (0..3)
+	int bpp;              // bits per pixel on this plane (8, 16, 32)
+	int width;            // plane width in pixels (or 32-bit words for P030)
+	int height;           // plane height in pixels
+	int stride;           // destination packed bytes per line
+	size_t srcBaseOffset; // source base offset (fb->offsets[idx])
+	size_t dstBaseOffset; // destination base offset in packed buffer
+	int fbPlaneIdx;       // FB plane index (0..3)
 };
 
 static bool getBroadcomSandGeometry(uint64_t modifier, uint32_t& columnWidthBytes, uint32_t& columnHeight, QString& errorString)
 {
-    switch (fourcc_mod_broadcom_mod(modifier))
-    {
-    case DRM_FORMAT_MOD_BROADCOM_SAND32:  columnWidthBytes = 32;  break;
-    case DRM_FORMAT_MOD_BROADCOM_SAND64:  columnWidthBytes = 64;  break;
-    case DRM_FORMAT_MOD_BROADCOM_SAND128: columnWidthBytes = 128; break;
-    case DRM_FORMAT_MOD_BROADCOM_SAND256: columnWidthBytes = 256; break;
-    case DRM_FORMAT_MOD_BROADCOM_VC4_T_TILED:
-        errorString = "Broadcom modifier 'DRM_FORMAT_MOD_BROADCOM_VC4_T_TILED' currently not supported";
-        return false;
-    default:
-        errorString = "Unknown Broadcom modifier";
-        return false;
-    }
+	switch (fourcc_mod_broadcom_mod(modifier))
+	{
+	case DRM_FORMAT_MOD_BROADCOM_SAND32:  columnWidthBytes = 32;  break;
+	case DRM_FORMAT_MOD_BROADCOM_SAND64:  columnWidthBytes = 64;  break;
+	case DRM_FORMAT_MOD_BROADCOM_SAND128: columnWidthBytes = 128; break;
+	case DRM_FORMAT_MOD_BROADCOM_SAND256: columnWidthBytes = 256; break;
+	case DRM_FORMAT_MOD_BROADCOM_VC4_T_TILED:
+		errorString = "Broadcom modifier 'DRM_FORMAT_MOD_BROADCOM_VC4_T_TILED' currently not supported";
+		return false;
+	default:
+		errorString = "Unknown Broadcom modifier";
+		return false;
+	}
 
-    columnHeight = fourcc_mod_broadcom_param(modifier);
-    return true;
+	columnHeight = fourcc_mod_broadcom_param(modifier);
+	return true;
 }
 
-static bool getPlanesForFormat(PixelFormat fmt,
-                               int w, int h,
-                               uint32_t /*columnWidthBytes*/,
-                               const drmModeFB2* fb,
-                               std::vector<PlaneInfo>& planes,
-                               uint32_t& totalSize,
-                               QString& errorString)
+static bool getPlanesForFormat(PixelFormat fmt, int w, int h, uint32_t /*columnWidthBytes*/, const drmModeFB2* fb, std::vector<PlaneInfo>& planes, uint32_t& totalSize, QString& errorString)
 {
-    planes.clear();
-    totalSize = 0;
+	planes.clear();
+	totalSize = 0;
 
-    switch (fmt)
-    {
-    case PixelFormat::NV12:
-    {
-        // Pack tightly: Y then interleaved UV
-        auto const  y_stride = (uint32_t)w;
-        auto const uv_stride = (uint32_t)w; // interleaved, one byte per pixel on luma grid
+	switch (fmt)
+	{
+	case PixelFormat::NV12:
+#ifdef DRM_FORMAT_P010
+	case PixelFormat::P010:
+#endif
+	{
+		const int yBpp  = (fmt == PixelFormat::NV12) ? 8 : 16;
+		const int uvBpp = (fmt == PixelFormat::NV12) ? 16 : 32;
 
-        PlaneInfo y{};
-        y.bpp = 8;
-        y.width = w;
-        y.height = h;
-        y.stride = (int)y_stride;
-        y.fbPlaneIdx = 0;
-        y.srcBaseOffset = fb->offsets[y.fbPlaneIdx];
-        y.dstBaseOffset = 0;
-        planes.push_back(y);
+		const auto yStride  = fb->pitches[0];
+		const auto uvStride = fb->pitches[1];
 
-        PlaneInfo uv{};
-        uv.bpp = 16; // two 8-bit chroma bytes per 2 luma samples horizontally
-        uv.width = DIV_ROUND_UP(w, 2);
-        uv.height = DIV_ROUND_UP(h, 2);
-        uv.stride = (int)uv_stride;
-        uv.fbPlaneIdx = 1;
-        uv.srcBaseOffset = fb->offsets[uv.fbPlaneIdx];
-        uv.dstBaseOffset = (size_t)w * (size_t)h;
-        planes.push_back(uv);
+		PlaneInfo y{};
+		y.bpp = yBpp;
+		y.width = w;
+		y.height = h;
+		y.stride = (int)yStride;
+		y.fbPlaneIdx = 0;
+		y.srcBaseOffset = fb->offsets[0];
+		y.dstBaseOffset = 0;
+		planes.push_back(y);
 
-        totalSize = (uint32_t)((w * h) + (w * h) / 2);
-        return true;
-    }
+		PlaneInfo uv{};
+		uv.bpp = uvBpp;
+		uv.width = DIV_ROUND_UP(w, 2);
+		uv.height = DIV_ROUND_UP(h, 2);
+		uv.stride = (int)uvStride;
+		uv.fbPlaneIdx = 1;
+		uv.srcBaseOffset = fb->offsets[1];
+		uv.dstBaseOffset = (size_t)yStride * (size_t)h;
+		planes.push_back(uv);
+
+		totalSize = (uint32_t)((size_t)yStride * (size_t)h + (size_t)uvStride * (size_t)DIV_ROUND_UP(h, 2));
+		return true;
+	}
 
 #ifdef DRM_FORMAT_NV21
-    case PixelFormat::NV21:
-    {
-        // Identical plane sizes to NV12; chroma order is VU (handled by resampler)
-        auto const y_stride = (uint32_t)w;
-        auto const uv_stride = (uint32_t)w;
+	case PixelFormat::NV21:
+	{
+		const auto yStride  = fb->pitches[0];
+		const auto uvStride = fb->pitches[1];
 
-        PlaneInfo y{};
-        y.bpp = 8;
-        y.width = w;
-        y.height = h;
-        y.stride = (int)y_stride;
-        y.fbPlaneIdx = 0;
-        y.srcBaseOffset = fb->offsets[y.fbPlaneIdx];
-        y.dstBaseOffset = 0;
-        planes.push_back(y);
+		PlaneInfo y{};
+		y.bpp = 8;
+		y.width = w;
+		y.height = h;
+		y.stride = (int)yStride;
+		y.fbPlaneIdx = 0;
+		y.srcBaseOffset = fb->offsets[0];
+		y.dstBaseOffset = 0;
+		planes.push_back(y);
 
-        PlaneInfo vu{};
-        vu.bpp = 16;
-        vu.width = DIV_ROUND_UP(w, 2);
-        vu.height = DIV_ROUND_UP(h, 2);
-        vu.stride = (int)uv_stride;
-        vu.fbPlaneIdx = 1;
-        vu.srcBaseOffset = fb->offsets[vu.fbPlaneIdx];
-        vu.dstBaseOffset = (size_t)w * (size_t)h;
-        planes.push_back(vu);
+		PlaneInfo vu{};
+		vu.bpp = 16;
+		vu.width = DIV_ROUND_UP(w, 2);
+		vu.height = DIV_ROUND_UP(h, 2);
+		vu.stride = (int)uvStride;
+		vu.fbPlaneIdx = 1;
+		vu.srcBaseOffset = fb->offsets[1];
+		vu.dstBaseOffset = (size_t)yStride * (size_t)h;
+		planes.push_back(vu);
 
-        totalSize = (uint32_t)((w * h) + (w * h) / 2);
-        return true;
-    }
+		totalSize = (uint32_t)((size_t)yStride * (size_t)h + (size_t)uvStride * (size_t)DIV_ROUND_UP(h, 2));
+		return true;
+	}
 #endif
 
 #ifdef DRM_FORMAT_P030
-    case PixelFormat::P030:
-    {
-        // 10-bit semi-planar: Y in 16-bit words, UV packed 2x10b per 2 luma pixels => 32b per pair
-        auto const y_stride = (uint32_t)(w * 2);
-        auto const uv_stride = (uint32_t)(w * 2); // (w/2)*4 bytes == 2*w bytes
+	case PixelFormat::P030:
+	{
+		const auto yStride  = fb->pitches[0];
+		const auto uvStride = fb->pitches[1];
 
-        PlaneInfo y{};
-        y.bpp = 16;
-        y.width = w;
-        y.height = h;
-        y.stride = (int)y_stride;
-        y.fbPlaneIdx = 0;
-        y.srcBaseOffset = fb->offsets[y.fbPlaneIdx];
-        y.dstBaseOffset = 0;
-        planes.push_back(y);
+		PlaneInfo y{};
+		y.bpp = 32;
+		y.width = yStride / 4;
+		y.height = h;
+		y.stride = (int)yStride;
+		y.fbPlaneIdx = 0;
+		y.srcBaseOffset = fb->offsets[0];
+		y.dstBaseOffset = 0;
+		planes.push_back(y);
 
-        PlaneInfo uv{};
-        uv.bpp = 32;
-        uv.width = DIV_ROUND_UP(w, 2);
-        uv.height = DIV_ROUND_UP(h, 2);
-        uv.stride = (int)uv_stride;
-        uv.fbPlaneIdx = 1;
-        uv.srcBaseOffset = fb->offsets[uv.fbPlaneIdx];
-        uv.dstBaseOffset = (size_t)w * (size_t)h * 2;
-        planes.push_back(uv);
+		PlaneInfo uv{};
+		uv.bpp = 32;
+		uv.width = uvStride / 4;
+		uv.height = DIV_ROUND_UP(h, 2);
+		uv.stride = (int)uvStride;
+		uv.fbPlaneIdx = 1;
+		uv.srcBaseOffset = fb->offsets[1];
+		uv.dstBaseOffset = (size_t)yStride * (size_t)h;
+		planes.push_back(uv);
 
-        totalSize = (uint32_t)((size_t)w * (size_t)h * 3); // Y(2*w*h) + UV(w*h)
-        return true;
-    }
+		totalSize = (uint32_t)((size_t)yStride * (size_t)h + (size_t)uvStride * (size_t)DIV_ROUND_UP(h, 2));
+		return true;
+	}
 #endif
 
-    default:
-        errorString = QString("Broadcom SAND: unsupported PixelFormat %1")
-                          .arg(QSTRING_CSTR(pixelFormatToString(fmt)));
-        return false;
-    }
+	default:
+		errorString = QString("Broadcom SAND: unsupported PixelFormat %1")
+						  .arg(QSTRING_CSTR(pixelFormatToString(fmt)));
+		return false;
+	}
 }
 
-static inline void copyBroadcomSandPlane(const PlaneInfo& p,
-                                         int lumaWidth,
-                                         uint32_t columnWidthBytes,
-                                         uint32_t columnHeight,
-                                         const uint8_t* src,
-                                         uint8_t* dst,
-                                         Logger* log)
+static inline void copyBroadcomSandPlane(const PlaneInfo& p, uint32_t columnWidthBytes, uint32_t columnHeight, const uint8_t* src, uint8_t* dst, Logger* log)
 {
     const uint32_t columnSize = columnWidthBytes * columnHeight;
-    // Keep proportional column width logic relative to luma width
-    const size_t columnWidthInPixels = (size_t)(columnWidthBytes) * (size_t)p.width / std::max(1, lumaWidth);
+    const size_t columnWidthInUnits = (size_t)columnWidthBytes / ((size_t)p.bpp / 8u);
 
     for (int i = 0; i < p.height; i++)
     {
@@ -462,20 +457,28 @@ static inline void copyBroadcomSandPlane(const PlaneInfo& p,
             size_t src_offset = p.srcBaseOffset;
             size_t dst_offset = p.dstBaseOffset;
 
-            src_offset += vc4_sand_tiled_offset(columnWidthInPixels, columnSize, (size_t)j, (size_t)i, (size_t)p.bpp);
+            src_offset += vc4_sand_tiled_offset(columnWidthInUnits, columnSize, (size_t)j, (size_t)i, (size_t)p.bpp);
             dst_offset += (size_t)p.stride * (size_t)i + (size_t)j * (size_t)p.bpp / 8u;
 
             switch (p.bpp)
             {
             case 8:
-                *(dst + dst_offset) = *(src + src_offset);
+                dst[dst_offset] = src[src_offset];
                 break;
             case 16:
-                *(uint16_t*)(dst + dst_offset) = *(const uint16_t*)(src + src_offset);
+            {
+                uint16_t val;
+                memcpy(&val, src + src_offset, sizeof(val));
+                memcpy(dst + dst_offset, &val, sizeof(val));
                 break;
+            }
             case 32:
-                *(uint32_t*)(dst + dst_offset) = *(const uint32_t*)(src + src_offset);
+            {
+                uint32_t val;
+                memcpy(&val, src + src_offset, sizeof(val));
+                memcpy(dst + dst_offset, &val, sizeof(val));
                 break;
+            }
             default:
                 Error(log, "Unsupported bpp %d in Broadcom SAND layout", p.bpp);
                 break;
@@ -484,300 +487,266 @@ static inline void copyBroadcomSandPlane(const PlaneInfo& p,
     }
 }
 
-static bool untileBroadcomSandToLinear(int deviceFd,
-                                       const drmModeFB2* fb,
-                                       int w,
-                                       int h,
-                                       PixelFormat fmt,
-                                       const std::vector<PlaneInfo>& planes,
-                                       uint32_t totalSize,
-                                       ImageResampler const& imageResampler,
-                                       Logger* log,
-                                       Image<ColorRgb>& image)
+static bool untileBroadcomSandToLinear(int deviceFd, const drmModeFB2* fb, int w, int h, PixelFormat fmt, const std::vector<PlaneInfo>& planes, uint32_t totalDstSize, ImageResampler const& imageResampler, Logger* log, Image<ColorRgb>& image)
 {
-    int fb_dmafd = 0;
-    int ret = drmPrimeHandleToFD(deviceFd, fb->handles[0], O_RDONLY, &fb_dmafd);
-    if (ret < 0)
-    {
-        Error(log, "drmPrimeHandleToFD failed (broadcom handle=%u): %s", fb->handles[0], strerror(errno));
-        return false;
-    }
+	if (totalDstSize == 0)
+	{
+		Error(log, "Computed framebuffer size is 0 for Broadcom SAND layout");
+		return false;
+	}
 
-    if (totalSize == 0)
-    {
-        Error(log, "Computed framebuffer size is 0 for Broadcom SAND layout");
-        close(fb_dmafd);
-        return false;
-    }
+	uint32_t columnWidthBytes = 0;
+	uint32_t columnHeight = 0;
+	QString geomErr;
+	if (!getBroadcomSandGeometry(fb->modifier, columnWidthBytes, columnHeight, geomErr))
+	{
+		Error(log, "getBroadcomSandGeometry failed: %s", QSTRING_CSTR(geomErr));
+		return false;
+	}
 
-    auto* src_buf = (uint8_t*)mmap(nullptr, totalSize, PROT_READ, MAP_SHARED, fb_dmafd, 0);
-    if (src_buf == MAP_FAILED)
-    {
-        close(fb_dmafd);
-        return false;
-    }
+	const uint32_t columnSize = columnWidthBytes * columnHeight;
+	uint32_t sandSrcSize = 0;
+	for (const auto& p : planes)
+	{
+		const uint32_t planeBytesPerRow = (uint32_t)p.width * (uint32_t)p.bpp / 8u;
+		const uint32_t numColumns = DIV_ROUND_UP(planeBytesPerRow, columnWidthBytes);
+		sandSrcSize = std::max(sandSrcSize, (uint32_t)(p.srcBaseOffset + numColumns * columnSize));
+	}
 
-    std::vector<uint8_t> dst_buf(totalSize);
-    uint8_t* dst_ptr = dst_buf.data();
+	if (sandSrcSize == 0)
+	{
+		Error(log, "Computed SAND source buffer size is 0");
+		return false;
+	}
 
-    uint32_t columnWidthBytes = 0;
-    uint32_t columnHeight = 0;
-    QString geomErr;
-    if (!getBroadcomSandGeometry(fb->modifier, columnWidthBytes, columnHeight, geomErr))
-    {
-        munmap(src_buf, totalSize);
-        close(fb_dmafd);
-        return false;
-    }
+	int fb_dmafd = 0;
+	int ret = drmPrimeHandleToFD(deviceFd, fb->handles[0], O_RDONLY, &fb_dmafd);
+	if (ret < 0)
+	{
+		Error(log, "drmPrimeHandleToFD failed (broadcom handle=%u): %s", fb->handles[0], strerror(errno));
+		return false;
+	}
 
-    for (const auto& p : planes)
-    {
-        copyBroadcomSandPlane(p, w, columnWidthBytes, columnHeight, src_buf, dst_ptr, log);
-    }
+	auto* src_buf = (uint8_t*)mmap(nullptr, sandSrcSize, PROT_READ, MAP_SHARED, fb_dmafd, 0);
+	if (src_buf == MAP_FAILED)
+	{
+		Error(log, "mmap failed for SAND source buffer: %s", strerror(errno));
+		close(fb_dmafd);
+		return false;
+	}
 
-    int lineLength = w;
-#ifdef DRM_FORMAT_P030
-    if (fmt == PixelFormat::P030)
-        lineLength = w * 2;
-#endif
+	std::vector<uint8_t> dst_buf(totalDstSize);
+	uint8_t* dst_ptr = dst_buf.data();
 
-    imageResampler.processImage(dst_ptr, w, h, lineLength, fmt, image);
+	for (const auto& p : planes)
+	{
+		copyBroadcomSandPlane(p, columnWidthBytes, columnHeight, src_buf, dst_ptr, log);
+	}
 
-    munmap(src_buf, totalSize);
-    close(fb_dmafd);
-    return true;
+	imageResampler.processImage(dst_ptr, w, h, (int)fb->pitches[0], fmt, image);
+
+	munmap(src_buf, sandSrcSize);
+	close(fb_dmafd);
+	return true;
 }
 
-static bool processBroadcomSandFramebuffer(int deviceFd,
-                                           const drmModeFB2* framebuffer,
-                                           int w,
-                                           int h,
-                                           PixelFormat pixelFormat,
-                                           ImageResampler const& imageResampler,
-                                           Logger* log,
-                                           Image<ColorRgb>& image,
-                                           QString& errorString)
+static bool processBroadcomSandFramebuffer(int deviceFd, const drmModeFB2* framebuffer, int w, int h, PixelFormat pixelFormat, ImageResampler const& imageResampler, Logger* log, Image<ColorRgb>& image, QString& errorString)
 {
-    uint32_t columnWidthBytes = 0;
-    uint32_t columnHeight = 0;
-    if (!getBroadcomSandGeometry(framebuffer->modifier, columnWidthBytes, columnHeight, errorString))
-    {
-        return false;
-    }
+	uint32_t columnWidthBytes = 0;
+	uint32_t columnHeight = 0;
+	if (!getBroadcomSandGeometry(framebuffer->modifier, columnWidthBytes, columnHeight, errorString))
+	{
+		return false;
+	}
 
-    std::vector<PlaneInfo> planes;
-    uint32_t totalSize = 0;
-    if (!getPlanesForFormat(pixelFormat, w, h, columnWidthBytes, framebuffer, planes, totalSize, errorString))
-    {
-        return false;
-    }
+	std::vector<PlaneInfo> planes;
+	uint32_t totalSize = 0;
+	if (!getPlanesForFormat(pixelFormat, w, h, columnWidthBytes, framebuffer, planes, totalSize, errorString))
+	{
+		return false;
+	}
 
-    if (totalSize == 0)
-    {
-        Error(log, "Computed framebuffer size is 0 for Broadcom SAND layout");
-        return false;
-    }
+	if (totalSize == 0)
+	{
+		Error(log, "Computed framebuffer size is 0 for Broadcom SAND layout");
+		return false;
+	}
 
-    return untileBroadcomSandToLinear(deviceFd, framebuffer, w, h, pixelFormat, planes, totalSize, imageResampler, log, image);
+	return untileBroadcomSandToLinear(deviceFd, framebuffer, w, h, pixelFormat, planes, totalSize, imageResampler, log, image);
 }
 
 int DRMFrameGrabber::grabFrame(Image<ColorRgb> &image, bool /*forceUpdate*/)
 {
-    if (!_isEnabled || _isDeviceInError)
-    {
-        return -1;
-    }
+	if (!_isEnabled || _isDeviceInError)
+	{
+		return -1;
+	}
 
-    if (_framebuffers.empty())
-    {
-        Error(_log, "No framebuffers found. Was setupScreen() successful?");
-        return -1;
-    }
+	if (_framebuffers.empty())
+	{
+		Error(_log, "No framebuffers found. Was setupScreen() successful?");
+		return -1;
+	}
 
-    bool newImage{false};
-    QString errorString;
+	bool newImage{false};
+	QString errorString;
 
-    // We only need to process the first framebuffer.
-    auto it = _framebuffers.begin();
-    if (it != _framebuffers.end())
-    {
-        const auto& [id, framebuffer] = *it;
+	// We only need to process the first framebuffer.
+	auto it = _framebuffers.begin();
+	if (it != _framebuffers.end())
+	{
+		const auto& [id, framebuffer] = *it;
 
-        _pixelFormat = GetPixelFormatForDrmFormat(framebuffer->pixel_format);
-        uint64_t modifier = framebuffer->modifier;
+		_pixelFormat = GetPixelFormatForDrmFormat(framebuffer->pixel_format);
+		uint64_t modifier = framebuffer->modifier;
 
-        qCDebug(grabber_screen_capture) << QString("Framebuffer ID: %1 - Width: %2 - Height: %3  - DRM Format: %4 - PixelFormat: %5, Modifier: %6")
-                .arg(id)
-                .arg(framebuffer->width)
-                .arg(framebuffer->height)
-                .arg(getDrmFormat(framebuffer->pixel_format))
-                .arg(pixelFormatToString(_pixelFormat))
-                .arg(getDrmModifierName(modifier));
+		qCDebug(grabber_screen_capture) << QString("Framebuffer ID: %1 - Width: %2 - Height: %3  - DRM Format: %4 - PixelFormat: %5, Modifier: %6")
+				.arg(id)
+				.arg(framebuffer->width)
+				.arg(framebuffer->height)
+				.arg(getDrmFormat(framebuffer->pixel_format))
+				.arg(pixelFormatToString(_pixelFormat))
+				.arg(getDrmModifierName(modifier));
 
-        int w = framebuffer->width;
-        int h = framebuffer->height;
-        Grabber::setWidthHeight(w, h);
+		int w = framebuffer->width;
+		int h = framebuffer->height;
+		Grabber::setWidthHeight(w, h);
 
-        // Linear modifier path
-        if (_pixelFormat != PixelFormat::NO_CHANGE && modifier == DRM_FORMAT_MOD_LINEAR)
-        {
-            LinearFramebufferParams params{
-                _deviceFd,
-                framebuffer,
-                w,
-                h,
-                _pixelFormat,
-                _imageResampler,
-                _log,
-                image
-            };
-            if (processLinearFramebuffer(params))
-            {
-                newImage = true;
-            }
-        }
-        // Broadcom SAND path
-        else if ((modifier >> 56ULL) == DRM_FORMAT_MOD_VENDOR_BROADCOM)
-        {
-            if (processBroadcomSandFramebuffer(_deviceFd, framebuffer, w, h, _pixelFormat, _imageResampler, _log.data(), image, errorString))
-            {
-                newImage = true;
-            }
-        }
-        else
-        {
-            errorString = QString("Currently unsupported format: %1 and/or modifier: %2")
-                              .arg(getDrmFormat(framebuffer->pixel_format))
-                              .arg(getDrmModifierName(framebuffer->modifier));
-        }
-    }
+		// Linear modifier path
+		if (_pixelFormat != PixelFormat::NO_CHANGE && modifier == DRM_FORMAT_MOD_LINEAR)
+		{
+			LinearFramebufferParams params{
+				_deviceFd,
+				framebuffer,
+				w,
+				h,
+				_pixelFormat,
+				_imageResampler,
+				_log,
+				image
+			};
+			if (processLinearFramebuffer(params))
+			{
+				newImage = true;
+			}
+		}
+		// Broadcom SAND path
+		else if ((modifier >> 56ULL) == DRM_FORMAT_MOD_VENDOR_BROADCOM)
+		{
+			if (processBroadcomSandFramebuffer(_deviceFd, framebuffer, w, h, _pixelFormat, _imageResampler, _log.data(), image, errorString))
+			{
+				newImage = true;
+			}
+		}
+		else
+		{
+			errorString = QString("Currently unsupported format: %1 and/or modifier: %2")
+							  .arg(getDrmFormat(framebuffer->pixel_format))
+							  .arg(getDrmModifierName(framebuffer->modifier));
+		}
+	}
 
-    if (!errorString.isEmpty())
-    {
-        this->setInError(errorString);
-        return -1;
-    }
+	if (!errorString.isEmpty())
+	{
+		this->setInError(errorString);
+		return -1;
+	}
 
-    if (!newImage)
-    {
-        qCDebug(grabber_screen_capture) << "No image captured from DRM framebuffer.";
-        return -1;
-    }
+	if (!newImage)
+	{
+		qCDebug(grabber_screen_capture) << "No image captured from DRM framebuffer.";
+		return -1;
+	}
 
-    return 0;
+	return 0;
 }
 
 bool DRMFrameGrabber::openDevice()
 {
-    if (_deviceFd >= 0)
-    {
-        return true;
-    }
+	if (_deviceFd >= 0)
+	{
+		return true;
+	}
 
-    if (!_isAvailable)
-    {
-        return false;
-    }
+	if (!_isAvailable)
+	{
+		return false;
+	}
 
-    // Try read-only first to minimize required privileges. Some drivers require O_RDWR; fallback in that case.
-    _deviceFd = ::open(QSTRING_CSTR(getDeviceName()), O_RDONLY | O_CLOEXEC);
-    if (_deviceFd < 0)
-    {
-        // fallback to read-write if required by driver
-        _deviceFd = ::open(QSTRING_CSTR(getDeviceName()), O_RDWR | O_CLOEXEC);
-    }
-    if (_deviceFd < 0)
-    {
-        QString errorReason = QString("Error opening %1, [%2] %3").arg(getDeviceName()).arg(errno).arg(std::strerror(errno));
-        this->setInError(errorReason);
-        return false;
-    }
+	// Try read-only first to minimize required privileges. Some drivers require O_RDWR; fallback in that case.
+	_deviceFd = ::open(QSTRING_CSTR(getDeviceName()), O_RDONLY | O_CLOEXEC);
+	if (_deviceFd < 0)
+	{
+		// fallback to read-write if required by driver
+		_deviceFd = ::open(QSTRING_CSTR(getDeviceName()), O_RDWR | O_CLOEXEC);
+	}
+	if (_deviceFd < 0)
+	{
+		QString errorReason = QString("Error opening %1, [%2] %3").arg(getDeviceName()).arg(errno).arg(std::strerror(errno));
+		this->setInError(errorReason);
+		return false;
+	}
 
-    return true;
+	return true;
 }
 
 bool DRMFrameGrabber::closeDevice()
 {
-    if (_deviceFd < 0)
-    {
-        return true;
-    }
+	if (_deviceFd < 0)
+	{
+		return true;
+	}
 
-    bool success = (::close(_deviceFd) == 0);
-    _deviceFd = -1;
+	bool success = (::close(_deviceFd) == 0);
+	_deviceFd = -1;
 
-    return success;
+	return success;
 }
 
 QSize DRMFrameGrabber::getScreenSize() const
 {
-    return getScreenSize(getDeviceName());
-}
-
-inline QSize findActiveCrtcSize(int drmfd, const drmModeConnector* connector)
-{
-    if (!connector || !connector->encoder_id)
-    {
-        return QSize();
-    }
-
-    drmModeEncoderPtr encoder = drmModeGetEncoder(drmfd, connector->encoder_id);
-    if (!encoder)
-    {
-        return QSize();
-    }
-
-    QSize size;
-    if (encoder->crtc_id)
-    {
-        drmModeCrtcPtr crtc = drmModeGetCrtc(drmfd, encoder->crtc_id);
-        if (crtc)
-        {
-            size.setWidth(crtc->width);
-            size.setHeight(crtc->height);
-            drmModeFreeCrtc(crtc);
-        }
-    }
-
-    drmModeFreeEncoder(encoder);
-    return size;
+	return getScreenSize(getDeviceName());
 }
 
 QSize DRMFrameGrabber::getScreenSize(const QString &device) const
 {
-    DrmResources drmResources;
-    if (!discoverDrmResources(device, drmResources))
-    {
-        return {};
-    }
+	DrmResources drmResources;
+	if (!discoverDrmResources(device, drmResources))
+	{
+		return {};
+	}
 
-    // 3. Iterate through connectors to find a connected one
-    for (const auto& connector : drmResources.connectors)
-    {
-        if (connector->connection != DRM_MODE_CONNECTED || connector->count_modes <= 0)
-        {
-            continue;
-        }
+	// 3. Iterate through connectors to find a connected one
+	for (const auto& connector : drmResources.connectors)
+	{
+		if (connector->connection != DRM_MODE_CONNECTED || connector->count_modes <= 0)
+		{
+			continue;
+		}
 
-        for (const auto& crtc : drmResources.crtcs)
-        {
-            if (crtc->mode_valid)
-            {
-                return QSize(crtc->width, crtc->height);
-            }
-        }
-    }
+		for (const auto& crtc : drmResources.crtcs)
+		{
+			if (crtc->mode_valid)
+			{
+				return QSize(crtc->width, crtc->height);
+			}
+		}
+	}
 
-    return {};
+	return {};
 }
 
 bool DRMFrameGrabber::discoverDrmResources(const QString& device, DrmResources& resources) const
 {
 	// 1. Open the DRM device
-	int drmfd = ::open(QSTRING_CSTR(device), O_RDWR);
+	int drmfd = ::open(QSTRING_CSTR(device), O_RDONLY | O_CLOEXEC);
 	if (drmfd < 0)
 	{
-		return false;
+		drmfd = ::open(QSTRING_CSTR(device), O_RDWR | O_CLOEXEC);
+		if (drmfd < 0)
+		{
+			return false;
+		}
 	}
 
 	// 2. Get device resources
@@ -843,51 +812,51 @@ void DRMFrameGrabber::enumerateConnectorsAndEncoders(const drmModeRes* resources
 
 void DRMFrameGrabber::findActiveCrtc(const drmModeRes* resources)
 {
-    for (int i = 0; i < resources->count_crtcs; i++)
-    {
-        _crtc = drmModeGetCrtc(_deviceFd, resources->crtcs[i]);
-        if (_crtc && _crtc->mode_valid)
-        {
-            return; // Found active CRTC, so we can exit
-        }
-        drmModeFreeCrtc(_crtc);
-        _crtc = nullptr;
-    }
+	for (int i = 0; i < resources->count_crtcs; i++)
+	{
+		_crtc = drmModeGetCrtc(_deviceFd, resources->crtcs[i]);
+		if (_crtc && _crtc->mode_valid)
+		{
+			return; // Found active CRTC, so we can exit
+		}
+		drmModeFreeCrtc(_crtc);
+		_crtc = nullptr;
+	}
 }
 
 bool DRMFrameGrabber::isPrimaryPlaneForCrtc(uint32_t planeId, const drmModeObjectProperties* properties)
 {
-    for (unsigned int j = 0; j < properties->count_props; ++j)
-    {
-        auto prop = drmModeGetProperty(_deviceFd, properties->props[j]);
-        if (!prop) continue;
+	for (unsigned int j = 0; j < properties->count_props; ++j)
+	{
+		auto prop = drmModeGetProperty(_deviceFd, properties->props[j]);
+		if (!prop) continue;
 
-        bool isPrimary = (strcmp(prop->name, "type") == 0 && properties->prop_values[j] == DRM_PLANE_TYPE_PRIMARY);
-        drmModeFreeProperty(prop);
+		bool isPrimary = (strcmp(prop->name, "type") == 0 && properties->prop_values[j] == DRM_PLANE_TYPE_PRIMARY);
+		drmModeFreeProperty(prop);
 
-        if (isPrimary)
-        {
-            auto plane = drmModeGetPlane(_deviceFd, planeId);
-            if (plane && _crtc && plane->crtc_id == _crtc->crtc_id)
-            {
-                qCDebug(grabber_screen_flow) << plane;
-                _planes.insert({planeId, plane});
-                return true;
-            }
-            if (plane)
-            {
-                drmModeFreePlane(plane);
-            }
-        }
-    }
-    return false;
+		if (isPrimary)
+		{
+			auto plane = drmModeGetPlane(_deviceFd, planeId);
+			if (plane && _crtc && plane->crtc_id == _crtc->crtc_id)
+			{
+				qCDebug(grabber_screen_flow) << plane;
+				_planes.insert({planeId, plane});
+				return true;
+			}
+			if (plane)
+			{
+				drmModeFreePlane(plane);
+			}
+		}
+	}
+	return false;
 }
 
 void DRMFrameGrabber::findPrimaryPlane(const drmModePlaneRes* planeResources)
 {
-    for (unsigned int i = 0; i < planeResources->count_planes; ++i)
-    {
-        uint32_t planeId = planeResources->planes[i];
+	for (unsigned int i = 0; i < planeResources->count_planes; ++i)
+	{
+		uint32_t planeId = planeResources->planes[i];
 		auto properties = drmModeObjectGetProperties(_deviceFd, planeId, DRM_MODE_OBJECT_PLANE);
 		if (!properties) continue;
 
@@ -901,34 +870,38 @@ void DRMFrameGrabber::findPrimaryPlane(const drmModePlaneRes* planeResources)
 	}
 }
 
-void DRMFrameGrabber::getDrmObjectProperties() const
+void DRMFrameGrabber::getDrmObjectProperties()
 {
-	for (auto const &[id, connector] : _connectors)
-	{
-		auto properties = drmModeObjectGetProperties(_deviceFd, id, DRM_MODE_OBJECT_CONNECTOR);
-		if (!properties) continue;
-		for (unsigned int i = 0; i < properties->count_props; i++)
-		{
-			auto prop = drmModeGetProperty(_deviceFd, properties->props[i]);
-			connector->props.insert({std::string(prop->name), {.spec = prop, .value = properties->prop_values[i]}});
-		}
-		drmModeFreeObjectProperties(properties);
-	}
+    for (auto const &[id, connector] : _connectors)
+    {
+        auto properties = drmModeObjectGetProperties(_deviceFd, id, DRM_MODE_OBJECT_CONNECTOR);
+        if (!properties) continue;
 
-	for (auto const &[id, encoder] : _encoders)
-	{
-		auto properties = drmModeObjectGetProperties(_deviceFd, id, DRM_MODE_OBJECT_ENCODER);
-		if (!properties) continue;
-		for (unsigned int i = 0; i < properties->count_props; i++)
-		{
-			auto prop = drmModeGetProperty(_deviceFd, properties->props[i]);
-			encoder->props.insert({std::string(prop->name), {.spec = prop, .value = properties->prop_values[i]}});
-		}
-		drmModeFreeObjectProperties(properties);
-	}
+        for (unsigned int i = 0; i < properties->count_props; i++)
+        {
+            auto prop = drmModeGetProperty(_deviceFd, properties->props[i]);
+            if (!prop) continue;
+            connector->props.insert({std::string(prop->name), {.spec = prop, .value = properties->prop_values[i]}});
+        }
+        drmModeFreeObjectProperties(properties);
+    }
+
+    for (auto const &[id, encoder] : _encoders)
+    {
+        auto properties = drmModeObjectGetProperties(_deviceFd, id, DRM_MODE_OBJECT_ENCODER);
+        if (!properties) continue;
+
+        for (unsigned int i = 0; i < properties->count_props; i++)
+        {
+            auto prop = drmModeGetProperty(_deviceFd, properties->props[i]);
+            if (!prop) continue;
+            encoder->props.insert({std::string(prop->name), {.spec = prop, .value = properties->prop_values[i]}});
+        }
+        drmModeFreeObjectProperties(properties);
+    }
 }
 
-void DRMFrameGrabber::getFramebuffers()
+bool DRMFrameGrabber::getFramebuffers()
 {
 	for (auto const &[id, plane] : _planes)
 	{
@@ -940,10 +913,11 @@ void DRMFrameGrabber::getFramebuffers()
 		{
 			setInError("Not able to acquire framebuffer handles. Screen capture not possible. Check permissions.");
 			drmModeFreeFB2(fb);
-			continue;
+			return false;
 		}
 		_framebuffers.insert({plane->fb_id, fb});
 	}
+	return true;
 }
 
 bool DRMFrameGrabber::getScreenInfo()
@@ -978,7 +952,10 @@ bool DRMFrameGrabber::getScreenInfo()
 	}
 
 	getDrmObjectProperties();
-	getFramebuffers();
+	if (!getFramebuffers())
+	{
+		return false;
+	}
 
 	drmModeFreeResources(resources);
 

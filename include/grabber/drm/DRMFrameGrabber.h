@@ -15,9 +15,6 @@
 #include <hyperion/Grabber.h>
 #include <QLoggingCategory>
 
-// Utility includes
-#include <utils/Logger.h>
-
 struct DrmProperty
 {
 	drmModePropertyPtr spec;
@@ -26,14 +23,54 @@ struct DrmProperty
 
 struct Connector
 {
-	drmModeConnectorPtr ptr;
-	std::map<std::string, DrmProperty, std::less<>> props;
+    drmModeConnectorPtr ptr;
+    std::map<std::string, DrmProperty, std::less<>> props;
+
+    Connector(const Connector&) = delete;
+    Connector& operator=(const Connector&) = delete;
+
+    ~Connector()
+    {
+        for (auto& [name, entry] : props)
+        {
+            if (entry.spec)
+            {
+                drmModeFreeProperty(entry.spec);
+                entry.spec = nullptr;
+            }
+        }
+        if (ptr)
+        {
+            drmModeFreeConnector(ptr);
+            ptr = nullptr;
+        }
+    }
 };
 
 struct Encoder
 {
-	drmModeEncoderPtr ptr;
-	std::map<std::string, DrmProperty, std::less<>> props;
+    drmModeEncoderPtr ptr;
+    std::map<std::string, DrmProperty, std::less<>> props;
+
+    Encoder(const Encoder&) = delete;
+    Encoder& operator=(const Encoder&) = delete;
+
+    ~Encoder()
+    {
+        for (auto& [name, entry] : props)
+        {
+            if (entry.spec)
+            {
+                drmModeFreeProperty(entry.spec);
+                entry.spec = nullptr;
+            }
+        }
+        if (ptr)
+        {
+            drmModeFreeEncoder(ptr);
+            ptr = nullptr;
+        }
+    }
 };
 
 struct DrmResources {
@@ -190,12 +227,6 @@ private:
 	void enumerateConnectorsAndEncoders(const drmModeRes* resources);
 
 	/**
-	 * @brief Finds the active CRTC (CRT Controller) that is connected to a display.
-	 * @param resources The DRM resources structure obtained from the device.
-	 */
-	void findActiveCrtc(const drmModeRes* resources);
-
-	/**
 	 * @brief Checks if a given plane is the primary plane for the active CRTC.
 	 * @param planeId The ID of the plane to check.
 	 * @param properties The properties of the plane object.
@@ -214,13 +245,13 @@ private:
 	 * @brief Retrieves properties for various DRM objects like connectors and planes.
 	 * This is currently a placeholder and not fully implemented.
 	 */
-	void getDrmObjectProperties() const;
+	void getDrmObjectProperties();
 
 	/**
 	 * @brief Retrieves the framebuffer(s) associated with the primary plane.
 	 * This is necessary to get a handle to the screen's pixel data.
 	 */
-	void getFramebuffers();
+	bool getFramebuffers();
 
 	/// The file descriptor for the opened DRM device.
 	int _deviceFd;
