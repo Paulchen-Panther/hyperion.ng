@@ -6,6 +6,74 @@
 #include <hyperion/Grabber.h>
 #include <grabber/drm/DRMWritebackConverter.h>
 
+struct DrmProperty
+{
+	drmModePropertyPtr spec;
+	uint64_t value;
+};
+
+struct Connector
+{
+	drmModeConnectorPtr ptr{nullptr};
+	std::map<std::string, DrmProperty, std::less<>> props;
+
+	Connector() = default;
+	Connector(const Connector &) = delete;
+	Connector &operator=(const Connector &) = delete;
+
+	~Connector()
+	{
+		for (auto &[name, entry] : props)
+		{
+			if (entry.spec)
+			{
+				drmModeFreeProperty(entry.spec);
+				entry.spec = nullptr;
+			}
+		}
+		if (ptr)
+		{
+			drmModeFreeConnector(ptr);
+			ptr = nullptr;
+		}
+	}
+};
+
+struct Encoder
+{
+	drmModeEncoderPtr ptr{nullptr};
+	std::map<std::string, DrmProperty, std::less<>> props;
+
+	Encoder() = default;
+	Encoder(const Encoder &) = delete;
+	Encoder &operator=(const Encoder &) = delete;
+
+	~Encoder()
+	{
+		for (auto &[name, entry] : props)
+		{
+			if (entry.spec)
+			{
+				drmModeFreeProperty(entry.spec);
+				entry.spec = nullptr;
+			}
+		}
+		if (ptr)
+		{
+			drmModeFreeEncoder(ptr);
+			ptr = nullptr;
+		}
+	}
+};
+
+struct DrmResources
+{
+	using drmModeConnectorPtr_unique = std::unique_ptr<drmModeConnector, decltype(&drmModeFreeConnector)>;
+	using drmModeCrtcPtr_unique = std::unique_ptr<drmModeCrtc, decltype(&drmModeFreeCrtc)>;
+
+	std::vector<drmModeConnectorPtr_unique> connectors;
+	std::vector<drmModeCrtcPtr_unique> crtcs;
+};
 
 ///
 /// The DRMFrameGrabber is used for creating snapshots of the display (screenshots)

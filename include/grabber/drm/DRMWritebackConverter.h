@@ -14,7 +14,11 @@
 #include <xf86drmMode.h>
 
 // Hyperion
+#include <grabber/ImageResampler.h>
+#include <utils/ColorRgb.h>
+#include <utils/Image.h>
 #include <utils/Logger.h>
+#include <utils/PixelFormat.h>
 
 // ─────────────────────────────────────────────────────────────────────────────
 
