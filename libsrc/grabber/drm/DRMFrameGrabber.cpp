@@ -1,13 +1,5 @@
 #include <grabber/drm/DRMFrameGrabber.h>
 
-#include <fcntl.h>
-#include <unistd.h>
-#include <sys/mman.h>
-
-#include <QDir>
-#include <QJsonDocument>
-#include <QSize>
-
 // Add missing AMD format modifier definitions for downward compatibility
 #ifndef AMD_FMT_MOD_TILE_VER_GFX11
 #define AMD_FMT_MOD_TILE_VER_GFX11 4

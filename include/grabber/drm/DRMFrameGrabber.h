@@ -1,10 +1,23 @@
 #pragma once
 
-#include <QJsonArray>
-#include <QJsonObject>
+// STL
+#include <map>
+#include <memory>
+#include <vector>
 
-#include <hyperion/Grabber.h>
+// Provides POSIX/DRM/Utils includes
 #include <grabber/drm/DRMWritebackConverter.h>
+
+// Qt includes
+#include <QJsonObject>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QDir>
+#include <QSize>
+
+// Grabber includes
+#include <hyperion/Grabber.h>
+
 
 struct DrmProperty
 {

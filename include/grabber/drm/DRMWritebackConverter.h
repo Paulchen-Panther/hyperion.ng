@@ -1,8 +1,10 @@
 #pragma once
 
+// C
 #include <cerrno>
 #include <cstring>
 
+// Unix
 #include <fcntl.h>
 #include <poll.h>
 #include <sys/mman.h>
@@ -10,15 +12,12 @@
 
 // DRM
 #include <drm_fourcc.h>
-#include <xf86drm.h>
 #include <xf86drmMode.h>
+#include <xf86drm.h>
 
-// Hyperion
-#include <grabber/ImageResampler.h>
+// Utils
 #include <utils/ColorRgb.h>
-#include <utils/Image.h>
 #include <utils/Logger.h>
-#include <utils/PixelFormat.h>
 
 // ─────────────────────────────────────────────────────────────────────────────
 
