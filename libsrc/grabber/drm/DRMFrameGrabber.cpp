@@ -3,17 +3,10 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/mman.h>
-#include <string>
-#include <iostream>
-#include <vector>
 
-#include <QThread>
-#include <QJsonObject>
-#include <QJsonArray>
-#include <QJsonDocument>
 #include <QDir>
+#include <QJsonDocument>
 #include <QSize>
-#include <QMap>
 
 // Add missing AMD format modifier definitions for downward compatibility
 #ifndef AMD_FMT_MOD_TILE_VER_GFX11
@@ -22,10 +15,6 @@
 #ifndef AMD_FMT_MOD_TILE_VER_GFX12
 #define AMD_FMT_MOD_TILE_VER_GFX12 5
 #endif
-
-
-#define DIV_ROUND_UP(n, d) (((n) + (d) - 1) / (d))
-#define ALIGN(v, a) (((v) + (a) - 1) & ~((a) - 1))
 
 static QString getDrmFormat(uint32_t format)
 {
@@ -117,43 +106,25 @@ static PixelFormat GetPixelFormatForDrmFormat(uint32_t format)
 	switch (format)
 	{
 #ifdef DRM_FORMAT_RGB565
-	case DRM_FORMAT_RGB565: return PixelFormat::BGR16;
+		case DRM_FORMAT_RGB565:  return PixelFormat::BGR16;
 #endif
-	case DRM_FORMAT_XRGB8888: return PixelFormat::BGR32;
-	case DRM_FORMAT_ARGB8888: return PixelFormat::BGR32;
-	case DRM_FORMAT_XBGR8888: return PixelFormat::RGB32;
-	case DRM_FORMAT_ABGR8888: return PixelFormat::RGB32;
-	case DRM_FORMAT_NV12:     return PixelFormat::NV12;
+		case DRM_FORMAT_XRGB8888: return PixelFormat::BGR32;
+		case DRM_FORMAT_ARGB8888: return PixelFormat::BGR32;
+		case DRM_FORMAT_XBGR8888: return PixelFormat::RGB32;
+		case DRM_FORMAT_ABGR8888: return PixelFormat::RGB32;
+		case DRM_FORMAT_NV12:     return PixelFormat::NV12;
 #ifdef DRM_FORMAT_NV21
-	case DRM_FORMAT_NV21:     return PixelFormat::NV21;
+		case DRM_FORMAT_NV21:     return PixelFormat::NV21;
 #endif
 #ifdef DRM_FORMAT_P010
-	case DRM_FORMAT_P010:     return PixelFormat::P010;
+		case DRM_FORMAT_P010:     return PixelFormat::P010;
 #endif
 #ifdef DRM_FORMAT_P030
-	case DRM_FORMAT_P030:     return PixelFormat::P030;
+		case DRM_FORMAT_P030:     return PixelFormat::P030;
 #endif
-	case DRM_FORMAT_YUV420:   return PixelFormat::I420;
-	default:                  return PixelFormat::NO_CHANGE;
+		case DRM_FORMAT_YUV420:   return PixelFormat::I420;
+		default:                  return PixelFormat::NO_CHANGE;
 	}
-}
-
-// Code from: https://gitlab.freedesktop.org/drm/igt-gpu-tools/-/blob/master/lib/igt_vc4.c#L339
-static size_t vc4_sand_tiled_offset(size_t column_width, size_t column_size, size_t x, size_t y, size_t bpp)
-{
-	size_t offset = 0;
-	size_t cols_x;
-	size_t pix_x;
-
-	/* Offset to the beginning of the relevant column. */
-	cols_x = x / column_width;
-	offset += cols_x * column_size;
-
-	/* Offset to the relevant pixel. */
-	pix_x = x % column_width;
-	offset += (column_width * y + pix_x) * bpp / 8;
-
-	return offset;
 }
 
 // Forward declarations for QDebug operators
@@ -227,355 +198,7 @@ bool DRMFrameGrabber::setWidthHeight(int width, int height)
 	return false;
 }
 
-struct LinearFramebufferParams
-{
-	int deviceFd;
-	const drmModeFB2* framebuffer;
-	int w;
-	int h;
-	PixelFormat pixelFormat;
-	const ImageResampler& imageResampler;
-	QSharedPointer<Logger> log;
-	Image<ColorRgb>& image;
-};
-
-static bool processLinearFramebuffer(const LinearFramebufferParams& params)
-{
-	int size = 0;
-	int fb_dmafd = 0;
-	int lineLength = (int)params.framebuffer->pitches[0];
-
-	if (params.pixelFormat == PixelFormat::I420 || params.pixelFormat == PixelFormat::NV12
-#ifdef DRM_FORMAT_NV21
-		|| params.pixelFormat == PixelFormat::NV21
-#endif
-	)
-	{
-		size = (params.w * params.h * 3) / 2;
-	}
-#ifdef DRM_FORMAT_P010
-	else if (params.pixelFormat == PixelFormat::P010)
-	{
-		size = lineLength * params.h + lineLength * DIV_ROUND_UP(params.h, 2);
-	}
-#endif
-#ifdef DRM_FORMAT_P030
-	else if (params.pixelFormat == PixelFormat::P030)
-	{
-		size = lineLength * params.h + DIV_ROUND_UP(params.w / 2, 3) * 4 * 2 * DIV_ROUND_UP(params.h, 2);
-	}
-#endif
-	else if (params.pixelFormat == PixelFormat::BGR16)
-	{
-		size = params.w * params.h * 2;
-	}
-	else if (params.pixelFormat == PixelFormat::RGB32 || params.pixelFormat == PixelFormat::BGR32)
-	{
-		size = params.w * params.h * 4;
-	}
-
-	if (size == 0)
-	{
-		Error(params.log, "Computed framebuffer size is 0 for linear layout");
-		return false;
-	}
-
-	int ret = drmPrimeHandleToFD(params.deviceFd, params.framebuffer->handles[0], O_RDONLY, &fb_dmafd);
-	if (ret != 0)
-	{
-		Error(params.log, "drmPrimeHandleToFD failed (handle=%u): %s", params.framebuffer->handles[0], strerror(errno));
-		return false;
-	}
-
-	auto* mmapFrameBuffer = (uint8_t*)mmap(nullptr, size, PROT_READ, MAP_SHARED, fb_dmafd, 0);
-	if (mmapFrameBuffer != MAP_FAILED)
-	{
-		params.imageResampler.processImage(mmapFrameBuffer, params.w, params.h, lineLength, params.pixelFormat, params.image);
-		munmap(mmapFrameBuffer, size);
-		close(fb_dmafd);
-		return true;
-	}
-
-	Error(params.log, "Format: %s failed. Error: %s", QSTRING_CSTR(getDrmFormat(params.framebuffer->pixel_format)), strerror(errno));
-	close(fb_dmafd);
-	return false;
-}
-
-// --- Broadcom SAND helpers (format-agnostic dispatcher) ---
-
-struct PlaneInfo
-{
-	int bpp;              // bits per pixel on this plane (8, 16, 32)
-	int width;            // plane width in pixels (or 32-bit words for P030)
-	int height;           // plane height in pixels
-	int stride;           // destination packed bytes per line
-	size_t srcBaseOffset; // source base offset (fb->offsets[idx])
-	size_t dstBaseOffset; // destination base offset in packed buffer
-	int fbPlaneIdx;       // FB plane index (0..3)
-};
-
-static bool getBroadcomSandGeometry(uint64_t modifier, uint32_t& columnWidthBytes, uint32_t& columnHeight, QString& errorString)
-{
-	switch (fourcc_mod_broadcom_mod(modifier))
-	{
-	case DRM_FORMAT_MOD_BROADCOM_SAND32:  columnWidthBytes = 32;  break;
-	case DRM_FORMAT_MOD_BROADCOM_SAND64:  columnWidthBytes = 64;  break;
-	case DRM_FORMAT_MOD_BROADCOM_SAND128: columnWidthBytes = 128; break;
-	case DRM_FORMAT_MOD_BROADCOM_SAND256: columnWidthBytes = 256; break;
-	case DRM_FORMAT_MOD_BROADCOM_VC4_T_TILED:
-		errorString = "Broadcom modifier 'DRM_FORMAT_MOD_BROADCOM_VC4_T_TILED' currently not supported";
-		return false;
-	default:
-		errorString = "Unknown Broadcom modifier";
-		return false;
-	}
-
-	columnHeight = fourcc_mod_broadcom_param(modifier);
-	return true;
-}
-
-static bool getPlanesForFormat(PixelFormat fmt, int w, int h, uint32_t /*columnWidthBytes*/, const drmModeFB2* fb, std::vector<PlaneInfo>& planes, uint32_t& totalSize, QString& errorString)
-{
-	planes.clear();
-	totalSize = 0;
-
-	switch (fmt)
-	{
-	case PixelFormat::NV12:
-#ifdef DRM_FORMAT_P010
-	case PixelFormat::P010:
-#endif
-	{
-		const int yBpp  = (fmt == PixelFormat::NV12) ? 8 : 16;
-		const int uvBpp = (fmt == PixelFormat::NV12) ? 16 : 32;
-
-		const auto yStride  = fb->pitches[0];
-		const auto uvStride = fb->pitches[1];
-
-		PlaneInfo y{};
-		y.bpp = yBpp;
-		y.width = w;
-		y.height = h;
-		y.stride = (int)yStride;
-		y.fbPlaneIdx = 0;
-		y.srcBaseOffset = fb->offsets[0];
-		y.dstBaseOffset = 0;
-		planes.push_back(y);
-
-		PlaneInfo uv{};
-		uv.bpp = uvBpp;
-		uv.width = DIV_ROUND_UP(w, 2);
-		uv.height = DIV_ROUND_UP(h, 2);
-		uv.stride = (int)uvStride;
-		uv.fbPlaneIdx = 1;
-		uv.srcBaseOffset = fb->offsets[1];
-		uv.dstBaseOffset = (size_t)yStride * (size_t)h;
-		planes.push_back(uv);
-
-		totalSize = (uint32_t)((size_t)yStride * (size_t)h + (size_t)uvStride * (size_t)DIV_ROUND_UP(h, 2));
-		return true;
-	}
-
-#ifdef DRM_FORMAT_NV21
-	case PixelFormat::NV21:
-	{
-		const auto yStride  = fb->pitches[0];
-		const auto uvStride = fb->pitches[1];
-
-		PlaneInfo y{};
-		y.bpp = 8;
-		y.width = w;
-		y.height = h;
-		y.stride = (int)yStride;
-		y.fbPlaneIdx = 0;
-		y.srcBaseOffset = fb->offsets[0];
-		y.dstBaseOffset = 0;
-		planes.push_back(y);
-
-		PlaneInfo vu{};
-		vu.bpp = 16;
-		vu.width = DIV_ROUND_UP(w, 2);
-		vu.height = DIV_ROUND_UP(h, 2);
-		vu.stride = (int)uvStride;
-		vu.fbPlaneIdx = 1;
-		vu.srcBaseOffset = fb->offsets[1];
-		vu.dstBaseOffset = (size_t)yStride * (size_t)h;
-		planes.push_back(vu);
-
-		totalSize = (uint32_t)((size_t)yStride * (size_t)h + (size_t)uvStride * (size_t)DIV_ROUND_UP(h, 2));
-		return true;
-	}
-#endif
-
-#ifdef DRM_FORMAT_P030
-	case PixelFormat::P030:
-	{
-		const auto yStride  = fb->pitches[0];
-		const auto uvStride = fb->pitches[1];
-
-		PlaneInfo y{};
-		y.bpp = 32;
-		y.width = yStride / 4;
-		y.height = h;
-		y.stride = (int)yStride;
-		y.fbPlaneIdx = 0;
-		y.srcBaseOffset = fb->offsets[0];
-		y.dstBaseOffset = 0;
-		planes.push_back(y);
-
-		PlaneInfo uv{};
-		uv.bpp = 32;
-		uv.width = uvStride / 4;
-		uv.height = DIV_ROUND_UP(h, 2);
-		uv.stride = (int)uvStride;
-		uv.fbPlaneIdx = 1;
-		uv.srcBaseOffset = fb->offsets[1];
-		uv.dstBaseOffset = (size_t)yStride * (size_t)h;
-		planes.push_back(uv);
-
-		totalSize = (uint32_t)((size_t)yStride * (size_t)h + (size_t)uvStride * (size_t)DIV_ROUND_UP(h, 2));
-		return true;
-	}
-#endif
-
-	default:
-		errorString = QString("Broadcom SAND: unsupported PixelFormat %1")
-						  .arg(QSTRING_CSTR(pixelFormatToString(fmt)));
-		return false;
-	}
-}
-
-static inline void copyBroadcomSandPlane(const PlaneInfo& p, uint32_t columnWidthBytes, uint32_t columnHeight, const uint8_t* src, uint8_t* dst, Logger* log)
-{
-    const uint32_t columnSize = columnWidthBytes * columnHeight;
-    const size_t columnWidthInUnits = (size_t)columnWidthBytes / ((size_t)p.bpp / 8u);
-
-    for (int i = 0; i < p.height; i++)
-    {
-        for (int j = 0; j < p.width; j++)
-        {
-            size_t src_offset = p.srcBaseOffset;
-            size_t dst_offset = p.dstBaseOffset;
-
-            src_offset += vc4_sand_tiled_offset(columnWidthInUnits, columnSize, (size_t)j, (size_t)i, (size_t)p.bpp);
-            dst_offset += (size_t)p.stride * (size_t)i + (size_t)j * (size_t)p.bpp / 8u;
-
-            switch (p.bpp)
-            {
-            case 8:
-                dst[dst_offset] = src[src_offset];
-                break;
-            case 16:
-            {
-                uint16_t val;
-                memcpy(&val, src + src_offset, sizeof(val));
-                memcpy(dst + dst_offset, &val, sizeof(val));
-                break;
-            }
-            case 32:
-            {
-                uint32_t val;
-                memcpy(&val, src + src_offset, sizeof(val));
-                memcpy(dst + dst_offset, &val, sizeof(val));
-                break;
-            }
-            default:
-                Error(log, "Unsupported bpp %d in Broadcom SAND layout", p.bpp);
-                break;
-            }
-        }
-    }
-}
-
-static bool untileBroadcomSandToLinear(int deviceFd, const drmModeFB2* fb, int w, int h, PixelFormat fmt, const std::vector<PlaneInfo>& planes, uint32_t totalDstSize, ImageResampler const& imageResampler, Logger* log, Image<ColorRgb>& image)
-{
-	if (totalDstSize == 0)
-	{
-		Error(log, "Computed framebuffer size is 0 for Broadcom SAND layout");
-		return false;
-	}
-
-	uint32_t columnWidthBytes = 0;
-	uint32_t columnHeight = 0;
-	QString geomErr;
-	if (!getBroadcomSandGeometry(fb->modifier, columnWidthBytes, columnHeight, geomErr))
-	{
-		Error(log, "getBroadcomSandGeometry failed: %s", QSTRING_CSTR(geomErr));
-		return false;
-	}
-
-	const uint32_t columnSize = columnWidthBytes * columnHeight;
-	uint32_t sandSrcSize = 0;
-	for (const auto& p : planes)
-	{
-		const uint32_t planeBytesPerRow = (uint32_t)p.width * (uint32_t)p.bpp / 8u;
-		const uint32_t numColumns = DIV_ROUND_UP(planeBytesPerRow, columnWidthBytes);
-		sandSrcSize = std::max(sandSrcSize, (uint32_t)(p.srcBaseOffset + numColumns * columnSize));
-	}
-
-	if (sandSrcSize == 0)
-	{
-		Error(log, "Computed SAND source buffer size is 0");
-		return false;
-	}
-
-	int fb_dmafd = 0;
-	int ret = drmPrimeHandleToFD(deviceFd, fb->handles[0], O_RDONLY, &fb_dmafd);
-	if (ret < 0)
-	{
-		Error(log, "drmPrimeHandleToFD failed (broadcom handle=%u): %s", fb->handles[0], strerror(errno));
-		return false;
-	}
-
-	auto* src_buf = (uint8_t*)mmap(nullptr, sandSrcSize, PROT_READ, MAP_SHARED, fb_dmafd, 0);
-	if (src_buf == MAP_FAILED)
-	{
-		Error(log, "mmap failed for SAND source buffer: %s", strerror(errno));
-		close(fb_dmafd);
-		return false;
-	}
-
-	std::vector<uint8_t> dst_buf(totalDstSize);
-	uint8_t* dst_ptr = dst_buf.data();
-
-	for (const auto& p : planes)
-	{
-		copyBroadcomSandPlane(p, columnWidthBytes, columnHeight, src_buf, dst_ptr, log);
-	}
-
-	imageResampler.processImage(dst_ptr, w, h, (int)fb->pitches[0], fmt, image);
-
-	munmap(src_buf, sandSrcSize);
-	close(fb_dmafd);
-	return true;
-}
-
-static bool processBroadcomSandFramebuffer(int deviceFd, const drmModeFB2* framebuffer, int w, int h, PixelFormat pixelFormat, ImageResampler const& imageResampler, Logger* log, Image<ColorRgb>& image, QString& errorString)
-{
-	uint32_t columnWidthBytes = 0;
-	uint32_t columnHeight = 0;
-	if (!getBroadcomSandGeometry(framebuffer->modifier, columnWidthBytes, columnHeight, errorString))
-	{
-		return false;
-	}
-
-	std::vector<PlaneInfo> planes;
-	uint32_t totalSize = 0;
-	if (!getPlanesForFormat(pixelFormat, w, h, columnWidthBytes, framebuffer, planes, totalSize, errorString))
-	{
-		return false;
-	}
-
-	if (totalSize == 0)
-	{
-		Error(log, "Computed framebuffer size is 0 for Broadcom SAND layout");
-		return false;
-	}
-
-	return untileBroadcomSandToLinear(deviceFd, framebuffer, w, h, pixelFormat, planes, totalSize, imageResampler, log, image);
-}
-
-int DRMFrameGrabber::grabFrame(Image<ColorRgb> &image, bool /*forceUpdate*/)
+int DRMFrameGrabber::grabFrame(Image<ColorRgb>& image, bool /*forceUpdate*/)
 {
 	if (!_isEnabled || _isDeviceInError)
 	{
@@ -588,74 +211,51 @@ int DRMFrameGrabber::grabFrame(Image<ColorRgb> &image, bool /*forceUpdate*/)
 		return -1;
 	}
 
-	bool newImage{false};
-	QString errorString;
+	const auto& [id, framebuffer] = *_framebuffers.begin();
 
-	// We only need to process the first framebuffer.
-	auto it = _framebuffers.begin();
-	if (it != _framebuffers.end())
+	_pixelFormat = GetPixelFormatForDrmFormat(framebuffer->pixel_format);
+
+	const int w = static_cast<int>(framebuffer->width);
+	const int h = static_cast<int>(framebuffer->height);
+	const uint64_t modifier = framebuffer->modifier;
+
+	qCDebug(grabber_screen_capture) << QString("Framebuffer ID: %1 - Width: %2 - Height: %3  - DRM Format: %4 - PixelFormat: %5, Modifier: %6")
+			.arg(id)
+			.arg(w)
+			.arg(h)
+			.arg(getDrmFormat(framebuffer->pixel_format))
+			.arg(pixelFormatToString(_pixelFormat))
+			.arg(getDrmModifierName(modifier));
+
+	Grabber::setWidthHeight(w, h);
+
+	if (!_wbConverter.isReady())
 	{
-		const auto& [id, framebuffer] = *it;
-
-		_pixelFormat = GetPixelFormatForDrmFormat(framebuffer->pixel_format);
-		uint64_t modifier = framebuffer->modifier;
-
-		qCDebug(grabber_screen_capture) << QString("Framebuffer ID: %1 - Width: %2 - Height: %3  - DRM Format: %4 - PixelFormat: %5, Modifier: %6")
-				.arg(id)
-				.arg(framebuffer->width)
-				.arg(framebuffer->height)
-				.arg(getDrmFormat(framebuffer->pixel_format))
-				.arg(pixelFormatToString(_pixelFormat))
-				.arg(getDrmModifierName(modifier));
-
-		int w = framebuffer->width;
-		int h = framebuffer->height;
-		Grabber::setWidthHeight(w, h);
-
-		// Linear modifier path
-		if (_pixelFormat != PixelFormat::NO_CHANGE && modifier == DRM_FORMAT_MOD_LINEAR)
+		if (!DRMWritebackConverter::isSupported(_deviceFd))
 		{
-			LinearFramebufferParams params{
-				_deviceFd,
-				framebuffer,
-				w,
-				h,
-				_pixelFormat,
-				_imageResampler,
-				_log,
-				image
-			};
-			if (processLinearFramebuffer(params))
-			{
-				newImage = true;
-			}
+			setInError(QString("Hardware does not support DRM Writeback Connector").arg(modifier, 16, 16, QChar('0')));
+			return -1;
 		}
-		// Broadcom SAND path
-		else if ((modifier >> 56ULL) == DRM_FORMAT_MOD_VENDOR_BROADCOM)
+
+		const int crtcIndex = _crtc ? findCrtcIndex() : -1;
+		if (!_wbConverter.init(_deviceFd, _crtc ? _crtc->crtc_id : 0, crtcIndex, static_cast<uint32_t>(w), static_cast<uint32_t>(h), _log.data()))
 		{
-			if (processBroadcomSandFramebuffer(_deviceFd, framebuffer, w, h, _pixelFormat, _imageResampler, _log.data(), image, errorString))
-			{
-				newImage = true;
-			}
-		}
-		else
-		{
-			errorString = QString("Currently unsupported format: %1 and/or modifier: %2")
-							  .arg(getDrmFormat(framebuffer->pixel_format))
-							  .arg(getDrmModifierName(framebuffer->modifier));
+			setInError("DRMWritebackConverter init failed");
+			return -1;
 		}
 	}
 
-	if (!errorString.isEmpty())
+	if (wbConverter && wbConverter->isReady())
 	{
-		this->setInError(errorString);
-		return -1;
-	}
+		uint8_t* result = wbConverter->capture(_log.data());
+		if (!result)
+		{
+			setInError("DrmWritebackConverter::capture failed");
+			return -1;
+		}
 
-	if (!newImage)
-	{
-		qCDebug(grabber_screen_capture) << "No image captured from DRM framebuffer.";
-		return -1;
+		// Writeback Converter always outputs DRM_FORMAT_ARGB8888 linear
+		_imageResampler.processImage(result, w, h, static_cast<int>(wbConverter->stride()), PixelFormat::BGR32, image);
 	}
 
 	return 0;

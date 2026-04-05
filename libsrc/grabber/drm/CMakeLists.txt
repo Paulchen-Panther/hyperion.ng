@@ -2,6 +2,7 @@ find_package(LibDRM 2.4.101 REQUIRED)
 
 add_library(drm-grabber
 	${CMAKE_SOURCE_DIR}/include/grabber/drm/DRMFrameGrabber.h
+	${CMAKE_SOURCE_DIR}/include/grabber/drm/DRMWritebackConverter.h
 	${CMAKE_SOURCE_DIR}/include/grabber/drm/DRMWrapper.h
 	${CMAKE_SOURCE_DIR}/libsrc/grabber/drm/DRMFrameGrabber.cpp
 	${CMAKE_SOURCE_DIR}/libsrc/grabber/drm/DRMWrapper.cpp

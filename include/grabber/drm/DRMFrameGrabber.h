@@ -1,85 +1,11 @@
 #pragma once
 
-#include <map>
-#include <memory>
-#include <vector>
+#include <QJsonArray>
+#include <QJsonObject>
 
-// DRM
-#include <drm_fourcc.h>
-#include <xf86drmMode.h>
-#include <xf86drm.h>
-
-// Utils includes
-#include <utils/ColorRgb.h>
-#include <utils/Logger.h>
 #include <hyperion/Grabber.h>
-#include <QLoggingCategory>
+#include <grabber/drm/DRMWritebackConverter.h>
 
-struct DrmProperty
-{
-	drmModePropertyPtr spec;
-	uint64_t value;
-};
-
-struct Connector
-{
-    drmModeConnectorPtr ptr;
-    std::map<std::string, DrmProperty, std::less<>> props;
-
-    Connector(const Connector&) = delete;
-    Connector& operator=(const Connector&) = delete;
-
-    ~Connector()
-    {
-        for (auto& [name, entry] : props)
-        {
-            if (entry.spec)
-            {
-                drmModeFreeProperty(entry.spec);
-                entry.spec = nullptr;
-            }
-        }
-        if (ptr)
-        {
-            drmModeFreeConnector(ptr);
-            ptr = nullptr;
-        }
-    }
-};
-
-struct Encoder
-{
-    drmModeEncoderPtr ptr;
-    std::map<std::string, DrmProperty, std::less<>> props;
-
-    Encoder(const Encoder&) = delete;
-    Encoder& operator=(const Encoder&) = delete;
-
-    ~Encoder()
-    {
-        for (auto& [name, entry] : props)
-        {
-            if (entry.spec)
-            {
-                drmModeFreeProperty(entry.spec);
-                entry.spec = nullptr;
-            }
-        }
-        if (ptr)
-        {
-            drmModeFreeEncoder(ptr);
-            ptr = nullptr;
-        }
-    }
-};
-
-struct DrmResources {
-	using drmModeConnectorPtr_unique = std::unique_ptr<drmModeConnector, decltype(&drmModeFreeConnector)>;
-	using drmModeCrtcPtr_unique = std::unique_ptr<drmModeCrtc, decltype(&drmModeFreeCrtc)>;
-
-	std::vector<drmModeConnectorPtr_unique> connectors;
-	std::vector<drmModeCrtcPtr_unique> crtcs;
-};
 
 ///
 /// The DRMFrameGrabber is used for creating snapshots of the display (screenshots)
@@ -227,6 +153,12 @@ private:
 	void enumerateConnectorsAndEncoders(const drmModeRes* resources);
 
 	/**
+	 * @brief Finds the active CRTC (CRT Controller) that is connected to a display.
+	 * @param resources The DRM resources structure obtained from the device.
+	 */
+	void findActiveCrtc(const drmModeRes* resources);
+
+	/**
 	 * @brief Checks if a given plane is the primary plane for the active CRTC.
 	 * @param planeId The ID of the plane to check.
 	 * @param properties The properties of the plane object.
@@ -273,5 +205,8 @@ private:
 
 	/// The pixel format of the captured framebuffer.
 	PixelFormat _pixelFormat;
+
+	/// DRM writeback converter
+	DRMWritebackConverter _wbConverter;
 };
 
