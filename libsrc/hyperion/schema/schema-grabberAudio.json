@@ -34,10 +34,10 @@
             "type": "string",
             "title": "edt_conf_audio_effects_title",
             "required": true,
-            "enum": [ "vuMeter" ],
+            "enum": [ "vuMeter", "projectM" ],
             "default": "vuMeter",
             "options": {
-                "enum_titles": [ "edt_conf_audio_effect_enum_vumeter" ]
+                "enum_titles": [ "edt_conf_audio_effect_enum_vumeter", "edt_conf_audio_effect_enum_projectm" ]
             },
             "propertyOrder": 4
         },
@@ -142,6 +142,49 @@
                     "required": true,
                     "propertyOrder": 7,
                     "comment": "Safe percentage is the percentage used to determine the maximum percentage of the audio safe level"
+                }
+            }
+        },
+        "projectM": {
+            "type": "object",
+            "title": "",
+            "required": false,
+            "propertyOrder": 6,
+            "options": {
+                "dependencies": {
+                    "audioEffect": "projectM"
+                }
+            },
+            "properties": {
+                "width": {
+                    "type": "integer",
+                    "title": "edt_conf_audio_projectm_width_title",
+                    "default": 64,
+                    "minimum": 16,
+                    "maximum": 1920,
+                    "step": 1,
+                    "required": true,
+                    "propertyOrder": 1,
+                    "comment": "Internal rendering width in pixels"
+                },
+                "height": {
+                    "type": "integer",
+                    "title": "edt_conf_audio_projectm_height_title",
+                    "default": 64,
+                    "minimum": 16,
+                    "maximum": 1080,
+                    "step": 1,
+                    "required": true,
+                    "propertyOrder": 2,
+                    "comment": "Internal rendering height in pixels"
+                },
+                "presetPath": {
+                    "type": "string",
+                    "title": "edt_conf_audio_projectm_presetpath_title",
+                    "default": "",
+                    "required": false,
+                    "propertyOrder": 3,
+                    "comment": "Path to a directory containing projectM preset (.milk) files"
                 }
             }
         }
