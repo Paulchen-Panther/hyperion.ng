@@ -139,6 +139,7 @@ set(DEFAULT_V4L2                        OFF)
 set(DEFAULT_AUDIO                       ON)
 set(DEFAULT_X11                         OFF)
 set(DEFAULT_XCB                         OFF)
+set(DEFAULT_PROJECTM                    OFF)
 
 # Input
 set(DEFAULT_BOBLIGHT_SERVER             ON)
@@ -404,6 +405,9 @@ message(STATUS "ENABLE_XCB = ${ENABLE_XCB}")
 
 option(ENABLE_AUDIO "Enable the AUDIO grabber" ${DEFAULT_AUDIO})
 message(STATUS "ENABLE_AUDIO = ${ENABLE_AUDIO}")
+
+option(ENABLE_PROJECTM "Enable projectM audio visualizer (requires libprojectM and EGL)" ${DEFAULT_PROJECTM})
+message(STATUS "ENABLE_PROJECTM = ${ENABLE_PROJECTM}")
 
 removeIndent()
 
