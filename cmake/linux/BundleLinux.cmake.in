@@ -29,6 +29,7 @@ list(APPEND SYSTEM_LIBS_SKIP
 
 function(collect_dependencies input_file output_var)
 	include(GetPrerequisites)
+	set(gp_tool objdump)
 	get_prerequisites("${input_file}" LOCAL_DEPS 0 1 "" "")
 	foreach(DEP ${LOCAL_DEPS})
 		get_filename_component(resolved ${DEP} NAME_WE)
