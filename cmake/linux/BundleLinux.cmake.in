@@ -65,6 +65,8 @@ if(OPENSSL_FOUND AND NOT OPENSSL_LIBRARIES STREQUAL "")
 	endforeach()
 endif()
 
+message("[BundleLinux] PREREQUISITE_LIBS: ${PREREQUISITE_LIBS}")
+
 # Copy dependencies to 'share/hyperion/lib'
 file(INSTALL FILES ${PREREQUISITE_LIBS} DESTINATION "${CMAKE_INSTALL_PREFIX}/share/hyperion/lib")
 
