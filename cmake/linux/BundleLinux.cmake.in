@@ -7,19 +7,34 @@ set(PYTHON_VERSION "@PYTHON_VERSION@")
 set(CMAKE_CROSSCOMPILING @CMAKE_CROSSCOMPILING@)
 
 if(CMAKE_CROSSCOMPILING)
-	set(CMAKE_GET_RUNTIME_DEPENDENCIES_TOOL "@CMAKE_GET_RUNTIME_DEPENDENCIES_TOOL@")
-	set(CMAKE_GET_RUNTIME_DEPENDENCIES_COMMAND "@CMAKE_GET_RUNTIME_DEPENDENCIES_COMMAND@")
+	if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.16")
+		set(CMAKE_GET_RUNTIME_DEPENDENCIES_TOOL "@CMAKE_GET_RUNTIME_DEPENDENCIES_TOOL_CROSS@")
+		set(CMAKE_GET_RUNTIME_DEPENDENCIES_COMMAND "@CMAKE_GET_RUNTIME_DEPENDENCIES_COMMAND_CROSS@")
+	else()
+		message(FATAL_ERROR "Cross-compilation is only supported with CMake 3.16 or higher.")
+	endif()
 endif()
 
 set(SYSTEM_LIBS_SKIP
-  libatomic libc libdbus libdl libexpat libfontconfig libgcc_s libgcrypt
-  libglib libglib-2 libgpg-error liblz4 liblzma libm libpcre libpcre2
-  libpthread librt libstdc++ libsystemd libudev libusb libusb-1 libutil
-  libuuid libz
+	libatomic libc libdbus libdl libexpat libfontconfig libgcc_s libgcrypt
+	libglib libglib-2 libgpg-error liblz4 liblzma libm libpcre libpcre2
+	libpthread librt libstdc++ libsystemd libudev libusb libusb-1 libutil
+	libuuid libz
 )
 
 function(collect_dependencies input_file output_var)
-    file(GET_RUNTIME_DEPENDENCIES FILES "${input_file}" RESOLVED_DEPENDENCIES_VAR _RESOLVED_DEPS)
+	if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.16")
+		get_filename_component(_ext "${input_file}" EXT)
+		if(_ext MATCHES "^\\.so")
+			file(GET_RUNTIME_DEPENDENCIES LIBRARIES "${input_file}" RESOLVED_DEPENDENCIES_VAR _RESOLVED_DEPS)
+		else()
+			file(GET_RUNTIME_DEPENDENCIES EXECUTABLES "${input_file}" RESOLVED_DEPENDENCIES_VAR _RESOLVED_DEPS)
+		endif()
+	else()
+        include(GetPrerequisites)
+        get_prerequisites("${input_file}" _RESOLVED_DEPS 0 1 "" "")
+	endif()
+
 	foreach(DEP ${_RESOLVED_DEPS})
 		get_filename_component(resolved ${DEP} NAME_WE)
 		list(FIND SYSTEM_LIBS_SKIP ${resolved} _index)
@@ -32,6 +47,7 @@ function(collect_dependencies input_file output_var)
 		get_filename_component(file_canonical ${resolved_file} REALPATH)
 		gp_append_unique(${output_var} ${file_canonical})
 	endforeach()
+
 	set(${output_var} "${${output_var}}" PARENT_SCOPE)
 endfunction()
 
