@@ -7,12 +7,10 @@ set(PYTHON_VERSION "@PYTHON_VERSION@")
 set(CMAKE_CROSSCOMPILING @CMAKE_CROSSCOMPILING@)
 
 if(CMAKE_CROSSCOMPILING)
-	message("[BundleLinux] Cross-compilation mode enabled")
 	if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.16")
+		message("[BundleLinux] Cross-compilation mode enabled")
 		set(CMAKE_GET_RUNTIME_DEPENDENCIES_TOOL "@CMAKE_GET_RUNTIME_DEPENDENCIES_TOOL@")
 		set(CMAKE_GET_RUNTIME_DEPENDENCIES_COMMAND "@CMAKE_GET_RUNTIME_DEPENDENCIES_COMMAND@")
-	else()
-		message(FATAL_ERROR "Cross-compilation is only supported with CMake 3.16 or higher.")
 	endif()
 endif()
 
@@ -25,7 +23,7 @@ set(SYSTEM_LIBS_SKIP
 
 function(collect_dependencies input_file output_var)
 	if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.16")
-		file(GET_RUNTIME_DEPENDENCIES EXECUTABLES "${input_file}" RESOLVED_DEPENDENCIES_VAR _deps)
+		file(GET_RUNTIME_DEPENDENCIES EXECUTABLES ${input_file} RESOLVED_DEPENDENCIES_VAR _deps)
 		set(use_modern_dependencies TRUE)
 	else()
 		include(GetPrerequisites)
