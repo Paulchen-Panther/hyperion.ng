@@ -4,14 +4,14 @@ set(OPENSSL_FOUND @OPENSSL_FOUND@)
 set(OPENSSL_LIBRARIES "@OPENSSL_LIBRARIES@")
 set(PYTHON_MODULES_DIR "@PYTHON_MODULES_DIR@")
 set(PYTHON_VERSION "@PYTHON_VERSION@")
+set(CMAKE_CROSSCOMPILING @CMAKE_CROSSCOMPILING@)
 
 if(CMAKE_CROSSCOMPILING)
 	set(CMAKE_GET_RUNTIME_DEPENDENCIES_TOOL "@CMAKE_GET_RUNTIME_DEPENDENCIES_TOOL@")
 	set(CMAKE_GET_RUNTIME_DEPENDENCIES_COMMAND "@CMAKE_GET_RUNTIME_DEPENDENCIES_COMMAND@")
 endif()
 
-set(SYSTEM_LIBS_SKIP "")
-list(APPEND SYSTEM_LIBS_SKIP
+set(SYSTEM_LIBS_SKIP
   libatomic libc libdbus libdl libexpat libfontconfig libgcc_s libgcrypt
   libglib libglib-2 libgpg-error liblz4 liblzma libm libpcre libpcre2
   libpthread librt libstdc++ libsystemd libudev libusb libusb-1 libutil
@@ -19,9 +19,8 @@ list(APPEND SYSTEM_LIBS_SKIP
 )
 
 function(collect_dependencies input_file output_var)
-	include(GetPrerequisites)
-	get_prerequisites("${input_file}" LOCAL_DEPS 0 1 "" "")
-	foreach(DEP ${LOCAL_DEPS})
+    file(GET_RUNTIME_DEPENDENCIES FILES "${input_file}" RESOLVED_DEPENDENCIES_VAR _RESOLVED_DEPS)
+	foreach(DEP ${_RESOLVED_DEPS})
 		get_filename_component(resolved ${DEP} NAME_WE)
 		list(FIND SYSTEM_LIBS_SKIP ${resolved} _index)
 		if(_index GREATER -1)
