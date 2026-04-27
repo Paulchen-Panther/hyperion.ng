@@ -5,6 +5,7 @@ project(hyperiond)
 #####################################
 
 get_target_property(QMAKE_EXECUTABLE Qt${QT_VERSION_MAJOR}::qmake IMPORTED_LOCATION)
+message(STATUS "QMake location: ${QMAKE_EXECUTABLE}")
 
 if(WIN32)
 	# generate windows .rc file

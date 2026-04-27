@@ -75,6 +75,8 @@ execute_process(
 	OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
+message(STATUS "QMake location: ${QMAKE_EXECUTABLE}")
+
 # Copy Qt plugins to 'share/hyperion/lib'
 foreach(PLUGIN "platforms" "sqldrivers" "imageformats" "tls" "wayland-shell-integration")
 	set(PLUGIN_DIR "${QT_PLUGINS_DIR}/${PLUGIN}")
