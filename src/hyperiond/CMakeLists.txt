@@ -4,8 +4,6 @@ project(hyperiond)
 ############ Preparation ############
 #####################################
 
-get_target_property(QMAKE_EXECUTABLE Qt${QT_VERSION_MAJOR}::qmake IMPORTED_LOCATION)
-
 if(WIN32)
 	# generate windows .rc file
 	string(REPLACE "/" "\\\\" WIN_RC_ICON_PATH ${CMAKE_SOURCE_DIR}/cmake/windows/inno/gfx/installer.ico)
@@ -18,6 +16,7 @@ if(WIN32)
 	)
 
 	# Search for windeployqt target (qt6 has the target natively) otherwise create it.
+	get_target_property(QMAKE_EXECUTABLE Qt${QT_VERSION_MAJOR}::qmake IMPORTED_LOCATION)
 	get_filename_component(QT_BIN_DIR ${QMAKE_EXECUTABLE} DIRECTORY)
 	if(NOT TARGET Qt${QT_VERSION_MAJOR}::windeployqt)
 		find_program(WINDEPLOYQT_EXECUTABLE NAMES windeployqt HINTS ${QT_BIN_DIR})
@@ -168,6 +167,8 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	install(FILES ${CMAKE_SOURCE_DIR}/bin/scripts/updateHyperionUser.sh DESTINATION "share/hyperion/scripts" COMPONENT "Hyperion")
 
 	if(ENABLE_DEPLOY_DEPENDENCIES)
+		get_target_property(QT_CORE_LOCATION Qt${QT_VERSION_MAJOR}::Core IMPORTED_LOCATION)
+		get_filename_component(QT_PLUGINS_DIR "${QT_CORE_LOCATION}/../../plugins" ABSOLUTE)
 		configure_file("${CMAKE_SOURCE_DIR}/cmake/linux/BundleLinux.cmake.in" "${PROJECT_BINARY_DIR}/BundleLinux.cmake" @ONLY)
 		install(SCRIPT "${PROJECT_BINARY_DIR}/BundleLinux.cmake" COMPONENT "Hyperion")
 	endif()

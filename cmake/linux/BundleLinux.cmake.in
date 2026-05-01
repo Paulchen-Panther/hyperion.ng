@@ -1,6 +1,5 @@
 set(PROJECT_NAME "@PROJECT_NAME@")
-set(QMAKE_EXECUTABLE "@QMAKE_EXECUTABLE@")
-set(QT_PLUGINS_DIR "QT_PLUGINS_DIR")
+set(QT_PLUGINS_DIR "@QT_PLUGINS_DIR@")
 set(OPENSSL_FOUND @OPENSSL_FOUND@)
 set(OPENSSL_LIBRARIES "@OPENSSL_LIBRARIES@")
 set(PYTHON_MODULES_DIR "@PYTHON_MODULES_DIR@")
@@ -68,17 +67,6 @@ endfunction()
 # Extract dependencies ignoring the system ones
 set(PREREQUISITE_LIBS "")
 collect_dependencies("${CMAKE_BINARY_DIR}/bin/${PROJECT_NAME}" PREREQUISITE_LIBS)
-
-# Get Qt plugin path
-if(QT_PLUGINS_DIR STREQUAL "")
-	execute_process(
-		COMMAND "${QMAKE_EXECUTABLE}" -query QT_INSTALL_PLUGINS
-		OUTPUT_VARIABLE QT_PLUGINS_DIR
-		OUTPUT_STRIP_TRAILING_WHITESPACE
-	)
-endif()
-
-message(STATUS "QMake location: ${QMAKE_EXECUTABLE}")
 
 # Copy Qt plugins to 'share/hyperion/lib'
 foreach(PLUGIN "platforms" "sqldrivers" "imageformats" "tls" "wayland-shell-integration")
