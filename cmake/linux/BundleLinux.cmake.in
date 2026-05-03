@@ -30,6 +30,10 @@ set(SYSTEM_LIBS_SKIP
 	libuuid libz
 )
 
+if(NOT "@OVERWRITE_SYSTEM_LIBS_SKIP@" STREQUAL "")
+	set(SYSTEM_LIBS_SKIP "@OVERWRITE_SYSTEM_LIBS_SKIP@")
+endif()
+
 function(collect_dependencies input_file output_var)
 	if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.16")
 		file(GET_RUNTIME_DEPENDENCIES
