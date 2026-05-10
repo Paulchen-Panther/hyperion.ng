@@ -23,15 +23,14 @@ else()
 	set(use_modern_dependencies FALSE)
 endif()
 
-set(SYSTEM_LIBS_SKIP
-	libatomic libc libdbus libdl libexpat libfontconfig libgcc_s libgcrypt
-	libglib libglib-2 libgpg-error liblz4 liblzma libm libpcre libpcre2
-	libpthread librt libstdc++ libsystemd libudev libusb libusb-1 libutil
-	libuuid libz
-)
-
-if(NOT "@OVERWRITE_SYSTEM_LIBS_SKIP@" STREQUAL "")
-	set(SYSTEM_LIBS_SKIP "@OVERWRITE_SYSTEM_LIBS_SKIP@")
+set(SYSTEM_LIBS_SKIP "@SYSTEM_LIBS_SKIP@")
+if(SYSTEM_LIBS_SKIP STREQUAL "")
+	set(SYSTEM_LIBS_SKIP
+		libatomic libc libdbus libdl libexpat libfontconfig libgcc_s libgcrypt
+		libglib libglib-2 libgpg-error liblz4 liblzma libm libpcre libpcre2
+		libpthread librt libstdc++ libsystemd libudev libusb libusb-1 libutil
+		libuuid libz
+	)
 endif()
 
 function(collect_dependencies input_file output_var)
