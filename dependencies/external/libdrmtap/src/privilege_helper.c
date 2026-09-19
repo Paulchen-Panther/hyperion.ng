@@ -1,0 +1,439 @@
+/*
+ * libdrmtap — DRM/KMS screen capture library for Linux
+ * https://github.com/fxd0h/libdrmtap
+ *
+ * Copyright (c) 2026 Mariano Abad <weimaraner@gmail.com>
+ * SPDX-License-Identifier: MIT
+ */
+
+/**
+ * @file privilege_helper.c
+ * @brief Auto-spawn privileged helper and SCM_RIGHTS fd passing
+ *
+ * When the library detects that handles[0] == 0 (missing CAP_SYS_ADMIN),
+ * it automatically spawns drmtap-helper via socketpair + fork/exec.
+ * The helper opens the DRM device with CAP_SYS_ADMIN and passes back
+ * DMA-BUF file descriptors via SCM_RIGHTS.
+ *
+ * Protocol:
+ *   - Library creates socketpair(AF_UNIX, SOCK_STREAM)
+ *   - fork/exec the helper with the child socket on fd 3
+ *   - Send CMD_GRAB (0x01) to request a DMA-BUF fd
+ *   - Receive status byte + optional fd via SCM_RIGHTS recvmsg
+ */
+
+#define _GNU_SOURCE
+#define _POSIX_C_SOURCE 200809L
+
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <signal.h>
+#include <sys/socket.h>
+#include <sys/wait.h>
+
+#include "drmtap_internal.h"
+#include "wire.h"
+
+/* Must match values in drmtap-helper.c */
+#define HELPER_SOCKET_FD 3
+/* CMD_GRAB / CMD_GET_CURSOR / CMD_QUIT and the command frame (helper_cmd_grab_t,
+ * built via wire_cmd()) come from wire.h, shared with the helper. */
+#define RESP_OK    0x00
+
+/* ========================================================================= */
+/* Helper search paths                                                       */
+/* ========================================================================= */
+
+static const char *helper_search_paths[] = {
+    NULL,  /* slot 0: ctx->helper_path (if set) */
+    "/usr/lib/rustdesk/drmtap-helper",
+    "/usr/libexec/drmtap-helper",
+    "/usr/local/libexec/drmtap-helper",
+    "/usr/local/bin/drmtap-helper",
+    "/usr/bin/drmtap-helper",
+    "/usr/lib/drmtap/drmtap-helper",
+    NULL
+};
+
+// Find the helper binary
+static const char *find_helper(drmtap_ctx *ctx) {
+    /* Check configured path first */
+    if (ctx->helper_path[0]) {
+        if (access(ctx->helper_path, X_OK) == 0) {
+            return ctx->helper_path;
+        }
+        drmtap_debug_log(ctx, "configured helper not found: %s",
+                         ctx->helper_path);
+    }
+
+    /* Search standard paths */
+    for (int i = 1; helper_search_paths[i]; i++) {
+        if (access(helper_search_paths[i], X_OK) == 0) {
+            drmtap_debug_log(ctx, "found helper: %s", helper_search_paths[i]);
+            return helper_search_paths[i];
+        }
+    }
+
+    return NULL;
+}
+
+/* ========================================================================= */
+/* Helper lifecycle                                                          */
+/* ========================================================================= */
+
+// Spawn the helper binary via socketpair + fork/exec
+// Sets ctx->helper_fd and ctx->helper_pid on success
+int drmtap_helper_spawn(drmtap_ctx *ctx) {
+    if (ctx->helper_fd >= 0) {
+        /* Already running */
+        return 0;
+    }
+
+    const char *helper_path = find_helper(ctx);
+    if (!helper_path) {
+        drmtap_set_error(ctx,
+            "drmtap-helper not found. Install it with:\n"
+            "  sudo cp drmtap-helper /usr/libexec/drmtap-helper\n"
+            "  sudo setcap cap_sys_admin+ep /usr/libexec/drmtap-helper");
+        return -EACCES;
+    }
+
+    /* Create socket pair for IPC */
+    int socks[2];
+    if (socketpair(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0, socks) < 0) {
+        drmtap_set_error(ctx, "socketpair failed: %s", strerror(errno));
+        return -errno;
+    }
+
+    pid_t pid = fork();
+    if (pid < 0) {
+        drmtap_set_error(ctx, "fork failed: %s", strerror(errno));
+        close(socks[0]);
+        close(socks[1]);
+        return -errno;
+    }
+
+    if (pid == 0) {
+        /* ---- Child process ---- */
+        close(socks[0]);  /* Close parent's end */
+
+        /* Move child socket to fd HELPER_SOCKET_FD */
+        if (socks[1] != HELPER_SOCKET_FD) {
+            if (dup2(socks[1], HELPER_SOCKET_FD) < 0) {
+                _exit(127);
+            }
+            close(socks[1]);
+        }
+        /* Clear CLOEXEC on the helper socket so it survives exec */
+        fcntl(HELPER_SOCKET_FD, F_SETFD, 0);
+
+        /* Close every other inherited descriptor before the exec. After exec the
+         * helper holds CAP_SYS_ADMIN and its seccomp policy permits read/write/
+         * sendmsg/ioctl without pinning them to expected fds, so any leaked
+         * socket/file/device fd would needlessly widen a helper compromise. Keep
+         * only std{in,out,err} and the helper socket. (A bounded close loop is
+         * used rather than close_range() so the oldest supported bases build.) */
+        long maxfd = sysconf(_SC_OPEN_MAX);
+        if (maxfd < 0) {
+            maxfd = 65536; /* only fall back when the query itself fails; do NOT
+                            * cap the real limit — under an elevated RLIMIT_NOFILE
+                            * (e.g. systemd LimitNOFILE=infinity) a fixed 65536 cap
+                            * would leave inherited fds above it open across exec */
+        }
+        for (int fd = 3; fd < (int)maxfd; fd++) {
+            if (fd != HELPER_SOCKET_FD) {
+                close(fd);
+            }
+        }
+
+        /* Pass device path as argv[1] */
+        execl(helper_path, "drmtap-helper", ctx->device_path, NULL);
+
+        /* exec failed */
+        _exit(127);
+    }
+
+    /* ---- Parent process ---- */
+    close(socks[1]);  /* Close child's end */
+
+    ctx->helper_fd = socks[0];
+    ctx->helper_pid = pid;
+
+    drmtap_debug_log(ctx, "spawned helper pid=%d from %s", pid, helper_path);
+    return 0;
+}
+
+// Kill the helper process
+void drmtap_helper_stop(drmtap_ctx *ctx) {
+    if (ctx->helper_fd >= 0) {
+        /* Send a full-size quit command (best effort). The helper reads one whole
+         * fixed-size command frame per iteration, so a 1-byte quit would be a
+         * short read that the helper now rejects; send the complete struct. */
+        helper_cmd_grab_t hcmd = wire_cmd(CMD_QUIT, 0);
+        ssize_t n = send(ctx->helper_fd, &hcmd, sizeof(hcmd), MSG_NOSIGNAL);
+        (void)n;
+
+        close(ctx->helper_fd);
+        ctx->helper_fd = -1;
+    }
+
+    if (ctx->helper_pid > 0) {
+        /* Give helper 100ms to exit, then SIGKILL */
+        int status;
+        usleep(100000);
+        if (waitpid(ctx->helper_pid, &status, WNOHANG) == 0) {
+            kill(ctx->helper_pid, SIGKILL);
+            waitpid(ctx->helper_pid, &status, 0);
+        }
+        ctx->helper_pid = -1;
+    }
+}
+
+/* ========================================================================= */
+/* SCM_RIGHTS fd receiving                                                   */
+/* ========================================================================= */
+
+// Exact-length framing + SCM_RIGHTS handling live in wire.h so the helper, this
+// client, and the wire-protocol tests share one implementation. Thin wrappers
+// keep the existing call sites unchanged.
+static int recv_all(int sock, void *buf, size_t len) {
+    return wire_recv_all(sock, buf, len);
+}
+
+/* Receive metadata + optional DMA-BUF fd via SCM_RIGHTS (V3 protocol).
+ * When helper sends FLAG_HAS_DMABUF, the metadata arrives via sendmsg
+ * with the DMA-BUF fd attached as ancillary data. */
+static int recv_fd_and_meta(int sock, void *meta_buf, size_t meta_len, int *out_fd) {
+    if (wire_recv_fd(sock, meta_buf, meta_len, out_fd) < 0) {
+        return -1;
+    }
+
+    return 0;
+}
+
+/* ========================================================================= */
+/* Public helper API (called from drm_grab.c)                                */
+/* ========================================================================= */
+
+
+// Request metadata + pixel data from the helper.
+// The helper reads the framebuffer in its own process (fresh data)
+// and sends metadata followed by raw pixel bytes through the socket.
+// Returns 0 on success, negative errno on error.
+int drmtap_helper_grab(drmtap_ctx *ctx, helper_grab_result_t *result,
+                        void *pixel_buf, size_t buf_size) {
+    if (ctx->helper_fd < 0) {
+        int ret = drmtap_helper_spawn(ctx);
+        if (ret < 0) {
+            return ret;
+        }
+    }
+
+    /* Send grab command */
+    helper_cmd_grab_t hcmd = wire_cmd(CMD_GRAB, ctx->crtc_id);
+    ssize_t n = send(ctx->helper_fd, &hcmd, sizeof(hcmd), MSG_NOSIGNAL);
+    if (n != sizeof(hcmd)) {
+        drmtap_debug_log(ctx, "helper send failed, trying respawn");
+        drmtap_helper_stop(ctx);
+
+        int ret = drmtap_helper_spawn(ctx);
+        if (ret < 0) {
+            return ret;
+        }
+
+        n = send(ctx->helper_fd, &hcmd, sizeof(hcmd), MSG_NOSIGNAL);
+        if (n != sizeof(hcmd)) {
+            drmtap_set_error(ctx, "helper communication failed after respawn");
+            return -EIO;
+        }
+    }
+
+    /* Receive metadata (possibly with DMA-BUF fd via SCM_RIGHTS) */
+    memset(result, 0, sizeof(*result));
+    result->dmabuf_fd = -1;
+    int dmabuf_fd = -1;
+    /* Recv into wire portion only — dmabuf_fd is local, not on the wire */
+    if (recv_fd_and_meta(ctx->helper_fd, &result->wire, sizeof(result->wire), &dmabuf_fd) < 0) {
+        drmtap_set_error(ctx, "helper metadata recv failed");
+        return -EIO;
+    }
+
+    /* Check for DMA-BUF fd mode (V3 protocol) */
+    if (result->wire.flags & HELPER_FLAG_HAS_DMABUF) {
+        if (dmabuf_fd < 0) {
+            drmtap_set_error(ctx, "helper signaled DMA-BUF but no fd received");
+            return -EIO;
+        }
+        /* Store the fd in the result for the caller */
+        result->dmabuf_fd = dmabuf_fd;
+        drmtap_debug_log(ctx,
+            "helper: %ux%u fb=%u DMA-BUF fd=%d mod=0x%lx (V3 SCM_RIGHTS)",
+            result->wire.width, result->wire.height, result->wire.fb_id, dmabuf_fd,
+            (unsigned long)result->wire.modifier);
+        return 0;
+    }
+
+    /* Close any unexpected fd */
+    if (dmabuf_fd >= 0) {
+        close(dmabuf_fd);
+    }
+
+    /* V2 fallback: data_size == 0 means error */
+    if (result->wire.data_size == 0) {
+        drmtap_set_error(ctx, "helper returned error");
+        return -EIO;
+    }
+
+    result->dmabuf_fd = -1;
+    drmtap_debug_log(ctx, "helper: %ux%u fb=%u data_size=%u seq=%u (V2 pixels)",
+                     result->wire.width, result->wire.height,
+                     result->wire.fb_id, result->wire.data_size, result->wire.seq);
+
+    /* Receive pixel data directly into caller's buffer */
+    if (result->wire.data_size > buf_size) {
+        drmtap_set_error(ctx, "helper data_size %u exceeds buffer %zu",
+                         result->wire.data_size, buf_size);
+        size_t remaining = result->wire.data_size;
+        char drain[4096];
+        while (remaining > 0) {
+            size_t chunk = remaining < sizeof(drain) ? remaining : sizeof(drain);
+            ssize_t got = recv(ctx->helper_fd, drain, chunk, 0);
+            if (got <= 0) {
+                /* Error/EOF mid-drain: the stream can no longer be resynced.
+                 * Tear the helper connection down so the next grab respawns a
+                 * clean one instead of reusing a desynchronized socket. */
+                drmtap_helper_stop(ctx);
+                return -EIO;
+            }
+            remaining -= (size_t)got;
+        }
+        return -ENOSPC;
+    }
+
+    if (recv_all(ctx->helper_fd, pixel_buf, result->wire.data_size) < 0) {
+        drmtap_set_error(ctx, "helper pixel recv failed");
+        return -EIO;
+    }
+
+    return 0;
+}
+
+int drmtap_helper_get_cursor(drmtap_ctx *ctx, drmtap_cursor_info *cursor) {
+    memset(cursor, 0, sizeof(*cursor));
+    cursor->pixels = NULL;
+
+    if (ctx->helper_fd < 0) {
+        int ret = drmtap_helper_spawn(ctx);
+        if (ret < 0) {
+            return ret;
+        }
+    }
+
+    /* Ask for the reply that carries the hotspot provenance, unless this helper
+     * has already shown it does not know that command. A helper older than
+     * CMD_GET_CURSOR2 rejects the unknown type at its own gate and closes the
+     * connection WITHOUT replying, which is what the recv below sees. */
+    const int extended = !ctx->helper_no_cursor2;
+    helper_cmd_grab_t hcmd = wire_cmd(extended ? CMD_GET_CURSOR2 : CMD_GET_CURSOR,
+                                      ctx->crtc_id);
+    ssize_t n = send(ctx->helper_fd, &hcmd, sizeof(hcmd), MSG_NOSIGNAL);
+    if (n != sizeof(hcmd)) {
+        drmtap_helper_stop(ctx);
+        if (drmtap_helper_spawn(ctx) < 0) {
+            return -EIO;
+        }
+        n = send(ctx->helper_fd, &hcmd, sizeof(hcmd), MSG_NOSIGNAL);
+        if (n != sizeof(hcmd)) {
+            return -EIO;
+        }
+    }
+
+    helper_cursor_wire2_t w2;
+    memset(&w2, 0, sizeof(w2));
+    size_t meta_len = extended ? sizeof(w2) : sizeof(w2.base);
+    if (recv_all(ctx->helper_fd, &w2, meta_len) < 0) {
+        if (extended && !ctx->helper_cursor2_ok) {
+            /* Two very different things land here, and recv_all cannot tell them
+             * apart: a helper that does not know CMD_GET_CURSOR2 (it rejects the
+             * unknown type at its gate and closes without replying), and a helper
+             * that does know it but died before answering. So the channel is
+             * replaced and the EXTENDED command tried once more; only a second
+             * failure on a freshly spawned helper is taken as evidence of an old
+             * binary. Latching on the first failure would turn one transient
+             * death into a context-long silent loss of the provenance - the
+             * context outlives a session, so "silent" means days. */
+            drmtap_helper_stop(ctx);
+            if (drmtap_helper_spawn(ctx) < 0) {
+                drmtap_set_error(ctx, "helper cursor metadata recv failed");
+                return -EIO;
+            }
+            if (!ctx->helper_cursor2_retried) {
+                ctx->helper_cursor2_retried = 1;
+                drmtap_debug_log(ctx,
+                    "no answer to CMD_GET_CURSOR2; retrying it on a fresh helper "
+                    "before concluding the binary is old");
+                return drmtap_helper_get_cursor(ctx, cursor);
+            }
+            /* Twice, on two helpers: it does not know the command. Fall back,
+             * which keeps the capture working and gives up only the provenance,
+             * reported by drmtap_cursor_hotspot_valid() as -ENOTSUP. */
+            ctx->helper_no_cursor2 = 1;
+            drmtap_debug_log(ctx,
+                "helper did not answer CMD_GET_CURSOR2 twice; falling back to "
+                "CMD_GET_CURSOR (this helper predates hotspot provenance)");
+            return drmtap_helper_get_cursor(ctx, cursor);
+        }
+        drmtap_set_error(ctx, "helper cursor metadata recv failed");
+        return -EIO;
+    }
+    const helper_cursor_wire_t w = w2.base;
+
+    cursor->x = w.x;
+    cursor->y = w.y;
+    cursor->hot_x = w.hot_x;
+    cursor->hot_y = w.hot_y;
+    cursor->width = w.width;
+    cursor->height = w.height;
+    cursor->visible = w.visible ? 1 : 0;
+    /* Only the privileged side can tell an absent HOTSPOT_X/Y from a real
+     * (0, 0), so the answer travels with the reply rather than being re-derived
+     * here from coordinates that cannot carry it. A legacy reply carries no such
+     * field: record NOTHING then, so the accessor answers "no provenance"
+     * instead of asserting the hotspot was a guess. */
+    if (extended) {
+        /* It answered, so this helper knows the command: a later failure is a
+         * transient, not an old binary. */
+        ctx->helper_cursor2_ok = 1;
+        drmtap_cursor_set_hot_provenance(cursor, w2.hot_from_property != 0);
+    }
+
+    if (w.visible && w.data_size > 0) {
+        /* Drain oversized payloads defensively (cursors are tiny, ~64x64). */
+        if (w.data_size > 256u * 256u * 4u) {
+            size_t rem = w.data_size;
+            char drn[4096];
+            while (rem > 0) {
+                size_t c = rem < sizeof(drn) ? rem : sizeof(drn);
+                if (recv(ctx->helper_fd, drn, c, 0) <= 0) break;
+                rem -= c;
+            }
+            cursor->visible = 0;
+            return 0;
+        }
+        cursor->pixels = (uint32_t *)malloc(w.data_size);
+        if (!cursor->pixels) {
+            return -ENOMEM;
+        }
+        if (recv_all(ctx->helper_fd, cursor->pixels, w.data_size) < 0) {
+            free(cursor->pixels);
+            cursor->pixels = NULL;
+            return -EIO;
+        }
+    }
+
+    return 0;
+}

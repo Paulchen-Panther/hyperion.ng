@@ -1,0 +1,762 @@
+/*
+ * libdrmtap — DRM/KMS screen capture library for Linux
+ * https://github.com/fxd0h/libdrmtap
+ *
+ * Copyright (c) 2026 Mariano Abad <weimaraner@gmail.com>
+ * SPDX-License-Identifier: MIT
+ */
+
+/**
+ * @file drmtap.h
+ * @brief Public API for libdrmtap — types, functions, and constants
+ */
+
+#ifndef DRMTAP_H
+#define DRMTAP_H
+
+#include <stdint.h>
+#include <stddef.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/* ========================================================================= */
+/* Version                                                                   */
+/* ========================================================================= */
+
+/* Version of the C library. Kept equal to the libdrmtap-sys crate version
+ * (the C sources packaged for Rust are the same code) and to the meson
+ * project version; the unit tests cross-check all three. The higher-level
+ * `libdrmtap` Rust wrapper crate carries its own, separate version line. */
+#define DRMTAP_VERSION_MAJOR 0
+#define DRMTAP_VERSION_MINOR 5
+#define DRMTAP_VERSION_PATCH 6
+
+/**
+ * @brief Get the library version as a packed integer.
+ * @return (major << 16) | (minor << 8) | patch
+ */
+int drmtap_version(void);
+
+/* ========================================================================= */
+/* Configuration                                                             */
+/* ========================================================================= */
+
+/**
+ * @brief Configuration for opening a capture context.
+ *
+ * All fields are optional — pass NULL to drmtap_open() for all defaults.
+ */
+typedef struct {
+    /** DRM device path (e.g., "/dev/dri/card0").
+     *  NULL = auto-detect first device with active displays. */
+    const char *device_path;
+
+    /** CRTC id to capture (from drmtap_list_displays).
+     *  0 = auto-select primary display. */
+    uint32_t crtc_id;
+
+    /** Path to privileged helper binary.
+     *  NULL = search default locations:
+     *    1. $DRMTAP_HELPER_PATH (env var)
+     *    2. <exe_dir>/drmtap-helper
+     *    3. /usr/libexec/drmtap-helper
+     *    4. /usr/local/libexec/drmtap-helper */
+    const char *helper_path;
+
+    /** Enable debug logging to stderr.
+     *  Can also be enabled with DRMTAP_DEBUG=1 env var. */
+    int debug;
+} drmtap_config;
+
+/* ========================================================================= */
+/* Context                                                                   */
+/* ========================================================================= */
+
+/** Opaque handle to a capture session. */
+typedef struct drmtap_ctx drmtap_ctx;
+
+/**
+ * @brief Open a capture context.
+ *
+ * @param config Configuration (NULL for all defaults: auto-detect GPU/display)
+ * @return Context handle, or NULL on error (call drmtap_error(NULL) for message)
+ */
+drmtap_ctx *drmtap_open(const drmtap_config *config);
+
+/**
+ * @brief Close the context and free all resources.
+ * @param ctx Context to close (safe to pass NULL)
+ */
+void drmtap_close(drmtap_ctx *ctx);
+
+/* ========================================================================= */
+/* Display Enumeration                                                       */
+/* ========================================================================= */
+
+/** Information about a connected display. */
+typedef struct {
+    uint32_t crtc_id;       /**< Use in drmtap_config.crtc_id */
+    uint32_t connector_id;  /**< DRM connector id */
+    char name[32];          /**< `<type>-<index>` in the kernel's own spelling,
+                                 as under /sys/class/drm: "HDMI-A-1", "DP-2",
+                                 "eDP-1", "LVDS-1", "DSI-1", "USB-1" */
+    uint32_t x;             /**< X offset in virtual FB (from CRTC) */
+    uint32_t y;             /**< Y offset in virtual FB (from CRTC) */
+    uint32_t width;         /**< Current mode width in pixels */
+    uint32_t height;        /**< Current mode height in pixels */
+    uint32_t refresh_hz;    /**< Vertical refresh rate */
+    int active;             /**< 1 = display is on, 0 = disabled */
+} drmtap_display;
+
+/**
+ * @brief List connected displays.
+ *
+ * @param ctx       Capture context
+ * @param out       Array to fill with display info
+ * @param max_count Maximum entries to write
+ * @return Number of displays found (may be > max_count), or negative errno
+ */
+int drmtap_list_displays(drmtap_ctx *ctx, drmtap_display *out, int max_count);
+
+/**
+ * @brief Check if display configuration changed since last call.
+ *
+ * Useful for detecting monitor hotplug events.
+ *
+ * @param ctx Capture context
+ * @return 1 = changed, 0 = unchanged, negative errno on error
+ */
+int drmtap_displays_changed(drmtap_ctx *ctx);
+
+/* ========================================================================= */
+/* Frame Capture                                                             */
+/* ========================================================================= */
+
+/** Captured frame metadata and pixel data. */
+typedef struct {
+    /** Pixel data. Always set on the mapped paths (drmtap_grab_mapped,
+     *  drmtap_grab_mapped_fast). On the zero-copy path (drmtap_grab,
+     *  drmtap_grab_desc) it is NOT guaranteed: it holds the raw, UNCONVERTED
+     *  scanout mapping where one was possible and NULL where the scanout cannot
+     *  be CPU-mapped (amdgpu GFX9+, discrete VRAM, nvidia). Do not read it after
+     *  a zero-copy grab -- that it happens to work on one GPU and returns NULL on
+     *  another is exactly how issue #36 was mistaken for a driver bug. */
+    void *data;
+    int dma_buf_fd;         /**< DMA-BUF fd (zero-copy) or -1 (mapped) */
+    uint32_t width;         /**< Frame width in pixels */
+    uint32_t height;        /**< Frame height in pixels */
+    uint32_t stride;        /**< Bytes per row (may include padding) */
+    uint32_t format;        /**< DRM fourcc (e.g., DRM_FORMAT_XRGB8888) */
+    uint64_t modifier;      /**< Format modifier (e.g., DRM_FORMAT_MOD_LINEAR) */
+    uint32_t fb_id;         /**< KMS framebuffer id — changes on compositor page flip */
+    void *_priv;            /**< Internal — do not touch */
+} drmtap_frame_info;
+
+/**
+ * @brief Capture a frame — zero-copy path.
+ *
+ * Returns a DMA-BUF file descriptor in frame->dma_buf_fd that can be
+ * passed directly to VAAPI/V4L2 encoders without copying pixel data.
+ *
+ * THERE ARE NO USABLE CPU PIXELS HERE. This call does no conversion and no detiling.
+ * `frame->data` is whatever the raw scanout mapping happened to give: still tiled where
+ * the scanout is tiled, and NULL on a GPU whose scanout cannot be CPU-mapped at all
+ * (amdgpu GFX9+, discrete VRAM, nvidia) -- and the call still returns 0 in both cases.
+ * Reading `frame->data` after a successful `drmtap_grab` is
+ * therefore not portable and renders black on those GPUs -- it was reported as a
+ * capture bug (issue #36). For pixels in this process use `drmtap_grab_mapped()`;
+ * to hand the buffer to another process use `drmtap_grab_desc()` plus
+ * `drmtap_convert_dmabuf()` on the receiving side.
+ *
+ * @param ctx   Capture context
+ * @param frame Output frame info (caller-allocated)
+ * @return 0 on success, negative errno on error
+ * @retval -EACCES No permission (helper not found or not configured)
+ * @retval -ENODEV Display disconnected or CRTC inactive
+ * @retval -EBUSY  Previous frame not released
+ */
+int drmtap_grab(drmtap_ctx *ctx, drmtap_frame_info *frame);
+
+/**
+ * @brief Capture a frame — mapped path.
+ *
+ * Returns a pointer to linear RGBA pixel data in frame->data.
+ * Handles GPU tiling → linear conversion automatically.
+ *
+ * @param ctx   Capture context
+ * @param frame Output frame info (caller-allocated)
+ * @return 0 on success, negative errno on error
+ */
+int drmtap_grab_mapped(drmtap_ctx *ctx, drmtap_frame_info *frame);
+
+/**
+ * @brief Capture a frame — fast persistent-mmap path.
+ *
+ * Like drmtap_grab_mapped() but keeps the mmap/GEM handle/prime fd alive between
+ * calls, so a repeat capture of the same framebuffer skips the GetFB2 / PRIME
+ * export / mmap setup (about 1 ioctl instead of ~7 syscalls). It ALWAYS re-reads
+ * the current scanout and returns it as a fresh frame (return 0): a compositor can
+ * render into the same framebuffer without a page flip, so treating an unchanged
+ * fb_id as "skip" would miss content updates. It therefore never returns 1.
+ *
+ * Identity is keyed on fb_id: this path assumes a stable fb_id denotes the same
+ * scanout buffer between captures. If the environment destroys a framebuffer and
+ * recycles its id onto a different buffer while it is being captured (uncommon in
+ * steady-state compositing, but possible across a resolution change), re-open or
+ * use drmtap_grab_mapped(), which re-exports every frame.
+ *
+ * If the scanout cannot be CPU-mapped (amdgpu GFX9+, discrete VRAM, nvidia) and
+ * an EGL backend is available, the call transparently falls back to EGL-detiling
+ * the exported fd instead of returning -ENOMEM. Such a frame is not cached — the
+ * fd is re-exported each grab — and -ENOMEM is returned only when no EGL fallback
+ * is possible.
+ *
+ * The returned frame->data pointer is valid until the NEXT call to this
+ * function OR until drmtap_close(). Do NOT call drmtap_frame_release()
+ * on frames from this function — cleanup is automatic.
+ *
+ * REQUIRES CAP_SYS_ADMIN IN THE CALLING PROCESS. Unlike `drmtap_grab_mapped()`, this
+ * entry point has NO helper fallback: caching a persistent CPU mapping per framebuffer
+ * is the whole point of it, and the helper hands over a fresh fd per grab, so there is
+ * nothing stable to cache. Without the capability it returns -EACCES on every call, on
+ * any GPU, and `drmtap_error()` names `drmtap_grab_mapped()` as the call to use instead.
+ *
+ * @param ctx   Capture context
+ * @param frame Output frame info (caller-allocated, reused between calls)
+ * @return 0 = frame captured, negative errno on error
+ * @retval -EACCES The process lacks CAP_SYS_ADMIN (no helper fallback on this path)
+ */
+int drmtap_grab_mapped_fast(drmtap_ctx *ctx, drmtap_frame_info *frame);
+
+/**
+ * @brief Release a captured frame's resources.
+ *
+ * Must be called after drmtap_grab() or drmtap_grab_mapped().
+ * Safe to call with NULL ctx or zeroed frame.
+ *
+ * @param ctx   Capture context
+ * @param frame Frame to release
+ */
+void drmtap_frame_release(drmtap_ctx *ctx, drmtap_frame_info *frame);
+
+/* ========================================================================= */
+/* Split capture: privileged export + unprivileged convert                   */
+/* ========================================================================= */
+/*
+ * These entry points let a caller that already owns a privilege boundary
+ * (e.g. a root service + an unprivileged worker) run the DRM export and the
+ * GPU detile/convert in DIFFERENT processes, so the EGL/GLES and vendor GPU
+ * driver stack never load into the privileged one.
+ *
+ *   privileged side:   drmtap_open() + drmtap_grab()  -> dma_buf_fd + metadata
+ *                      (minimal DRM ops only; libEGL/libGLESv2 are dlopen'd
+ *                       lazily on first convert, so a process that never
+ *                       converts never maps the GPU stack at all)
+ *   unprivileged side: drmtap_open_render() + drmtap_convert_dmabuf()
+ *                      (imports the fd, EGL-detiles, converts to linear RGBA)
+ *
+ * The fd + metadata are carried between the two processes by the caller
+ * (e.g. over a unix socket with SCM_RIGHTS) — libdrmtap does not impose a
+ * wire format.
+ */
+
+/* Electro-optical transfer function of a scanout, from the connector
+ * HDR_OUTPUT_METADATA infoframe (kernel/CTA-861 numbering). PQ means
+ * "tone-map this"; HLG currently gets the plain bit-depth reduction
+ * (PQ/HDR10 is the desktop norm). */
+#define DRMTAP_EOTF_SDR  0  /**< traditional gamma SDR (or no HDR metadata) */
+#define DRMTAP_EOTF_PQ   2  /**< SMPTE ST 2084 (HDR10) */
+#define DRMTAP_EOTF_HLG  3  /**< Hybrid Log-Gamma (BT.2100) */
+
+/**
+ * @brief Descriptor of an externally-supplied scanout DMA-BUF.
+ *
+ * On the privileged exporter side use drmtap_grab_desc() to fill it in one
+ * call; ship it (plus the dma_buf_fd) over IPC to the unprivileged converter.
+ * num_planes/offsets/pitches carry the auxiliary planes of compressed layouts
+ * (e.g. Intel CCS: main surface + CCS aux + clear-color) — these are NOT
+ * present in drmtap_frame_info, so a split consumer must use drmtap_grab_desc
+ * (not drmtap_grab alone) to capture a CCS or HDR scanout losslessly. All
+ * planes live inside the one dma_buf_fd, as DRM GetFB2 reports them.
+ */
+typedef struct {
+    int dma_buf_fd;         /**< Scanout DMA-BUF. May be -1 for an fb_id this
+                                 context has already imported (see
+                                 drmtap_convert_dmabuf). */
+    uint32_t width;         /**< Frame width in pixels */
+    uint32_t height;        /**< Frame height in pixels */
+    uint32_t format;        /**< DRM fourcc of the scanout */
+    uint64_t modifier;      /**< DRM format modifier (tiling/compression) */
+    uint32_t fb_id;         /**< KMS framebuffer id — the import-once cache
+                                 key. 0 disables caching for this frame. */
+    uint32_t num_planes;    /**< Used entries in offsets/pitches (1..4);
+                                 0 is treated as 1 */
+    uint32_t offsets[4];    /**< Per-plane byte offsets into the DMA-BUF */
+    uint32_t pitches[4];    /**< Per-plane strides in bytes; pitches[0] is the
+                                 main surface stride */
+    uint32_t hdr_eotf;      /**< DRMTAP_EOTF_*: PQ triggers the HDR->SDR
+                                 tone-map during conversion */
+    uint32_t hdr_max_nits;  /**< Mastering/content peak luminance (cd/m2),
+                                 0 = unknown */
+} drmtap_dmabuf_desc;
+
+/**
+ * @brief Capture a frame AND emit a complete DMA-BUF descriptor for the split.
+ *
+ * The privileged-exporter counterpart to drmtap_convert_dmabuf(): does a
+ * zero-copy grab and fills @p desc with everything the unprivileged converter
+ * needs — the dma_buf_fd, geometry, format/modifier, fb_id, the full plane
+ * layout (num_planes/offsets/pitches, incl. Intel CCS aux planes) and the
+ * connector HDR state (eotf/max_nits). drmtap_grab() alone cannot produce
+ * these last two — drmtap_frame_info has no plane array or HDR fields — so a
+ * split consumer that must handle compressed (CCS) or HDR scanouts has to use
+ * this entry point.
+ *
+ * @p frame is also populated (same as drmtap_grab) and OWNS the resources:
+ * release it with drmtap_frame_release() once the fd has been sent. @p desc is
+ * a metadata snapshot safe to serialize over IPC, with ONE caveat: desc.dma_buf_fd
+ * is an integer valid only in THIS (exporter) process — it aliases @p frame's fd.
+ * Transfer the fd itself out of band (SCM_RIGHTS); on the receiving side the
+ * converter must OVERWRITE desc.dma_buf_fd with the fd number it received before
+ * calling drmtap_convert_dmabuf(), and owns/closes that received fd. Fails with
+ * -ENOTSUP if the capture path produced pixels but no transferable dma-buf.
+ *
+ * @param ctx   Capture context (a real KMS context from drmtap_open)
+ * @param desc  Output descriptor (value type; ship over IPC, fixing up the fd)
+ * @param frame Output frame — owns the dma_buf_fd; release when done
+ * @return 0 on success, negative errno on error
+ */
+int drmtap_grab_desc(drmtap_ctx *ctx, drmtap_dmabuf_desc *desc,
+                     drmtap_frame_info *frame);
+
+/**
+ * @brief Open an UNPRIVILEGED, render-only context for drmtap_convert_dmabuf().
+ *
+ * Opens a DRM render node only. It does NOT open a KMS card, spawn the
+ * privileged helper, or enumerate displays, and it needs no elevated
+ * capability. Grab entry points return -ENOTSUP on this context.
+ *
+ * On a multi-GPU host the node matters: a scanout DMA-BUF exported by one GPU
+ * can be impossible to import into another vendor's render node (incompatible
+ * tiling modifiers), and the choice is made once, here. Pass the exporting
+ * device's node explicitly whenever it is known — drmtap_render_node() on the
+ * capture context names it. With NULL, auto-selection prefers the render node
+ * of a card that is actively driving a display (read from sysfs, so it needs no
+ * rights on the KMS cards) over a compute/offload GPU with no outputs, and only
+ * falls back to "the first openable node" when nothing can be ranked.
+ *
+ * @param render_node Render node path (e.g. "/dev/dri/renderD128"),
+ *                    or NULL to auto-select (see above).
+ * @return Context handle, or NULL on error (call drmtap_error(NULL) for message)
+ */
+drmtap_ctx *drmtap_open_render(const char *render_node);
+
+/**
+ * @brief A capturable DRM device, as reported by drmtap_list_devices().
+ *
+ * Layout is FROZEN: like drmtap_dmabuf_desc it is written into caller-owned
+ * storage, so a future addition must come as a new accessor, never as a new
+ * field here (a bigger struct written by a newer .so would overrun a consumer
+ * built against an older header).
+ */
+typedef struct {
+    char path[64];          /**< KMS card node, e.g. "/dev/dri/card1" */
+    char render_node[64];   /**< Render node, or "" if the device has none */
+    char driver[32];        /**< Kernel driver, e.g. "i915", "nvidia-drm" */
+    uint32_t display_count; /**< CRTCs actively scanning out on this device */
+} drmtap_device;
+
+/**
+ * @brief Enumerate every DRM device with KMS resources.
+ *
+ * A drmtap context is bound to ONE device, so on a multi-GPU host a single
+ * context can never advertise the displays of the other cards: drmtap_open()
+ * settles on the first card with an active CRTC and drmtap_list_displays() then
+ * only ever sees that one. This is the discovery step a multi-GPU consumer
+ * needs — open one context per device (drmtap_open with the reported @c path)
+ * and enumerate each, instead of silently capturing a single card.
+ *
+ * Devices with no active display are reported too, with display_count 0, so the
+ * caller can still open one and see its connected-but-dark connectors; sorting
+ * or filtering on display_count is left to the caller. Each card is opened
+ * briefly to read its KMS resources, so this needs the same rights as
+ * drmtap_open (it is meant for the privileged/exporter side); cards that cannot
+ * be opened are skipped rather than failing the whole enumeration. Connector
+ * state is NOT re-probed, so calling this does not disturb a live display.
+ *
+ * @param out       Caller array to fill
+ * @param max_count Capacity of @p out
+ * @return Number of devices written (0 or more), or negative errno on error
+ */
+int drmtap_list_devices(drmtap_device *out, int max_count);
+
+/**
+ * @brief Render node (/dev/dri/renderD*) of the device backing @p ctx.
+ *
+ * The deterministic answer to "which render node can import THIS context's
+ * scanout": the privileged exporter calls it on its capture context and passes
+ * the string to the unprivileged converter's drmtap_open_render(), so a
+ * multi-GPU host converts on the GPU that exported the frame instead of
+ * whichever node happened to be picked by auto-selection.
+ *
+ * Deliberately NOT part of drmtap_dmabuf_desc: that struct is written by
+ * drmtap_grab_desc() into caller-owned storage, so growing it would corrupt a
+ * consumer built against an older header but running against a newer .so (the
+ * dlopen-by-soname deployment this library is designed for). Carrying the node
+ * as its own accessor keeps the descriptor layout frozen; a consumer that
+ * dlopens can simply treat an absent symbol as "old library, keep the previous
+ * behaviour".
+ *
+ * @param ctx Context (typically a capture context from drmtap_open)
+ * @return Node path owned by @p ctx and valid until drmtap_close(), or NULL if
+ *         the device exposes no render node (e.g. a display-only KMS device)
+ */
+const char *drmtap_render_node(drmtap_ctx *ctx);
+
+/**
+ * @brief Convert an externally-supplied scanout frame to linear RGBA.
+ *
+ * On success frame->data points to context-owned pixels valid until the next
+ * convert on this context or drmtap_close(). Do NOT free it and do NOT call
+ * drmtap_frame_release() on it — there is nothing per-frame to release.
+ * ALWAYS read the returned frame->format, ->stride and ->modifier to describe
+ * the buffer:
+ *   - the GPU (EGL) path normalizes every input to XRGB8888, stride width*4,
+ *     modifier LINEAR;
+ *   - the CPU fallback (used only when no EGL backend is available) also
+ *     returns LINEAR width*4 pixels, but may keep the source 8-bit channel
+ *     order (e.g. XBGR8888) in frame->format.
+ * A well-behaved caller reads frame->format/->stride rather than assuming a
+ * fixed layout.
+ *
+ * Import-once: the DMA-BUF import (EGLImage) is cached keyed by desc->fb_id
+ * plus the buffer's identity (its dma-buf inode), so a fb_id the compositor
+ * recycles onto a NEW buffer re-imports instead of serving stale pixels. The
+ * compositor cycles a small pool of framebuffers, so after the first few
+ * frames every convert hits the cache and no per-frame import happens. For a
+ * known fb_id desc->dma_buf_fd may be -1; whenever the fb_id is new — or was
+ * recycled — a valid fd must be supplied. The cached import holds its own
+ * reference on the buffer, so the caller may close its fd right after the
+ * call. DRMTAP_NO_IMAGE_CACHE=1 forces a fresh import per frame (debug aid).
+ *
+ * Threading: call convert AND drmtap_close for a given context from the SAME
+ * thread. The EGL state and its cached imports are thread-local; closing on a
+ * different thread cannot release them and would strand the cached buffers.
+ *
+ * The descriptor and its fd cross an IPC boundary and are treated as untrusted.
+ * Whenever desc->dma_buf_fd >= 0 the fd is validated UP FRONT, before EITHER
+ * conversion path touches it: the geometry is validated, the fd MUST be a
+ * genuine DMA-BUF (a non-dma-buf fd is rejected -- only an immutable dma-buf is
+ * safe to mmap and read without a truncate-mid-read fault), and it must be
+ * large enough to back the declared frame (offset + stride*height); anything
+ * else returns -EINVAL rather than faulting. This gates the EGL import — which
+ * would otherwise reach eglCreateImage unbounded — as well as the CPU fallback.
+ *
+ * When no GPU path is usable the conversion falls back to a CPU mmap +
+ * deswizzle of the fd (same pipeline as the in-process grab), which repeats the
+ * same size check.
+ *
+ * @param ctx   Context from drmtap_open_render() (or any context with a
+ *              usable EGL backend)
+ * @param desc  Input frame descriptor (metadata from the exporter)
+ * @param frame Output frame (data/format/stride/modifier filled on return)
+ * @return 0 on success, negative errno on error
+ */
+int drmtap_convert_dmabuf(drmtap_ctx *ctx, const drmtap_dmabuf_desc *desc,
+                          drmtap_frame_info *frame);
+
+/* ========================================================================= */
+/* Cursor Capture                                                            */
+/* ========================================================================= */
+
+/** Cursor state: position, image, and visibility. */
+typedef struct {
+    /**
+     * Top-left corner of the cursor IMAGE, not the click point: the plane's
+     * `CRTC_X`/`CRTC_Y`, in this CRTC's physical scanout pixels and relative to
+     * this CRTC's origin — not to a multi-monitor desktop origin, and not in the
+     * compositor's logical (scaled) coordinates. The pointer itself is at
+     * `(x + hot_x, y + hot_y)` where the hotspot is known. Tracks the pointer on
+     * bare metal too; reads 0 while `visible` is 0, see `drmtap_get_cursor`.
+     */
+    int32_t x, y;
+    /**
+     * Hotspot within the cursor image, and `0` unless the driver exposes it:
+     * `HOTSPOT_X`/`HOTSPOT_Y` are plane properties only para-virtualized drivers
+     * (`virtio-gpu`, `vmwgfx`, `qxl`, `vboxvideo`) create, so on bare metal
+     * (i915, amdgpu, nvidia) these are always `0`. Whether a `(0, 0)` here is a
+     * real hotspot or the absence of the properties is NOT visible in these two
+     * fields — ask `drmtap_cursor_hotspot_valid()`, which is the only way to tell
+     * them apart. See the cursor entry in the README's Known Limitations for the
+     * two ways to recover an absent hotspot, one of which is exact.
+     */
+    int32_t hot_x, hot_y;
+    uint32_t width, height; /**< Cursor image dimensions */
+    uint32_t *pixels;       /**< ARGB8888 premultiplied alpha (NULL if hidden) */
+    int visible;            /**< 1 = visible, 0 = hidden */
+    void *_priv;            /**< Internal — do not touch */
+} drmtap_cursor_info;
+
+/**
+ * @brief Get current cursor state (position + image).
+ *
+ * Cursor is returned separately from the framebuffer so remote desktop
+ * clients can render it on the client side for lower latency.
+ *
+ * A cursor with no plane bound to the CRTC is reported as `visible = 0` and success,
+ * not as an error: both a hidden hardware cursor and an idle pointer that the compositor
+ * has stopped scanning out clear that binding, so an error there would make a consumer
+ * keep painting a stale cursor. The whole struct is cleared on entry, so a hidden
+ * result carries no position: `pixels` is NULL and every numeric field reads 0.
+ * Only `visible` is meaningful there - 0,0 is not where the cursor is.
+ *
+ * @param ctx    Capture context
+ * @param cursor Output cursor info (caller-allocated)
+ * @return 0 on success (hidden included), negative errno on error
+ */
+int drmtap_get_cursor(drmtap_ctx *ctx, drmtap_cursor_info *cursor);
+
+/**
+ * @brief Whether this cursor's hotspot was read from the driver, or is just zero.
+ *
+ * `hot_x`/`hot_y` cannot answer this on their own: a plane that does not expose
+ * `HOTSPOT_X`/`HOTSPOT_Y` leaves them at `(0, 0)`, which is also a perfectly
+ * legal hotspot for a driver that does expose them. A consumer that guesses the
+ * hotspot from the cursor bitmap when it reads `(0, 0)` therefore overrides a
+ * real measurement on any driver that reports a top-left hotspot; one that
+ * trusts `(0, 0)` instead puts the pointer at the image corner everywhere else.
+ * This tells the two apart, for the cursor sample in hand rather than by
+ * re-reading the properties (which could race with a shape change).
+ *
+ * BOTH properties must have been read for the hotspot to count as measured: a
+ * plane exposing only one of them is not a source of a hotspot, and a half-read
+ * pair would be a coordinate mixed with a zero.
+ *
+ * @param cursor A cursor filled by `drmtap_get_cursor()` and not yet released.
+ * @param valid  Set to 1 if the hotspot came from the properties, else 0.
+ * @return 0 on success; `-EINVAL` if either pointer is NULL; `-ENOTSUP` if this
+ *         sample carries no provenance at all, which is what a cursor filled by
+ *         a build older than this entry point looks like. `-ENOTSUP` means "no
+ *         answer", never "not measured" — do not fold it into `*valid`.
+ */
+int drmtap_cursor_hotspot_valid(const drmtap_cursor_info *cursor, int *valid);
+
+/**
+ * @brief Release cursor resources.
+ * @param ctx    Capture context
+ * @param cursor Cursor to release
+ */
+void drmtap_cursor_release(drmtap_ctx *ctx, drmtap_cursor_info *cursor);
+
+/* ========================================================================= */
+/* Info & Debug                                                              */
+/* ========================================================================= */
+
+/**
+ * @brief Get last error message (human-readable).
+ *
+ * If ctx is NULL, returns a static error from the last drmtap_open() failure.
+ *
+ * @param ctx Capture context (may be NULL)
+ * @return Error string (do not free), or NULL if no error
+ */
+const char *drmtap_error(drmtap_ctx *ctx);
+
+/**
+ * @brief Get GPU driver name.
+ *
+ * @param ctx Capture context
+ * @return Driver name (e.g., "i915", "amdgpu", "nvidia", "virtio_gpu"),
+ *         or NULL if not yet detected
+ */
+const char *drmtap_gpu_driver(drmtap_ctx *ctx);
+
+/**
+ * @brief Get the underlying DRM file descriptor.
+ *
+ * Useful for advanced operations like drmWaitVBlank() to synchronize
+ * frame capture with display refresh. The fd is owned by the context —
+ * do NOT close it.
+ *
+ * @param ctx Capture context
+ * @return DRM fd (>= 0), or -1 if context is NULL
+ */
+int drmtap_drm_fd(drmtap_ctx *ctx);
+
+/**
+ * @brief Have conversions write into YOUR buffer instead of a library-owned one.
+ *
+ * By default a converted frame lands in a context-owned buffer and
+ * drmtap_frame_info.data points at it, so a caller that must end up with the
+ * pixels somewhere specific (a memfd it already shares with a consumer, a
+ * pre-registered upload buffer) pays a full-frame memcpy per frame. Nothing
+ * requires that: the EGL detile ends in a glReadPixels and the CPU converters
+ * take a destination pointer, and both write wherever they are pointed. Point
+ * them at your memory and the copy disappears.
+ *
+ * Applies to every path that MATERIALIZES pixels, so a caller does not have to
+ * know which one ran: the EGL detile, the CPU deswizzle, the 10/16-bit and HDR
+ * reductions, and the padded-linear repack. It applies on an unprivileged
+ * drmtap_open_render() context too, so the converting half of the split
+ * (drmtap_convert_dmabuf) can write straight into the consumer's buffer.
+ *
+ * It does NOT apply when there is nothing to materialize. A linear 8-bit scanout
+ * needs no conversion, so the frame is reported where the pixels already are and no
+ * conversion destination is chosen at all: that is the mapped scanout on the direct
+ * path (already zero-copy, nothing to redirect), and the library receive buffer on
+ * the privileged-helper pixel path (where a caller that must own the memory still
+ * has to copy). Compare drmtap_frame_info.data against @p dst if your code needs to
+ * know which happened.
+ *
+ * SIZE. A grab that would need more than @p len bytes FAILS with -ENOSPC and
+ * leaves your buffer untouched, rather than writing a short frame you could not
+ * tell from a good one; drmtap_error() then names the exact number of bytes the
+ * frame needed. Size it from the frame you actually get -- stride * height of a
+ * first grab -- not from width * height * 4: the CPU deswizzle keeps the source
+ * stride, and a scanout whose pitch is padded wider than the visible width needs
+ * that padded size. On a geometry change, re-mmap and call this again.
+ *
+ * @p dst must not OVERLAP the frame source. The CPU converters read the scanout and
+ * write the destination with different strides, so pointing this at a mapping of the
+ * very dma-buf being captured would have them read bytes they have already written.
+ * Nothing detects it; before this call no such aliasing was possible.
+ *
+ * LIFETIME. You own @p dst. libdrmtap never frees, reallocates or retains it past
+ * a frame, and drmtap_close() does not touch it, so it must stay valid and
+ * unmapped-from-under-us for as long as it is set and for as long as you hold a
+ * frame that points into it. Call with @p dst NULL to go back to the
+ * library-owned buffer (@p len is then ignored).
+ *
+ * @param ctx Capture or render context
+ * @param dst Destination for converted pixels, or NULL to clear
+ * @param len Bytes available at @p dst (must be > 0 when dst is non-NULL)
+ * @return 0 on success, -EINVAL on a NULL ctx or a zero len with a non-NULL dst
+ */
+int drmtap_set_output_buffer(drmtap_ctx *ctx, void *dst, size_t len);
+
+/* ========================================================================= */
+/* Pixel Conversion                                                          */
+/* ========================================================================= */
+
+/**
+ * @brief Deswizzle tiled framebuffer data to linear.
+ *
+ * Converts Intel X/Y/Yf-tiled pixel data to a linear row-by-row layout, and
+ * copies linear data (modifier 0, or DRM_FORMAT_MOD_INVALID meaning the
+ * framebuffer stated no modifier) row by row.
+ *
+ * EVERY OTHER LAYOUT FAILS CLOSED with -ENOTSUP, including all the compressed
+ * Intel variants, the Tile4 family, and every AMD and Nvidia modifier: those
+ * need the GPU detile path. Returning them copied out linearly would hand back
+ * a tiled buffer relabelled linear, reported as a valid frame.
+ *
+ * @param src        Source (tiled) pixel data
+ * @param dst        Destination (linear) buffer (must be allocated by caller)
+ * @param width      Frame width in pixels
+ * @param height     Frame height in pixels
+ * @param src_stride Source stride (bytes per row in tiled data)
+ * @param dst_stride Destination stride (bytes per row)
+ * @param modifier   DRM format modifier (e.g., I915_FORMAT_MOD_X_TILED)
+ * @param src_size   Size of the source buffer in bytes; reads are bounded by it
+ *                   (a scanout whose height is not a tile multiple would
+ *                   otherwise index past stride*height)
+ * @return 0 on success, negative errno on error
+ */
+int drmtap_deswizzle(const void *src, void *dst,
+                     uint32_t width, uint32_t height,
+                     uint32_t src_stride, uint32_t dst_stride,
+                     uint64_t modifier, size_t src_size);
+
+/**
+ * @brief Convert between pixel formats.
+ *
+ * Supported conversions:
+ *   - XR30/AR30/XB30/AB30 (10-bit, RGB or BGR order) → XRGB8888/ARGB8888
+ *   - ABGR8888 → ARGB8888/XRGB8888
+ *   - Same format → copy
+ *
+ * @param src        Source pixel data
+ * @param dst        Destination buffer
+ * @param width      Frame width in pixels
+ * @param height     Frame height in pixels
+ * @param src_stride Source stride (bytes per row)
+ * @param dst_stride Destination stride (bytes per row)
+ * @param src_format Source DRM fourcc (e.g., DRM_FORMAT_XRGB2101010)
+ * @param dst_format Destination DRM fourcc (e.g., DRM_FORMAT_XRGB8888)
+ * @return 0 on success, -ENOTSUP if conversion not supported, -EINVAL on
+ *         NULL/zero-size arguments or a src/dst stride narrower than width*4
+ */
+int drmtap_convert_format(const void *src, void *dst,
+                          uint32_t width, uint32_t height,
+                          uint32_t src_stride, uint32_t dst_stride,
+                          uint32_t src_format, uint32_t dst_format);
+
+/**
+ * @brief Tone-map an HDR10 (PQ, BT.2020) framebuffer to SDR 8-bit XRGB8888.
+ *
+ * Unlike drmtap_convert_format()'s naive bit-shift (which is only correct for
+ * SDR 10-bit), this applies the real HDR10 transfer: PQ (SMPTE ST 2084) EOTF
+ * to linear light, BT.2020 -> BT.709 gamut mapping, a highlight-preserving
+ * tone-map down to the SDR range, and the sRGB OETF back to 8-bit. Use it only
+ * when the scanout is actually HDR (decided from the connector Colorspace /
+ * HDR_OUTPUT_METADATA, not from the pixel format alone — XR30/AR30 is also used
+ * for plain SDR 10-bit).
+ *
+ * Supported src_format: XR30/AR30 and XB30/AB30 (X/ARGB2101010 and
+ * X/ABGR2101010). Others return -ENOTSUP.
+ *
+ * @param src        Source pixel data
+ * @param dst        Destination buffer (XRGB8888)
+ * @param width      Frame width in pixels
+ * @param height     Frame height in pixels
+ * @param src_stride Source stride (bytes per row)
+ * @param dst_stride Destination stride (bytes per row)
+ * @param src_format Source DRM fourcc (DRM_FORMAT_XRGB2101010 / ARGB2101010 /
+ *                   XBGR2101010 / ABGR2101010)
+ * @param max_nits   Content/mastering peak luminance for the highlight roll-off
+ *                   (0 = a sensible default). Brighter peaks spread highlights
+ *                   over more of the top range instead of clipping to white.
+ * @return 0 on success, -ENOTSUP for an unsupported format, -EINVAL on bad args
+ */
+int drmtap_tonemap_hdr10(const void *src, void *dst,
+                         uint32_t width, uint32_t height,
+                         uint32_t src_stride, uint32_t dst_stride,
+                         uint32_t src_format, uint32_t max_nits);
+
+/* ========================================================================= */
+/* Frame Differencing (optional utility)                                     */
+/* ========================================================================= */
+
+/** Rectangle describing a dirty region. */
+typedef struct {
+    uint32_t x, y, w, h;
+} drmtap_rect;
+
+/**
+ * @brief Compare two frames and output changed rectangles.
+ *
+ * Pure CPU utility — scans memory blocks at tile_size granularity.
+ * Useful for VNC/RDP servers that need dirty-rectangle encoding.
+ *
+ * @param frame_a   First frame (RGBA pixels)
+ * @param frame_b   Second frame (same dimensions and format)
+ * @param width     Frame width in pixels
+ * @param height    Frame height in pixels
+ * @param stride    Bytes per row
+ * @param rects_out Output array for dirty rectangles
+ * @param max_rects Maximum entries to write
+ * @param tile_size Comparison granularity in pixels (e.g., 64)
+ * @return Number of dirty rects (may be > max_rects), or negative errno
+ */
+int drmtap_diff_frames(const void *frame_a, const void *frame_b,
+                       uint32_t width, uint32_t height, uint32_t stride,
+                       drmtap_rect *rects_out, int max_rects,
+                       int tile_size);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* DRMTAP_H */

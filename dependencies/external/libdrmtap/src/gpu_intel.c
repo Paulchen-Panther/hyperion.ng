@@ -1,0 +1,117 @@
+/*
+ * libdrmtap — DRM/KMS screen capture library for Linux
+ * https://github.com/fxd0h/libdrmtap
+ *
+ * Copyright (c) 2026 Mariano Abad <weimaraner@gmail.com>
+ * SPDX-License-Identifier: MIT
+ */
+
+/**
+ * @file gpu_intel.c
+ * @brief Intel GPU backend — VAAPI-accelerated deswizzle for CCS/Y-tiled FBs
+ *
+ * Intel GPUs use tiled framebuffer layouts (X-TILED, Y-TILED, CCS) for
+ * performance. This backend uses VAAPI to hardware-convert tiled→linear,
+ * falling back to CPU deswizzle when VAAPI is unavailable.
+ *
+ * Known Intel tiling modifiers:
+ *   I915_FORMAT_MOD_X_TILED                  = 0x0100000000000001
+ *   I915_FORMAT_MOD_Y_TILED                  = 0x0100000000000002
+ *   I915_FORMAT_MOD_Y_TILED_CCS              = 0x0100000000000005
+ *   I915_FORMAT_MOD_Y_TILED_GEN12_RC_CCS     = 0x0100000000000006
+ *   I915_FORMAT_MOD_Y_TILED_GEN12_MC_CCS     = 0x0100000000000007
+ *   I915_FORMAT_MOD_Y_TILED_GEN12_RC_CCS_CC  = 0x0100000000000008
+ *
+ * Gen12+ CCS uses Y-tiling as the base layout with an auxiliary
+ * compression control surface. CPU deswizzle handles the Y-tiled
+ * base; the CCS metadata is ignored (read from mmap gives
+ * decompressed data via transparent HW decompression).
+ */
+
+#include <string.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <stdint.h>
+
+#include "drmtap_internal.h"
+#include "drmtap.h"  /* for drmtap_deswizzle */
+
+/* Intel modifier constants, values and names taken from <drm_fourcc.h>. The
+ * three CCS names here used to be off by one against that header (0x05 was
+ * called Y_TILED_CCS, which is really 0x04 and was missing), so read them from
+ * the header, never from this list. */
+#define I915_MOD_X_TILED                  0x0100000000000001ULL
+#define I915_MOD_Y_TILED                  0x0100000000000002ULL
+#define I915_MOD_Yf_TILED                 0x0100000000000003ULL
+#define I915_MOD_Y_TILED_CCS              0x0100000000000004ULL
+#define I915_MOD_Yf_TILED_CCS             0x0100000000000005ULL
+#define I915_MOD_Y_TILED_GEN12_RC_CCS     0x0100000000000006ULL
+#define I915_MOD_Y_TILED_GEN12_MC_CCS     0x0100000000000007ULL
+#define I915_MOD_Y_TILED_GEN12_RC_CCS_CC  0x0100000000000008ULL
+
+/* ========================================================================= */
+/* Backend API                                                               */
+/* ========================================================================= */
+
+int drmtap_gpu_intel_match(const char *driver) {
+    if (!driver) {
+        return 0;
+    }
+    return (strcmp(driver, "i915") == 0 || strcmp(driver, "xe") == 0);
+}
+
+int drmtap_gpu_intel_process(drmtap_ctx *ctx, void *data,
+                             uint32_t width, uint32_t height,
+                             uint32_t stride, uint32_t format,
+                             uint64_t modifier) {
+    (void)format;
+
+    /* Linear — no conversion needed */
+    if (modifier == 0) {
+        drmtap_debug_log(ctx, "intel: linear framebuffer, no conversion");
+        return 0;
+    }
+
+    /* The plain tilings, which drmtap_deswizzle can decode. The CCS variants are
+     * deliberately NOT here: this used to claim that "Gen12+ CCS framebuffers are
+     * decompressed transparently by the hardware when read via mmap", and that is
+     * false -- a CPU read of a CCS scanout yields data no deswizzle decodes, which
+     * is why drmtap_deswizzle answers -ENOTSUP for them. Listing them here changed
+     * nothing except to suggest they were handled. */
+    if (modifier == I915_MOD_X_TILED || modifier == I915_MOD_Y_TILED ||
+        modifier == I915_MOD_Yf_TILED) {
+        drmtap_debug_log(ctx, "intel: tiled modifier 0x%lx, CPU deswizzle",
+                         (unsigned long)modifier);
+
+        /* Deswizzle in-place: allocate temp buffer, deswizzle, copy back */
+        size_t size = (size_t)stride * height;
+        void *tmp = malloc(size);
+        if (!tmp) {
+            return -ENOMEM;
+        }
+
+        int ret = drmtap_deswizzle(data, tmp, width, height,
+                                    stride, stride, modifier, size);
+        if (ret == 0) {
+            memcpy(data, tmp, size);
+        }
+        free(tmp);
+
+        /* TODO: When VAAPI is available, use hardware blit instead:
+         *   1. Import DMA-BUF into VADisplay
+         *   2. Create linear VASurface
+         *   3. vaPutImage() to blit tiled→linear
+         *   4. vaMapBuffer() to read linear pixels
+         * This would be zero-copy and much faster. */
+
+        return ret;
+    }
+
+    /* A non-linear Intel modifier we do not decode (every CCS variant, and the
+     * whole Tile4 family). "Passing through" with 0 used to leave the caller
+     * holding the still-tiled mapping believing it was converted. Fail closed,
+     * the same answer drmtap_deswizzle gives. */
+    drmtap_set_error(ctx, "intel: modifier 0x%lx needs a GPU detile -- failing closed",
+                     (unsigned long)modifier);
+    return -ENOTSUP;
+}
