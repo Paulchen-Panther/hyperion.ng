@@ -9,6 +9,11 @@
 #include <xf86drmMode.h>
 #include <xf86drm.h>
 
+#ifdef HAVE_LIBDRMTAP
+// Optional fallback capture backend, see https://github.com/fxd0h/libdrmtap
+#include <drmtap.h>
+#endif
+
 // Utils includes
 #include <utils/ColorRgb.h>
 #include <utils/Logger.h>
@@ -222,6 +227,26 @@ private:
 	 */
 	void getFramebuffers();
 
+#ifdef HAVE_LIBDRMTAP
+	/**
+	 * @brief Attempts to capture a frame through the optional libdrmtap backend
+	 * (https://github.com/fxd0h/libdrmtap). Used as a fallback whenever the built-in
+	 * capture code encounters a framebuffer format/modifier it cannot decode itself
+	 * (e.g. a tiled or compressed GPU scanout). The underlying drmtap_ctx is opened
+	 * lazily on first use and reused for subsequent frames.
+	 *
+	 * @param[out] image The Image object to store the captured frame.
+	 * @return True on success, false on failure (e.g. libdrmtap unavailable or the
+	 *         returned format is still unsupported).
+	 */
+	bool grabFrameWithLibDrmTap(Image<ColorRgb>& image);
+
+	/**
+	 * @brief Releases the resources allocated for the optional libdrmtap backend.
+	 */
+	void freeLibDrmTapResources();
+#endif
+
 	/// The file descriptor for the opened DRM device.
 	int _deviceFd;
 
@@ -242,5 +267,13 @@ private:
 
 	/// The pixel format of the captured framebuffer.
 	PixelFormat _pixelFormat;
+
+#ifdef HAVE_LIBDRMTAP
+	/// Capture context of the optional libdrmtap fallback backend, or nullptr when unused.
+	drmtap_ctx* _drmtapCtx = nullptr;
+
+	/// Whether opening the libdrmtap backend has already been attempted for the current screen setup.
+	bool _drmtapInitAttempted = false;
+#endif
 };
 

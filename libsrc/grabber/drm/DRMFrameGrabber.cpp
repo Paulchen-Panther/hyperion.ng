@@ -172,6 +172,10 @@ DRMFrameGrabber::~DRMFrameGrabber()
 
 void DRMFrameGrabber::freeResources()
 {
+#ifdef HAVE_LIBDRMTAP
+    freeLibDrmTapResources();
+#endif
+
     _connectors.clear();
     _encoders.clear();
 
@@ -644,12 +648,27 @@ int DRMFrameGrabber::grabFrame(Image<ColorRgb> &image, bool /*forceUpdate*/)
                 newImage = true;
             }
         }
+#ifdef HAVE_LIBDRMTAP
+        // Fallback path for formats/modifiers the built-in code above cannot decode
+        // (e.g. tiled or compressed GPU scanouts), using the optional libdrmtap backend.
+        else if (grabFrameWithLibDrmTap(image))
+        {
+            newImage = true;
+        }
+        else
+        {
+            errorString = QString("Currently unsupported format: %1 and/or modifier: %2 (libdrmtap fallback did not succeed either, see preceding log messages)")
+                              .arg(getDrmFormat(framebuffer->pixel_format))
+                              .arg(getDrmModifierName(framebuffer->modifier));
+        }
+#else
         else
         {
             errorString = QString("Currently unsupported format: %1 and/or modifier: %2")
                               .arg(getDrmFormat(framebuffer->pixel_format))
                               .arg(getDrmModifierName(framebuffer->modifier));
         }
+#endif
     }
 
     if (!errorString.isEmpty())
@@ -666,6 +685,81 @@ int DRMFrameGrabber::grabFrame(Image<ColorRgb> &image, bool /*forceUpdate*/)
 
     return 0;
 }
+
+#ifdef HAVE_LIBDRMTAP
+bool DRMFrameGrabber::grabFrameWithLibDrmTap(Image<ColorRgb>& image)
+{
+    if (_drmtapCtx == nullptr)
+    {
+        // Only try to open the backend once per screen setup; an environment that
+        // fails to open it (e.g. no helper installed) will not start working a frame later.
+        if (_drmtapInitAttempted)
+        {
+            return false;
+        }
+        _drmtapInitAttempted = true;
+
+        drmtap_config config{};
+        QByteArray const devicePath = getDeviceName().toLocal8Bit();
+        config.device_path = devicePath.constData();
+
+        _drmtapCtx = drmtap_open(&config);
+        if (_drmtapCtx == nullptr)
+        {
+            const char* error = drmtap_error(nullptr);
+            Warning(_log, "libdrmtap: unable to open %s: %s", QSTRING_CSTR(getDeviceName()), error != nullptr ? error : "unknown error");
+            return false;
+        }
+
+        const char* driver = drmtap_gpu_driver(_drmtapCtx);
+        Info(_log, "libdrmtap: enabled as fallback to capture GPU scanouts the built-in DRM backend cannot decode (driver: %s)",
+             driver != nullptr ? driver : "unknown");
+    }
+
+    drmtap_frame_info frame{};
+    int const ret = drmtap_grab_mapped(_drmtapCtx, &frame);
+    if (ret != 0)
+    {
+        const char* error = drmtap_error(_drmtapCtx);
+        Debug(_log, "libdrmtap: frame capture failed: %s", error != nullptr ? error : strerror(-ret));
+        return false;
+    }
+
+    bool captured = false;
+    if (frame.data == nullptr)
+    {
+        Debug(_log, "libdrmtap: capture returned no CPU-accessible pixel data");
+    }
+    else
+    {
+        _pixelFormat = GetPixelFormatForDrmFormat(frame.format);
+        if (_pixelFormat == PixelFormat::NO_CHANGE)
+        {
+            Debug(_log, "libdrmtap: unsupported DRM format returned: %s", QSTRING_CSTR(getDrmFormat(frame.format)));
+        }
+        else
+        {
+            Grabber::setWidthHeight(static_cast<int>(frame.width), static_cast<int>(frame.height));
+            _imageResampler.processImage(static_cast<const uint8_t*>(frame.data), static_cast<int>(frame.width),
+                                          static_cast<int>(frame.height), frame.stride, _pixelFormat, image);
+            captured = true;
+        }
+    }
+
+    drmtap_frame_release(_drmtapCtx, &frame);
+    return captured;
+}
+
+void DRMFrameGrabber::freeLibDrmTapResources()
+{
+    if (_drmtapCtx != nullptr)
+    {
+        drmtap_close(_drmtapCtx);
+        _drmtapCtx = nullptr;
+    }
+    _drmtapInitAttempted = false;
+}
+#endif // HAVE_LIBDRMTAP
 
 bool DRMFrameGrabber::openDevice()
 {

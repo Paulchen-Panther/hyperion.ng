@@ -77,6 +77,8 @@ sudo apt-get install git cmake build-essential ninja-build qt6-base-dev libqt6se
 sudo apt-get install libglib2.0-dev libdrm-dev
 ```
 
+Optionally, install [libdrmtap](https://github.com/fxd0h/libdrmtap) (built and installed separately, e.g. via Meson) before configuring Hyperion to let the DRM grabber fall back to it for GPU scanouts (e.g. tiled/compressed Intel/AMD/Nvidia framebuffers) that its built-in capture code cannot decode on its own. This is entirely optional; the DRM grabber builds and works without it.
+
 **For Linux X11/XCB grabber support**
 
 ```console
