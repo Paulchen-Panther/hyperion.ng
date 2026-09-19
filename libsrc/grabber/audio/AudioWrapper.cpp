@@ -50,7 +50,25 @@ void AudioWrapper::handleSettingsUpdate(settings::type type, const QJsonDocument
 		if (getAudioGrabberState())
 		{
 			_grabber.setDevice(obj["device"].toString());
+
+#ifdef ENABLE_PROJECTM
+			const QString audioEffect = obj["audioEffect"].toString();
+			if (audioEffect == "projectM")
+			{
+				const QJsonObject pmConfig = obj["projectM"].toObject();
+				const int  width      = pmConfig["width"].toInt(64);
+				const int  height     = pmConfig["height"].toInt(64);
+				const QString presets = pmConfig["presetPath"].toString();
+				_grabber.setProjectMEnabled(true, width, height, presets);
+			}
+			else
+			{
+				_grabber.setProjectMEnabled(false);
+				_grabber.setConfiguration(obj);
+			}
+#else
 			_grabber.setConfiguration(obj);
+#endif
 
 			_grabber.restart();
 		}

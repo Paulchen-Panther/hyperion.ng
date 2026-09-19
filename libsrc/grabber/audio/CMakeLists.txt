@@ -11,6 +11,13 @@ elseif(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	)
 endif()
 
+if(ENABLE_PROJECTM)
+	list(APPEND AUDIO_GRABBER_SOURCES
+		${CMAKE_SOURCE_DIR}/include/grabber/audio/ProjectMWrapper.h
+		${CMAKE_SOURCE_DIR}/libsrc/grabber/audio/ProjectMWrapper.cpp
+	)
+endif()
+
 add_library(audio-grabber
 	${CMAKE_SOURCE_DIR}/include/grabber/audio/AudioGrabber.h
 	${CMAKE_SOURCE_DIR}/include/grabber/audio/AudioWrapper.h
@@ -26,6 +33,19 @@ elseif(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	find_package(ALSA REQUIRED)
 	find_package(Threads REQUIRED)
 	set(AUDIO_LIBS ${ALSA_LIBRARIES} Threads::Threads)
+endif()
+
+if(ENABLE_PROJECTM)
+	find_package(ProjectM REQUIRED)
+	if(APPLE)
+		find_package(OpenGL REQUIRED)
+		list(APPEND AUDIO_LIBS projectM::projectM OpenGL::GL)
+		target_compile_definitions(audio-grabber PRIVATE GL_SILENCE_DEPRECATION)
+	elseif(UNIX AND NOT APPLE)
+		find_package(OpenGL REQUIRED COMPONENTS EGL)
+		list(APPEND AUDIO_LIBS projectM::projectM OpenGL::EGL)
+	endif()
+	target_compile_definitions(audio-grabber PRIVATE ENABLE_PROJECTM)
 endif()
 
 target_link_libraries(audio-grabber

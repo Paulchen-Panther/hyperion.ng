@@ -10,6 +10,10 @@
 #include <hyperion/Grabber.h>
 #include <utils/Logger.h>
 
+#ifdef ENABLE_PROJECTM
+#include <grabber/audio/ProjectMWrapper.h>
+#endif
+
 ///
 /// Base Audio Grabber Class
 ///
@@ -90,7 +94,19 @@ class AudioGrabber : public Grabber
 		/// @param[in] params discover parameters
 		/// @return array of audio devices
 		virtual QJsonArray discover(const QJsonObject& params);
-		
+
+#ifdef ENABLE_PROJECTM
+		///
+		/// Enable / disable projectM visualizer
+		///
+		/// @param enable        true to enable projectM, false to use built-in VU meter
+		/// @param width         render width  (pixels)
+		/// @param height        render height (pixels)
+		/// @param presetPath    directory containing projectM preset files
+		///
+		void setProjectMEnabled(bool enable, int width = 64, int height = 64, const QString& presetPath = QString());
+#endif
+
 	signals:
 		void newFrame(const Image<ColorRgb>& image);
 
@@ -191,6 +207,11 @@ private:
 	/// @brief free the _screen pointer
 	///
 	void freeResources();
+
+#ifdef ENABLE_PROJECTM
+	ProjectMWrapper _projectMWrapper;
+	bool            _projectMEnabled { false };
+#endif
 };
 
 #endif // AUDIOGRABBER_H
