@@ -102,6 +102,20 @@ void AudioGrabber::processAudioFrame(int16_t* buffer, int length)
 {
 	// Apply Visualizer and Construct Image
 
+#ifdef ENABLE_PROJECTM
+	if (_projectMEnabled && _projectMWrapper.isInitialised())
+	{
+		_projectMWrapper.addPCMData(buffer, length);
+
+		Image<ColorRgb> finalImage;
+		if (_projectMWrapper.renderFrame(finalImage))
+		{
+			emit newFrame(finalImage);
+		}
+		return;
+	}
+#endif
+
 	// TODO: Pass Audio Frame to python and let the script calculate the image.
 
 	// TODO: Support Stereo capture with different meters per side
@@ -191,6 +205,24 @@ QSharedPointer<Logger> AudioGrabber::getLog()
 {
 	return _log;
 }
+
+#ifdef ENABLE_PROJECTM
+void AudioGrabber::setProjectMEnabled(bool enable, int width, int height, const QString& presetPath)
+{
+	_projectMEnabled = enable;
+
+	if (enable)
+	{
+		// Always reinitialise so that changed parameters (width, height, presetPath) take effect
+		_projectMWrapper.cleanup();
+		_projectMWrapper.init(width, height, presetPath);
+	}
+	else
+	{
+		_projectMWrapper.cleanup();
+	}
+}
+#endif
 
 bool AudioGrabber::start()
 {
