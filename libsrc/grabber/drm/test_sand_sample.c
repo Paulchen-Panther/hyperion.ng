@@ -10,7 +10,7 @@
  * layout *assumed* in sand_sample.h. It cannot prove that real Pi 5 buffers
  * use that layout - use sand_dump_ppm() on hardware for that.
  */
-#include "../../../include/grabber/drm/sand_sample.h"
+#include "grabber/drm/sand_sample.h"
 
 #define FBW 416u
 #define FBH 240u

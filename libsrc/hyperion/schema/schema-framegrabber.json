@@ -137,6 +137,96 @@
 			"default": 0,
 			"append": "edt_append_pixel",
 			"propertyOrder": 17
+		},
+		"sandEdgeEnable": {
+			"type": "boolean",
+			"title": "edt_conf_fg_sandEdgeEnable_title",
+			"default": true,
+			"access": "expert",
+			"propertyOrder": 18
+		},
+		"sandBandPx": {
+			"type": "integer",
+			"title": "edt_conf_fg_sandBandPx_title",
+			"minimum": 2,
+			"maximum": 512,
+			"default": 16,
+			"access": "expert",
+			"propertyOrder": 19
+		},
+		"sandXDecim": {
+			"type": "integer",
+			"title": "edt_conf_fg_sandXDecim_title",
+			"minimum": 1,
+			"maximum": 64,
+			"default": 2,
+			"access": "expert",
+			"propertyOrder": 20
+		},
+		"sandYDecim": {
+			"type": "integer",
+			"title": "edt_conf_fg_sandYDecim_title",
+			"minimum": 1,
+			"maximum": 64,
+			"default": 2,
+			"access": "expert",
+			"propertyOrder": 21
+		},
+		"sandCellsTop": {
+			"type": "integer",
+			"title": "edt_conf_fg_sandCellsTop_title",
+			"minimum": 0,
+			"default": 0,
+			"access": "expert",
+			"propertyOrder": 22
+		},
+		"sandCellsBottom": {
+			"type": "integer",
+			"title": "edt_conf_fg_sandCellsBottom_title",
+			"minimum": 0,
+			"default": 0,
+			"access": "expert",
+			"propertyOrder": 23
+		},
+		"sandCellsLeft": {
+			"type": "integer",
+			"title": "edt_conf_fg_sandCellsLeft_title",
+			"minimum": 0,
+			"default": 0,
+			"access": "expert",
+			"propertyOrder": 24
+		},
+		"sandCellsRight": {
+			"type": "integer",
+			"title": "edt_conf_fg_sandCellsRight_title",
+			"minimum": 0,
+			"default": 0,
+			"access": "expert",
+			"propertyOrder": 25
+		},
+		"sandBorderPx": {
+			"type": "integer",
+			"title": "edt_conf_fg_sandBorderPx_title",
+			"minimum": 1,
+			"maximum": 64,
+			"default": 1,
+			"access": "expert",
+			"propertyOrder": 26
+		},
+		"sandMatrix": {
+			"type": "string",
+			"title": "edt_conf_fg_sandMatrix_title",
+			"enum": ["bt709", "bt2020"],
+			"default": "bt709",
+			"access": "expert",
+			"propertyOrder": 27
+		},
+		"sandFullRange": {
+			"type": "boolean",
+			"title": "edt_conf_fg_sandFullRange_title",
+			"default": false,
+			"access": "expert",
+			"propertyOrder": 28
 		}
 	},
 	"additionalProperties" : false

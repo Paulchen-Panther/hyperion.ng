@@ -47,6 +47,15 @@ link_to_hyperion(test_image2ledsmap hyperion-utils)
 
 ######### These tests are broken. May they fix someone ##########
 
+# Self-test of the header-only SAND128 edge sampler (plain C, no Qt/DRM dependency)
+option(BUILD_SAND_TEST "Build the SAND128 edge sampler self-test" ON)
+if(BUILD_SAND_TEST)
+	add_executable(test_sand_sample ${CMAKE_SOURCE_DIR}/libsrc/grabber/drm/test_sand_sample.c)
+	set_target_properties(test_sand_sample PROPERTIES LINKER_LANGUAGE C)
+	target_include_directories(test_sand_sample PRIVATE ${CMAKE_SOURCE_DIR}/include)
+	add_test(NAME test_sand_sample COMMAND test_sand_sample)
+endif()
+
 #if(ENABLE_DISPMANX)
 #	add_subdirectory(dispmanx2png)
 #endif (ENABLE_DISPMANX)

@@ -3,6 +3,10 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/mman.h>
+#include <sys/ioctl.h>
+#include <linux/dma-buf.h>
+#include <algorithm>
+#include <cstring>
 #include <string>
 #include <iostream>
 #include <vector>
@@ -158,7 +162,8 @@ QDebug operator<<(QDebug dbg, const drmModeFB2* fb);
 QDebug operator<<(QDebug dbg, const drmModePlane* plane);
 
 DRMFrameGrabber::DRMFrameGrabber(int deviceIdx, int cropLeft, int cropRight, int cropTop, int cropBottom)
-    : Grabber("GRABBER-DRM", cropLeft, cropRight, cropTop, cropBottom), _deviceFd(-1), _crtc(nullptr)
+    : Grabber("GRABBER-DRM", cropLeft, cropRight, cropTop, cropBottom), _deviceFd(-1), _crtc(nullptr),
+      _pixelFormat(PixelFormat::NO_CHANGE), _sandSampler{}, _sandSamplerInit(false), _sandFailed(false), _sandGeom{}, _sandCfg{}
 {
     _input = deviceIdx;
     _useImageResampler = true;
@@ -172,6 +177,8 @@ DRMFrameGrabber::~DRMFrameGrabber()
 
 void DRMFrameGrabber::freeResources()
 {
+    freeSandSampler();
+
     _connectors.clear();
     _encoders.clear();
 
@@ -195,6 +202,21 @@ void DRMFrameGrabber::freeResources()
         drmModeFreeFB2(framebuffer);
     }
     _framebuffers.clear();
+}
+
+void DRMFrameGrabber::freeSandSampler()
+{
+    if (_sandSamplerInit)
+    {
+        sand_sampler_free(&_sandSampler);
+        _sandSamplerInit = false;
+    }
+}
+
+void DRMFrameGrabber::setSandEdgeSettings(const SandEdgeSettings& settings)
+{
+    _sandSettings = settings;
+    _sandFailed = false;
 }
 
 bool DRMFrameGrabber::setupScreen()
@@ -581,6 +603,336 @@ static bool processBroadcomSandFramebuffer(int deviceFd,
     return untileBroadcomSandToLinear(deviceFd, framebuffer, w, h, pixelFormat, planes, totalSize, imageResampler, log, image);
 }
 
+// --- Broadcom SAND128 edge fast path ---
+
+namespace
+{
+// Read-only dma-buf mapping, wrapped in DMA_BUF_IOCTL_SYNC for cache coherency
+class SandDmaBufMap
+{
+public:
+    SandDmaBufMap() = default;
+    SandDmaBufMap(const SandDmaBufMap&) = delete;
+    SandDmaBufMap& operator=(const SandDmaBufMap&) = delete;
+    ~SandDmaBufMap()
+    {
+        if (_ptr != MAP_FAILED)
+        {
+            sync(DMA_BUF_SYNC_END | DMA_BUF_SYNC_READ);
+            munmap(_ptr, _size);
+        }
+        if (_fd >= 0)
+        {
+            close(_fd);
+        }
+    }
+
+    bool map(int deviceFd, uint32_t handle, size_t wantedSize, int& err)
+    {
+        if (drmPrimeHandleToFD(deviceFd, handle, O_RDONLY | O_CLOEXEC, &_fd) != 0)
+        {
+            _fd = -1;
+            err = errno;
+            return false;
+        }
+
+        // Never map more than the buffer really has; the sampler reports -ERANGE on overrun
+        const off_t real = lseek(_fd, 0, SEEK_END);
+        if (real > 0 && static_cast<size_t>(real) < wantedSize)
+        {
+            wantedSize = static_cast<size_t>(real);
+        }
+        lseek(_fd, 0, SEEK_SET);
+
+        _ptr = mmap(nullptr, wantedSize, PROT_READ, MAP_SHARED, _fd, 0);
+        if (_ptr == MAP_FAILED)
+        {
+            err = errno;
+            return false;
+        }
+        _size = wantedSize;
+        sync(DMA_BUF_SYNC_START | DMA_BUF_SYNC_READ);
+        return true;
+    }
+
+    const uint8_t* data() const { return static_cast<const uint8_t*>(_ptr); }
+    size_t size() const { return _size; }
+
+private:
+    void sync(uint64_t flags) const
+    {
+        struct dma_buf_sync s{};
+        s.flags = flags;
+        int rc;
+        do
+        {
+            rc = ioctl(_fd, DMA_BUF_IOCTL_SYNC, &s);
+        } while (rc != 0 && errno == EINTR);
+        // Kernels without dma-buf sync support simply keep working without it
+    }
+
+    int _fd{-1};
+    void* _ptr{MAP_FAILED};
+    size_t _size{0};
+};
+
+bool sandGeomEqual(const sand_geom& a, const sand_geom& b)
+{
+    return a.fmt == b.fmt && a.x0 == b.x0 && a.y0 == b.y0 && a.w == b.w && a.h == b.h &&
+           a.col_height == b.col_height && a.off_y == b.off_y && a.off_c == b.off_c &&
+           a.chroma_mode == b.chroma_mode;
+}
+
+bool sandCfgEqual(const sand_edge_cfg& a, const sand_edge_cfg& b)
+{
+    return a.top == b.top && a.bottom == b.bottom && a.left == b.left && a.right == b.right &&
+           a.band_px == b.band_px && a.xdecim == b.xdecim && a.ydecim == b.ydecim &&
+           a.matrix == b.matrix && a.full_range == b.full_range;
+}
+
+// Average of the cells [first, last) of one side
+ColorRgb sandAverageCells(const sand_rgb* cells, unsigned first, unsigned last)
+{
+    unsigned r = 0;
+    unsigned g = 0;
+    unsigned b = 0;
+    for (unsigned i = first; i < last; ++i)
+    {
+        r += cells[i].r;
+        g += cells[i].g;
+        b += cells[i].b;
+    }
+    const unsigned n = last - first;
+    return ColorRgb(static_cast<uint8_t>((r + n / 2) / n),
+                    static_cast<uint8_t>((g + n / 2) / n),
+                    static_cast<uint8_t>((b + n / 2) / n));
+}
+}
+
+/*
+ * LED mapping used by the Hyperion core (see ImageToLedsMap / LedString):
+ * every LED covers a rectangle given as fractions of the image (minX..maxX, minY..maxY).
+ * LEDs of the top edge cover y = [0, hDepth), bottom LEDs y = (1 - hDepth, 1],
+ * left LEDs x = [0, vDepth) and right LEDs x = (1 - vDepth, 1], and the colour of an LED
+ * is the mean of all image pixels in its rectangle. Only the border region of the image
+ * therefore influences the LEDs; the interior is never read.
+ *
+ * The fast path exploits this: it samples the colour of cells along the four edges of the
+ * source frame and writes them into the border pixels of a small output image:
+ *   - top:    rows [0, border),             cell i -> columns [i*W/nTop, (i+1)*W/nTop)
+ *   - bottom: rows [H-border, H),           cell i -> columns [i*W/nBottom, ...)
+ *   - left:   columns [0, border),          cell i -> rows    [i*H/nLeft, (i+1)*H/nLeft)
+ *   - right:  columns [W-border, W),        cell i -> rows    [i*H/nRight, ...)
+ * The interior stays black. Where more cells than output pixels exist the cells are
+ * averaged, with fewer cells a cell is replicated. Corner pixels belong to both a
+ * horizontal and a vertical side; left/right are written first, top/bottom win.
+ * The output size is the one the ImageResampler would produce (crop and pixel decimation),
+ * so the "border" setting should be at least the LED depth in pixels of that image
+ * (about hDepth * height / vDepth * width) to cover the whole area the LEDs average over.
+ */
+bool DRMFrameGrabber::processSandEdges(const drmModeFB2* fb, Image<ColorRgb>& image)
+{
+    const SandEdgeSettings& cfg = _sandSettings;
+    const uint64_t modifier = fb->modifier;
+    const int fbW = static_cast<int>(fb->width);
+    const int fbH = static_cast<int>(fb->height);
+
+    // The fast path does not implement flipping or 3D modes: use the legacy path
+    if (_flipMode != FlipMode::NO_CHANGE || _videoMode != VideoMode::VIDEO_2D)
+    {
+        return false;
+    }
+
+    const unsigned colHeight = fourcc_mod_broadcom_param(modifier);
+    if (colHeight == 0)
+    {
+        return false;
+    }
+
+    // Crop rectangle in luma px: x0/y0 rounded up, w/h rounded down to even values
+    const int x0 = (_cropLeft + 1) & ~1;
+    const int y0 = (_cropTop + 1) & ~1;
+    const int x1 = (fbW - _cropRight) & ~1;
+    const int y1 = (fbH - _cropBottom) & ~1;
+    if (x1 - x0 < 4 || y1 - y0 < 4)
+    {
+        return false;
+    }
+
+    // Output image size, identical to the one the ImageResampler would create
+    const int dec = std::max(1, _pixelDecimation);
+    const int outW = (fbW - _cropLeft - _cropRight - (dec >> 1) + dec - 1) / dec;
+    const int outH = (fbH - _cropTop - _cropBottom - (dec >> 1) + dec - 1) / dec;
+    if (outW < 3 || outH < 3)
+    {
+        return false;
+    }
+    const int border = std::clamp(static_cast<int>(cfg.borderPx), 1, (std::min(outW, outH) - 1) / 2);
+
+    sand_geom geom{};
+    geom.fmt = (_pixelFormat == PixelFormat::P030) ? SAND_P030 : SAND_NV12;
+    geom.x0 = static_cast<unsigned>(x0);
+    geom.y0 = static_cast<unsigned>(y0);
+    geom.w = static_cast<unsigned>(x1 - x0);
+    geom.h = static_cast<unsigned>(y1 - y0);
+    geom.col_height = colHeight;
+    geom.off_y = fb->offsets[0];
+    geom.off_c = fb->offsets[1];
+    geom.chroma_mode = SAND_CHROMA_AUTO;
+
+    const bool separateBuffer = fb->handles[1] != 0 && fb->handles[1] != fb->handles[0];
+    if (separateBuffer)
+    {
+        // Chroma lives in its own dma-buf: it can never be interleaved with the luma columns
+        geom.chroma_mode = SAND_CHROMA_SEPARATE;
+    }
+
+    sand_edge_cfg ec{};
+    ec.top = cfg.cellsTop ? cfg.cellsTop : static_cast<unsigned>(outW);
+    ec.bottom = cfg.cellsBottom ? cfg.cellsBottom : static_cast<unsigned>(outW);
+    ec.left = cfg.cellsLeft ? cfg.cellsLeft : static_cast<unsigned>(outH);
+    ec.right = cfg.cellsRight ? cfg.cellsRight : static_cast<unsigned>(outH);
+    ec.top = std::min(ec.top, geom.w);
+    ec.bottom = std::min(ec.bottom, geom.w);
+    ec.left = std::min(ec.left, geom.h);
+    ec.right = std::min(ec.right, geom.h);
+    ec.band_px = cfg.bandPx;
+    // Keep at least one sample per cell
+    const unsigned minCellW = std::max(1u, geom.w / std::max(1u, std::max(ec.top, ec.bottom)));
+    const unsigned minCellH = std::max(1u, geom.h / std::max(1u, std::max(ec.left, ec.right)));
+    ec.xdecim = std::clamp(cfg.xDecim, 1u, minCellW);
+    ec.ydecim = std::clamp(cfg.yDecim, 1u, minCellH);
+    ec.matrix = cfg.bt2020 ? SAND_BT2020 : SAND_BT709;
+    ec.full_range = cfg.fullRange ? 1 : 0;
+
+    // Initialise once, re-initialise only if geometry, format or configuration changed
+    if (!_sandSamplerInit || !sandGeomEqual(geom, _sandGeom) || !sandCfgEqual(ec, _sandCfg))
+    {
+        freeSandSampler();
+        const int rc = sand_sampler_init(&_sandSampler, &geom, &ec);
+        if (rc != 0)
+        {
+            Error(_log, "SAND edge sampler init failed (%s), using the full untile path", strerror(-rc));
+            _sandFailed = true;
+            return false;
+        }
+        _sandSamplerInit = true;
+        _sandGeom = geom;
+        _sandCfg = ec;
+        for (int side = 0; side < 4; ++side)
+        {
+            _sandCells[side].assign(_sandSampler.n[side], sand_rgb{0, 0, 0});
+        }
+        Info(_log, "SAND128 edge sampler: %s, %ux%u at %u,%u, column height %u, band %u px, decimation %ux%u, cells T/B/L/R %u/%u/%u/%u, output %dx%d (border %d)",
+             geom.fmt == SAND_P030 ? "P030" : "NV12", geom.w, geom.h, geom.x0, geom.y0, colHeight,
+             _sandSampler.cfg.band_px, _sandSampler.cfg.xdecim, _sandSampler.cfg.ydecim,
+             ec.top, ec.bottom, ec.left, ec.right, outW, outH, border);
+    }
+
+    // Mapping size: all columns of the luma plane, plus a separate chroma plane if any
+    const size_t colsY = DIV_ROUND_UP(static_cast<size_t>(fbW), sand_px_per_col(geom.fmt));
+    const sand_geom& sg = _sandSampler.g;
+    const bool chromaSeparate = sand_resolve_chroma(&sg) == SAND_CHROMA_SEPARATE;
+    const size_t sizeY = geom.off_y + colsY * sand_col_stride_y(&sg);
+    const size_t sizeC = geom.off_c + colsY * sand_col_stride_c(&sg);
+
+    SandDmaBufMap mapY;
+    SandDmaBufMap mapC;
+    int err = 0;
+    if (!mapY.map(_deviceFd, fb->handles[0], (chromaSeparate && !separateBuffer) ? std::max(sizeY, sizeC) : sizeY, err))
+    {
+        Error(_log, "SAND edge sampler: cannot map framebuffer (handle=%u): %s", fb->handles[0], strerror(err));
+        _sandFailed = true;
+        return false;
+    }
+
+    sand_maps maps{};
+    maps.y = mapY.data();
+    maps.y_size = mapY.size();
+    if (separateBuffer)
+    {
+        if (!mapC.map(_deviceFd, fb->handles[1], sizeC, err))
+        {
+            Error(_log, "SAND edge sampler: cannot map chroma framebuffer (handle=%u): %s", fb->handles[1], strerror(err));
+            _sandFailed = true;
+            return false;
+        }
+        maps.c = mapC.data();
+        maps.c_size = mapC.size();
+    }
+
+    sand_edge_out out{_sandCells[SAND_TOP].data(), _sandCells[SAND_BOTTOM].data(),
+                      _sandCells[SAND_LEFT].data(), _sandCells[SAND_RIGHT].data()};
+    const int rc = sand_sampler_run(&_sandSampler, &maps, &out);
+    if (rc != 0)
+    {
+        Error(_log, "SAND edge sampler failed (%s), using the full untile path from now on",
+              rc == -ERANGE ? "layout exceeds the buffer (-ERANGE)" : strerror(-rc));
+        _sandFailed = true;
+        return false;
+    }
+
+    // Write the cell colours into the border pixels of the output image
+    image.resize(outW, outH);
+    image.clear(ColorRgb::BLACK);
+
+    const auto cellRange = [](int pos, int len, unsigned n, unsigned& first, unsigned& last)
+    {
+        first = static_cast<unsigned>((static_cast<uint64_t>(pos) * n) / len);
+        last = std::max(first + 1, static_cast<unsigned>((static_cast<uint64_t>(pos + 1) * n) / len));
+        last = std::min(last, n);
+        first = std::min(first, last - 1);
+    };
+
+    unsigned first = 0;
+    unsigned last = 0;
+    // left / right: one colour per row
+    for (int y = 0; y < outH; ++y)
+    {
+        if (_sandSampler.n[SAND_LEFT])
+        {
+            cellRange(y, outH, _sandSampler.n[SAND_LEFT], first, last);
+            const ColorRgb c = sandAverageCells(_sandCells[SAND_LEFT].data(), first, last);
+            for (int x = 0; x < border; ++x)
+            {
+                image(x, y) = c;
+            }
+        }
+        if (_sandSampler.n[SAND_RIGHT])
+        {
+            cellRange(y, outH, _sandSampler.n[SAND_RIGHT], first, last);
+            const ColorRgb c = sandAverageCells(_sandCells[SAND_RIGHT].data(), first, last);
+            for (int x = outW - border; x < outW; ++x)
+            {
+                image(x, y) = c;
+            }
+        }
+    }
+    // top / bottom: one colour per column
+    for (int x = 0; x < outW; ++x)
+    {
+        if (_sandSampler.n[SAND_TOP])
+        {
+            cellRange(x, outW, _sandSampler.n[SAND_TOP], first, last);
+            const ColorRgb c = sandAverageCells(_sandCells[SAND_TOP].data(), first, last);
+            for (int y = 0; y < border; ++y)
+            {
+                image(x, y) = c;
+            }
+        }
+        if (_sandSampler.n[SAND_BOTTOM])
+        {
+            cellRange(x, outW, _sandSampler.n[SAND_BOTTOM], first, last);
+            const ColorRgb c = sandAverageCells(_sandCells[SAND_BOTTOM].data(), first, last);
+            for (int y = outH - border; y < outH; ++y)
+            {
+                image(x, y) = c;
+            }
+        }
+    }
+    return true;
+}
+
 int DRMFrameGrabber::grabFrame(Image<ColorRgb> &image, bool /*forceUpdate*/)
 {
     if (!_isEnabled || _isDeviceInError)
@@ -635,6 +987,15 @@ int DRMFrameGrabber::grabFrame(Image<ColorRgb> &image, bool /*forceUpdate*/)
             {
                 newImage = true;
             }
+        }
+        // Broadcom SAND128 edge fast path (NV12/P030); falls back to the full untile path on failure
+        else if ((modifier >> 56ULL) == DRM_FORMAT_MOD_VENDOR_BROADCOM &&
+                 fourcc_mod_broadcom_mod(modifier) == DRM_FORMAT_MOD_BROADCOM_SAND128 &&
+                 (_pixelFormat == PixelFormat::NV12 || _pixelFormat == PixelFormat::P030) &&
+                 _sandSettings.enabled && !_sandFailed &&
+                 processSandEdges(framebuffer, image))
+        {
+            newImage = true;
         }
         // Broadcom SAND path
         else if ((modifier >> 56ULL) == DRM_FORMAT_MOD_VENDOR_BROADCOM)
