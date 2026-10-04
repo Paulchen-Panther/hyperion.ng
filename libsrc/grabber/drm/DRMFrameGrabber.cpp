@@ -221,6 +221,7 @@ void DRMFrameGrabber::setSandEdgeSettings(const SandEdgeSettings& settings)
 
 bool DRMFrameGrabber::setupScreen()
 {
+    _sandFailed = false;
     freeResources();
     closeDevice();
 
@@ -637,12 +638,20 @@ public:
         }
 
         // Never map more than the buffer really has; the sampler reports -ERANGE on overrun
+        // (not every exporter supports lseek; if the size is unknown, trust the computed size)
         const off_t real = lseek(_fd, 0, SEEK_END);
-        if (real > 0 && static_cast<size_t>(real) < wantedSize)
+        if (real > 0)
         {
-            wantedSize = static_cast<size_t>(real);
+            if (static_cast<size_t>(real) < wantedSize)
+            {
+                wantedSize = static_cast<size_t>(real);
+            }
+            if (lseek(_fd, 0, SEEK_SET) < 0)
+            {
+                err = errno;
+                return false;
+            }
         }
-        lseek(_fd, 0, SEEK_SET);
 
         _ptr = mmap(nullptr, wantedSize, PROT_READ, MAP_SHARED, _fd, 0);
         if (_ptr == MAP_FAILED)
