@@ -34,6 +34,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define SAND_COL_BYTES 128u
 
 typedef enum { SAND_NV12 = 0, SAND_P030 = 1 } sand_fmt;
@@ -177,7 +181,7 @@ static inline int sand_band_fill(sand_band *b, const uint8_t *map,
 	const size_t need = (size_t)ncols * nlines * SAND_COL_BYTES;
 
 	if (need > b->cap) {
-		uint8_t *nb = realloc(b->buf, need);
+		uint8_t *nb = (uint8_t *)realloc(b->buf, need);
 		if (!nb)
 			return -ENOMEM;
 		b->buf = nb;
@@ -347,7 +351,7 @@ static inline int sand_sampler_init(sand_sampler *s, const sand_geom *g,
 	for (int i = 0; i < 4; i++) {
 		if (!s->n[i])
 			continue;
-		s->acc[i] = calloc(s->n[i], sizeof(sand_acc));
+		s->acc[i] = (sand_acc *)calloc(s->n[i], sizeof(sand_acc));
 		if (!s->acc[i]) {
 			sand_sampler_free(s);
 			return -ENOMEM;
@@ -461,5 +465,9 @@ static inline int sand_dump_ppm(const sand_geom *g0, const sand_maps *m,
 	fclose(f);
 	return 0;
 }
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
 
 #endif /* SAND_SAMPLE_H */
