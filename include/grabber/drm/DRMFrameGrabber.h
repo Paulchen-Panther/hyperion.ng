@@ -13,6 +13,7 @@
 #include <utils/ColorRgb.h>
 #include <utils/Logger.h>
 #include <hyperion/Grabber.h>
+#include <grabber/drm/sand_sample.h>
 #include <QLoggingCategory>
 
 // Utility includes
@@ -42,6 +43,22 @@ struct DrmResources {
 
 	std::vector<drmModeConnectorPtr_unique> connectors;
 	std::vector<drmModeCrtcPtr_unique> crtcs;
+};
+
+/// Settings of the Broadcom SAND128 edge-band fast path
+struct SandEdgeSettings
+{
+	bool enabled{true};          ///< enable the fast path
+	unsigned bandPx{16};         ///< band thickness in luma px
+	unsigned xDecim{2};          ///< x decimation inside the bands
+	unsigned yDecim{2};          ///< y decimation inside the bands
+	unsigned cellsTop{0};        ///< cells per side, 0 = auto (derived from the output image size)
+	unsigned cellsBottom{0};
+	unsigned cellsLeft{0};
+	unsigned cellsRight{0};
+	unsigned borderPx{1};        ///< border thickness in the output image
+	bool bt2020{false};          ///< colour matrix: false = BT.709, true = BT.2020
+	bool fullRange{false};       ///< false = limited (video) range
 };
 
 ///
@@ -141,7 +158,23 @@ public:
 	 */
 	QJsonObject discover(const QJsonObject& params);
 
+	/**
+	 * @brief Configures the Broadcom SAND128 edge-band fast path.
+	 * Changes take effect with the next grabbed frame (the sampler is re-initialised on demand).
+	 */
+	void setSandEdgeSettings(const SandEdgeSettings& settings);
+
 private:
+
+	/**
+	 * @brief Fast path for Broadcom SAND128 NV12/P030 framebuffers: reads only the border
+	 * bands of the frame and writes the cell colours into the border pixels of a small image.
+	 * @return True on success. False requests the caller to use the full untile path.
+	 */
+	bool processSandEdges(const drmModeFB2* framebuffer, Image<ColorRgb>& image);
+
+	/// Releases the persistent SAND edge sampler.
+	void freeSandSampler();
 
 	/**
 	 * @brief Releases all allocated DRM resources.
@@ -242,5 +275,14 @@ private:
 
 	/// The pixel format of the captured framebuffer.
 	PixelFormat _pixelFormat;
+
+	/// SAND128 edge fast path: configuration, persistent sampler and its cached inputs
+	SandEdgeSettings _sandSettings;
+	sand_sampler _sandSampler;
+	bool _sandSamplerInit;
+	bool _sandFailed;          ///< fast path failed once - stay on the legacy path until reconfigured
+	sand_geom _sandGeom;       ///< requested geometry the sampler was initialised with
+	sand_edge_cfg _sandCfg;    ///< requested config the sampler was initialised with
+	std::vector<sand_rgb> _sandCells[4];
 };
 
