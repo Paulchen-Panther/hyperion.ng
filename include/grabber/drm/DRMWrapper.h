@@ -39,11 +39,6 @@ public slots:
 	///
 	void action() override;
 
-	///
-	/// Applies the SAND edge fast path settings, then the common screen capture settings
-	///
-	void handleSettingsUpdate(settings::type type, const QJsonDocument& config) override;
-
 private:
 	/// The actual grabber
 	DRMFrameGrabber _grabber;
