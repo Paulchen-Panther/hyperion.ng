@@ -21,35 +21,41 @@
 #   LibDrmTap::LibDrmTap   - The libdrmtap library
 
 if(PKG_CONFIG_FOUND)
-  pkg_check_modules(PC_LIBDRMTAP libdrmtap QUIET)
+	pkg_check_modules(PC_LIBDRMTAP libdrmtap QUIET)
 endif()
 
-find_path(LIBDRMTAP_INCLUDE_DIR NAMES drmtap.h
-                                PATHS ${PC_LIBDRMTAP_INCLUDEDIR})
-find_library(LIBDRMTAP_LIBRARY NAMES drmtap
-                                PATHS ${PC_LIBDRMTAP_LIBDIR})
+find_path(LIBDRMTAP_INCLUDE_DIR
+	NAMES drmtap.h
+	PATHS ${PC_LIBDRMTAP_INCLUDEDIR}
+)
+
+find_library(LIBDRMTAP_LIBRARY
+	NAMES drmtap
+	PATHS ${PC_LIBDRMTAP_LIBDIR}
+)
 
 set(LIBDRMTAP_VERSION ${PC_LIBDRMTAP_VERSION})
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(LibDrmTap
-  REQUIRED_VARS
-    LIBDRMTAP_LIBRARY
-    LIBDRMTAP_INCLUDE_DIR
-  VERSION_VAR
-    LIBDRMTAP_VERSION
+	REQUIRED_VARS
+		LIBDRMTAP_LIBRARY
+		LIBDRMTAP_INCLUDE_DIR
+	VERSION_VAR
+		LIBDRMTAP_VERSION
 )
 
 if(LIBDRMTAP_FOUND)
-  set(LIBDRMTAP_LIBRARIES ${LIBDRMTAP_LIBRARY})
-  set(LIBDRMTAP_INCLUDE_DIRS ${LIBDRMTAP_INCLUDE_DIR})
+	set(LIBDRMTAP_LIBRARIES ${LIBDRMTAP_LIBRARY})
+	set(LIBDRMTAP_INCLUDE_DIRS ${LIBDRMTAP_INCLUDE_DIR})
 
-  if(NOT TARGET LibDrmTap::LibDrmTap)
-    add_library(LibDrmTap::LibDrmTap UNKNOWN IMPORTED)
-    set_target_properties(LibDrmTap::LibDrmTap PROPERTIES
-                                   IMPORTED_LOCATION "${LIBDRMTAP_LIBRARY}"
-                                   INTERFACE_INCLUDE_DIRECTORIES "${LIBDRMTAP_INCLUDE_DIR}")
-  endif()
+	if(NOT TARGET LibDrmTap::LibDrmTap)
+		add_library(LibDrmTap::LibDrmTap UNKNOWN IMPORTED)
+		set_target_properties(LibDrmTap::LibDrmTap PROPERTIES
+			IMPORTED_LOCATION "${LIBDRMTAP_LIBRARY}"
+			INTERFACE_INCLUDE_DIRECTORIES "${LIBDRMTAP_INCLUDE_DIR}"
+		)
+	endif()
 endif()
 
 mark_as_advanced(LIBDRMTAP_INCLUDE_DIR LIBDRMTAP_LIBRARY)

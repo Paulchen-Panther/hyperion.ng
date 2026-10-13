@@ -10,7 +10,6 @@
 #include <xf86drm.h>
 
 #ifdef HAVE_LIBDRMTAP
-// Optional fallback capture backend, see https://github.com/fxd0h/libdrmtap
 #include <drmtap.h>
 #endif
 
