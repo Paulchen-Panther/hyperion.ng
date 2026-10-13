@@ -882,7 +882,7 @@ if(ENABLE_LIBDRMTAP)
 		ExternalProject_Add(libdrmtap_external
 			PREFIX ${CMAKE_BINARY_DIR}/dependencies/external/libdrmtap
 			SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/libdrmtap
-			CONFIGURE_COMMAND ${MESON_EXECUTABLE} setup --prefix=<INSTALL_DIR> --buildtype=$<IF:$<CONFIG:Debug>,debug,release> -Dwerror=false -Dhelper=disable -Degl=auto <BINARY_DIR> <SOURCE_DIR>
+			CONFIGURE_COMMAND ${MESON_EXECUTABLE} setup --prefix=<INSTALL_DIR> --buildtype=$<IF:$<CONFIG:Debug>,debug,release> -Dwerror=false -Dhelper="disable" -Degl="auto" <BINARY_DIR> <SOURCE_DIR>
 			BUILD_COMMAND ${NINJA_EXECUTABLE} -C <BINARY_DIR>
 			INSTALL_COMMAND ${NINJA_EXECUTABLE} -C <BINARY_DIR> install
 			BUILD_BYPRODUCTS <BINARY_DIR>/libdrmtap${CMAKE_STATIC_LIBRARY_SUFFIX}
