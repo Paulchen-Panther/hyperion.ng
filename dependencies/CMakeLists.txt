@@ -863,7 +863,7 @@ endif(ENABLE_DEV_NETWORK)
 #=============================================================================
 
 if(ENABLE_LIBDRMTAP)
-	if(USE_SYSTEM_LIBDRMTAP_LIBS OR USE_PRE_BUILT_DEPS)
+	if(USE_SYSTEM_LIBDRMTAP_LIBS)
 		find_package(LibDrmTap REQUIRED)
 		if(TARGET LibDrmTap::LibDrmTap AND NOT TARGET drmtap)
 			add_library(drmtap INTERFACE IMPORTED GLOBAL)
