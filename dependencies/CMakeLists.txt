@@ -857,3 +857,186 @@ if(ENABLE_DEV_NETWORK)
 		endif()
 	endif()
 endif(ENABLE_DEV_NETWORK)
+
+#=============================================================================
+# libdrmtap
+#=============================================================================
+# libdrmtap (https://github.com/fxd0h/libdrmtap) has no CMake build of its own
+# (upstream ships a meson.build), so unlike the other external/* submodules
+# above it cannot be pulled in with add_subdirectory(). Instead, this section
+# compiles its sources directly, porting the logic of its meson.build.
+
+if(ENABLE_LIBDRMTAP)
+	if(USE_SYSTEM_LIBDRMTAP_LIBS)
+		find_package(LibDrmTap REQUIRED)
+	endif()
+
+	if(NOT USE_SYSTEM_LIBDRMTAP_LIBS)
+		set(LIBDRMTAP_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/libdrmtap")
+
+		if(NOT EXISTS "${LIBDRMTAP_SOURCE_DIR}/include/drmtap.h")
+			message(FATAL_ERROR "The libdrmtap submodule is not available (${LIBDRMTAP_SOURCE_DIR}/include/drmtap.h not found). "
+				"Fetch it with 'git submodule update --init -- dependencies/external/libdrmtap', "
+				"or set -DUSE_SYSTEM_LIBDRMTAP_LIBS=ON to use a system-installed copy instead.")
+		endif()
+
+		find_package(LibDRM 2.4.95 REQUIRED)
+		find_package(Threads REQUIRED)
+		find_package(PkgConfig QUIET)
+
+		# Library sources (always compiled, matching meson.build's lib_sources).
+		# Intel/AMD/Nvidia GPU backends are always compiled in (match functions
+		# needed by drm_grab.c); the EGL/GLES2 backend (gpu_egl.c) is headers-only
+		# at build time (see the HAVE_EGL block below) and dlopen()s its libraries
+		# lazily at runtime, so it is always compiled in as well.
+		add_library(drmtap STATIC
+			${LIBDRMTAP_SOURCE_DIR}/src/drmtap.c
+			${LIBDRMTAP_SOURCE_DIR}/src/drm_enumerate.c
+			${LIBDRMTAP_SOURCE_DIR}/src/drm_grab.c
+			${LIBDRMTAP_SOURCE_DIR}/src/gpu_generic.c
+			${LIBDRMTAP_SOURCE_DIR}/src/pixel_convert.c
+			${LIBDRMTAP_SOURCE_DIR}/src/gpu_intel.c
+			${LIBDRMTAP_SOURCE_DIR}/src/gpu_amd.c
+			${LIBDRMTAP_SOURCE_DIR}/src/gpu_nvidia.c
+			${LIBDRMTAP_SOURCE_DIR}/src/gpu_egl.c
+			${LIBDRMTAP_SOURCE_DIR}/src/cursor.c
+			${LIBDRMTAP_SOURCE_DIR}/src/privilege_helper.c
+		)
+		# Pure C library: prevent moc warnings/builds (CMAKE_AUTOMOC is ON project-wide).
+		set_target_properties(drmtap PROPERTIES AUTOMOC OFF)
+
+		target_include_directories(drmtap PUBLIC
+			${LIBDRMTAP_SOURCE_DIR}/include
+		)
+		target_include_directories(drmtap PRIVATE
+			${LIBDRMTAP_SOURCE_DIR}/src
+			${LIBDRM_INCLUDE_DIRS}
+		)
+
+		target_link_libraries(drmtap PUBLIC
+			${LIBDRM_LIBRARIES}
+			Threads::Threads
+		)
+
+		# libm: HDR tone-mapping (pow()) in pixel_convert.c.
+		find_library(LIBDRMTAP_M_LIBRARY m)
+		if(LIBDRMTAP_M_LIBRARY)
+			target_link_libraries(drmtap PUBLIC ${LIBDRMTAP_M_LIBRARY})
+		endif()
+
+		# HDR metadata (struct hdr_output_metadata): FindLibDRM.cmake already runs
+		# the identical probe (same headers, same struct) for its own HAVE_HDR_
+		# OUTPUT_METADATA, so reuse that result instead of repeating the check.
+		if(LIBDRM_HAS_HDR_OUTPUT_METADATA)
+			target_compile_definitions(drmtap PRIVATE HAVE_HDR_METADATA=1)
+		endif()
+
+		# Optional: VAAPI-accelerated Intel/AMD tiled->linear conversion.
+		if(PKG_CONFIG_FOUND)
+			pkg_check_modules(PC_LIBDRMTAP_VA QUIET libva)
+			pkg_check_modules(PC_LIBDRMTAP_VA_DRM QUIET libva-drm)
+		endif()
+		if(PC_LIBDRMTAP_VA_FOUND AND PC_LIBDRMTAP_VA_DRM_FOUND)
+			target_compile_definitions(drmtap PRIVATE HAVE_VAAPI=1)
+			target_include_directories(drmtap PRIVATE ${PC_LIBDRMTAP_VA_INCLUDE_DIRS} ${PC_LIBDRMTAP_VA_DRM_INCLUDE_DIRS})
+			target_link_libraries(drmtap PUBLIC ${PC_LIBDRMTAP_VA_LIBRARIES} ${PC_LIBDRMTAP_VA_DRM_LIBRARIES})
+			message(STATUS "libdrmtap VAAPI backend: enabled (Intel/AMD GPU-accelerated)")
+		else()
+			message(STATUS "libdrmtap VAAPI backend: disabled (match-only stubs)")
+		endif()
+
+		# Optional: EGL/GLES2 GPU-universal detiling backend. This stays headers-
+		# only here: libEGL/libGLESv2 are dlopen()'d lazily at runtime by
+		# src/gpu_egl.c, so they must never become a link dependency (DT_NEEDED)
+		# of this static library.
+		set(LIBDRMTAP_HAVE_EGL FALSE)
+		if(PKG_CONFIG_FOUND)
+			pkg_check_modules(PC_LIBDRMTAP_EGL QUIET egl)
+			pkg_check_modules(PC_LIBDRMTAP_GLESV2 QUIET glesv2)
+		endif()
+		if(PC_LIBDRMTAP_EGL_FOUND AND PC_LIBDRMTAP_GLESV2_FOUND)
+			include(CheckIncludeFiles)
+			set(CMAKE_REQUIRED_INCLUDES ${PC_LIBDRMTAP_EGL_INCLUDE_DIRS} ${PC_LIBDRMTAP_GLESV2_INCLUDE_DIRS})
+			check_include_files("EGL/egl.h;EGL/eglext.h" LIBDRMTAP_HAVE_EGL_HEADERS)
+			check_include_files("GLES2/gl2.h;GLES2/gl2ext.h" LIBDRMTAP_HAVE_GLES2_HEADERS)
+			unset(CMAKE_REQUIRED_INCLUDES)
+			if(LIBDRMTAP_HAVE_EGL_HEADERS AND LIBDRMTAP_HAVE_GLES2_HEADERS)
+				set(LIBDRMTAP_HAVE_EGL TRUE)
+			endif()
+		endif()
+		if(LIBDRMTAP_HAVE_EGL)
+			target_compile_definitions(drmtap PRIVATE HAVE_EGL=1)
+			target_include_directories(drmtap PRIVATE ${PC_LIBDRMTAP_EGL_INCLUDE_DIRS} ${PC_LIBDRMTAP_GLESV2_INCLUDE_DIRS})
+			target_link_libraries(drmtap PUBLIC ${CMAKE_DL_LIBS})
+			message(STATUS "libdrmtap EGL backend: enabled (GPU-universal detiling, lazy dlopen)")
+		else()
+			message(STATUS "libdrmtap EGL backend: disabled (stub only)")
+		endif()
+
+		# Hardening (matches the flags libdrmtap's own meson.build applies to the
+		# shared object a privileged service may dlopen): a stack canary, and
+		# _FORTIFY_SOURCE on optimized builds only (it needs an -O level; paired
+		# with -Werror, -O0 would otherwise turn its "requires -O" warning into a
+		# build failure for no benefit).
+		if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
+			target_compile_options(drmtap PRIVATE -fstack-protector-strong)
+			if(CMAKE_BUILD_TYPE AND NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+				target_compile_definitions(drmtap PRIVATE _FORTIFY_SOURCE=2)
+			endif()
+			# set_property(... LINK_FLAGS ...) rather than target_link_options()
+			# (CMake >= 3.13) to keep working with the project's declared
+			# cmake_minimum_required(VERSION 3.10.0).
+			set_property(TARGET drmtap APPEND_STRING PROPERTY LINK_FLAGS " -Wl,-z,relro -Wl,-z,now")
+		endif()
+
+		# Privileged helper executable: fails closed. It is confined by a
+		# seccomp allowlist and a capability drop, so both libseccomp and libcap
+		# are mandatory for it to be built at all; without them, the library
+		# still works, just without the drmtap-helper fallback for capturing
+		# without CAP_SYS_ADMIN.
+		if(PKG_CONFIG_FOUND)
+			pkg_check_modules(PC_LIBDRMTAP_SECCOMP QUIET libseccomp)
+			pkg_check_modules(PC_LIBDRMTAP_LIBCAP QUIET libcap)
+		endif()
+		if(PC_LIBDRMTAP_SECCOMP_FOUND AND PC_LIBDRMTAP_LIBCAP_FOUND)
+			add_executable(drmtap-helper ${LIBDRMTAP_SOURCE_DIR}/helper/drmtap-helper.c)
+			set_target_properties(drmtap-helper PROPERTIES AUTOMOC OFF)
+			target_include_directories(drmtap-helper PRIVATE
+				${LIBDRMTAP_SOURCE_DIR}/src
+				${LIBDRM_INCLUDE_DIRS}
+				${PC_LIBDRMTAP_SECCOMP_INCLUDE_DIRS}
+				${PC_LIBDRMTAP_LIBCAP_INCLUDE_DIRS}
+			)
+			target_compile_definitions(drmtap-helper PRIVATE HAVE_SECCOMP=1 HAVE_LIBCAP=1)
+			if(LIBDRM_HAS_HDR_OUTPUT_METADATA)
+				target_compile_definitions(drmtap-helper PRIVATE HAVE_HDR_METADATA=1)
+			endif()
+			target_link_libraries(drmtap-helper PRIVATE
+				${LIBDRM_LIBRARIES}
+				${PC_LIBDRMTAP_SECCOMP_LIBRARIES}
+				${PC_LIBDRMTAP_LIBCAP_LIBRARIES}
+			)
+			if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
+				target_compile_options(drmtap-helper PRIVATE -fstack-protector-strong)
+				if(CMAKE_BUILD_TYPE AND NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+					target_compile_definitions(drmtap-helper PRIVATE _FORTIFY_SOURCE=2)
+				endif()
+				set_property(TARGET drmtap-helper APPEND_STRING PROPERTY LINK_FLAGS " -Wl,-z,relro -Wl,-z,now")
+			endif()
+
+			message(STATUS "libdrmtap: drmtap-helper privileged helper will be built")
+			message(STATUS "libdrmtap: it must be installed and capability-confined manually, e.g.:")
+			message(STATUS "  sudo install -m 0750 -o root -g <capture-group> drmtap-helper /usr/libexec/drmtap-helper")
+			message(STATUS "  sudo setcap cap_sys_admin+ep /usr/libexec/drmtap-helper")
+		else()
+			message(STATUS "libdrmtap: libseccomp/libcap not found; drmtap-helper will not be built (library-only)")
+		endif()
+	endif()
+
+	if(TARGET LibDrmTap::LibDrmTap AND NOT TARGET drmtap)
+		add_library(drmtap INTERFACE IMPORTED GLOBAL)
+		set_target_properties(drmtap PROPERTIES
+			INTERFACE_LINK_LIBRARIES LibDrmTap::LibDrmTap
+		)
+	endif()
+endif()

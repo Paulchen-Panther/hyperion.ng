@@ -21,3 +21,6 @@
 [submodule "dependencies/external/libusb-cmake"]
 	path = dependencies/external/libusb-cmake
 	url = https://github.com/libusb/libusb-cmake
+[submodule "dependencies/external/libdrmtap"]
+	path = dependencies/external/libdrmtap
+	url = https://github.com/fxd0h/libdrmtap

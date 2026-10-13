@@ -181,6 +181,7 @@ set(DEFAULT_USE_SYSTEM_FLATBUFFERS_LIBS OFF)
 set(DEFAULT_USE_SYSTEM_PROTO_LIBS       OFF)
 set(DEFAULT_USE_SYSTEM_MBEDTLS_LIBS     OFF)
 set(DEFAULT_USE_SYSTEM_QMDNS_LIBS       OFF)
+set(DEFAULT_USE_SYSTEM_LIBDRMTAP_LIBS   OFF)
 
 # Tests
 set(DEFAULT_TESTS                       OFF)
@@ -381,6 +382,13 @@ else()
 endif()
 message(STATUS "ENABLE_DRM = ${ENABLE_DRM}")
 
+if(ENABLE_DRM)
+	option(ENABLE_LIBDRMTAP "Build the libdrmtap (https://github.com/fxd0h/libdrmtap) fallback capture backend for the DRM grabber" ON)
+else()
+	set(ENABLE_LIBDRMTAP OFF)
+endif()
+message(STATUS "ENABLE_LIBDRMTAP = ${ENABLE_LIBDRMTAP}")
+
 option(ENABLE_DX "Enable the DirectX grabber" ${DEFAULT_DX})
 message(STATUS "ENABLE_DX = ${ENABLE_DX}")
 
@@ -525,6 +533,11 @@ message(STATUS "USE_SYSTEM_MBEDTLS_LIBS = ${USE_SYSTEM_MBEDTLS_LIBS}")
 if(ENABLE_MDNS)
 	option(USE_SYSTEM_QMDNS_LIBS "Use QMdnsEngine library from system" ${DEFAULT_USE_SYSTEM_QMDNS_LIBS})
 	message(STATUS "USE_SYSTEM_QMDNS_LIBS = ${USE_SYSTEM_QMDNS_LIBS}")
+endif()
+
+if(ENABLE_LIBDRMTAP)
+	option(USE_SYSTEM_LIBDRMTAP_LIBS "Use libdrmtap library from system" ${DEFAULT_USE_SYSTEM_LIBDRMTAP_LIBS})
+	message(STATUS "USE_SYSTEM_LIBDRMTAP_LIBS = ${USE_SYSTEM_LIBDRMTAP_LIBS}")
 endif()
 
 removeIndent()
