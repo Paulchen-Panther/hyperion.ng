@@ -881,7 +881,7 @@ if(ENABLE_LIBDRMTAP)
 		include(ExternalProject)
 		ExternalProject_Add(libdrmtap_external
 			SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/libdrmtap
-			BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR}/external/libdrmtap/build
+			BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/external/libdrmtap/build
 			CONFIGURE_COMMAND ${MESON_EXECUTABLE} setup
 				--prefix=<INSTALL_DIR>
 				--buildtype=$<IF:$<CONFIG:Debug>,debug,release>
