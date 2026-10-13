@@ -87,6 +87,7 @@ jobs:
             ghcr.io/hyperion-project/debian:${{ env.DOCKER_TAG }} \
             /bin/bash -c "
               git config --global --add safe.directory /source &&
+              apt-get update && apt-get install -y --no-install-recommends meson pkg-config &&
               cmake --preset linux-${{ env.BUILD_TYPE }} ${{ steps.dependencies.outputs.cmakeArgs }} -DPLATFORM=${{ matrix.os.platform }} ${{ env.CPACK_SYSTEM_PROCESSOR }} &&
               cmake --build --preset linux-${{ env.BUILD_TYPE }} --target package &&
               cp /source/build/Hyperion-* /deploy/ 2>/dev/null"

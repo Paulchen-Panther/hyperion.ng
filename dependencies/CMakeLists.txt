@@ -876,7 +876,7 @@ if(ENABLE_LIBDRMTAP)
 		find_program(NINJA_EXECUTABLE ninja REQUIRED)
 		find_package(LibDRM 2.4.101 REQUIRED)
 		find_package(Threads REQUIRED)
-		find_package(PkgConfig QUIT)
+		find_package(PkgConfig QUIET)
 
 		include(ExternalProject)
 		ExternalProject_Add(libdrmtap_external
