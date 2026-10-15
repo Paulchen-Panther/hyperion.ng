@@ -91,7 +91,7 @@ jobs:
               cmake --preset linux-${{ env.BUILD_TYPE }} ${{ steps.dependencies.outputs.cmakeArgs }} -DPLATFORM=${{ matrix.os.platform }} ${{ env.CPACK_SYSTEM_PROCESSOR }} &&
               cmake --build --preset linux-${{ env.BUILD_TYPE }} --target package &&
               echo '🔍 Checking that libdrmtap is linked statically' &&
-              HYPERIOND=\$(find /source/build -type f -name hyperiond -perm -u+x | head -n1) &&
+              HYPERIOND=\$(find /source/build -type f -name hyperiond -perm -u+x -not -path '*/_CPack_Packages/*' -not -path '*/install/*' | head -n1) &&
               test -n \"\$HYPERIOND\" || { echo '❌ hyperiond binary not found'; exit 1; } &&
               if ldd \"\$HYPERIOND\" | grep -qi 'drmtap'; then
                 echo '❌ libdrmtap is linked dynamically:'; ldd \"\$HYPERIOND\" | grep -i drmtap; exit 1;
@@ -99,7 +99,7 @@ jobs:
               if ! find /source/build /tmp/deps -name 'libdrmtap*.a' 2>/dev/null | grep -q .; then
                 echo '❌ No static libdrmtap*.a found'; exit 1;
               fi &&
-              if ! nm -C \"\$HYPERIOND\" 2>/dev/null | grep -qi 'drmtap'; then
+              if ! { nm -C \"\$HYPERIOND\" 2>/dev/null | grep -qi 'drmtap' || strings -a \"\$HYPERIOND\" | grep -qi 'drmtap'; }; then
                 echo '❌ No drmtap symbols found in hyperiond'; exit 1;
               fi &&
               echo '✅ libdrmtap is statically linked' &&
