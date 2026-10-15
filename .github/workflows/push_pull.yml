@@ -22,7 +22,7 @@ jobs:
       fail-fast: false
       matrix:
         debian: [
-          { codename: [ 'bookworm', 'Bookworm' ] },
+          # { codename: [ 'bookworm', 'Bookworm' ] },
           { codename: [ 'trixie', 'Trixie' ] }
         ]
     uses: ./.github/workflows/debian.yml
@@ -31,33 +31,33 @@ jobs:
       codename: ${{ matrix.debian.codename[0] }}
       event_name: ${{ github.event_name }}
       pull_request_number: ${{ github.event.pull_request.number }}
-      publish: ${{ startsWith(github.event.ref, 'refs/tags') && matrix.debian.codename[0] == 'bullseye' }}
+      publish: ${{ startsWith(github.event.ref, 'refs/tags') && matrix.debian.codename[0] == 'bookworm' }}
 
-  # Build macOS Artifacts
-  macos:
-    name: 🍏 macOS
-    uses: ./.github/workflows/macos.yml
-    secrets: inherit
-    with:
-      event_name: ${{ github.event_name }}
-      pull_request_number: ${{ github.event.pull_request.number }}
-      publish: ${{ startsWith(github.event.ref, 'refs/tags') }}
+  # # Build macOS Artifacts
+  # macos:
+  #   name: 🍏 macOS
+  #   uses: ./.github/workflows/macos.yml
+  #   secrets: inherit
+  #   with:
+  #     event_name: ${{ github.event_name }}
+  #     pull_request_number: ${{ github.event.pull_request.number }}
+  #     publish: ${{ startsWith(github.event.ref, 'refs/tags') }}
 
-  # Build Windows Artifacts
-  windows:
-    name: 🪟 Windows
-    uses: ./.github/workflows/windows.yml
-    secrets: inherit
-    with:
-      event_name: ${{ github.event_name }}
-      pull_request_number: ${{ github.event.pull_request.number }}
-      publish: ${{ startsWith(github.event.ref, 'refs/tags') }}
+  # # Build Windows Artifacts
+  # windows:
+  #   name: 🪟 Windows
+  #   uses: ./.github/workflows/windows.yml
+  #   secrets: inherit
+  #   with:
+  #     event_name: ${{ github.event_name }}
+  #     pull_request_number: ${{ github.event.pull_request.number }}
+  #     publish: ${{ startsWith(github.event.ref, 'refs/tags') }}
 
   # Publish to GitHub
   github_publish:
     name: 🚀 Publish to GitHub
     if: startsWith(github.event.ref, 'refs/tags')
-    needs: [linux, macos, windows]
+    needs: [linux]
     runs-on: ubuntu-latest
     steps:
       - name: ⬇ Checkout

@@ -39,9 +39,9 @@ jobs:
       fail-fast: false
       matrix:
         os: [
-          { description: Linux (amd64),                       architecture: [ amd64, linux/amd64  ], platform: x11 },
-          { description: Raspberry Pi 1 & Zero 1 (armv6),     architecture: [ armv6, linux/arm/v6 ], platform: rpi },
-          { description: Raspberry Pi 2 (armv7),              architecture: [ armv7, linux/arm/v7 ], platform: rpi },
+          # { description: Linux (amd64),                       architecture: [ amd64, linux/amd64  ], platform: x11 },
+          # { description: Raspberry Pi 1 & Zero 1 (armv6),     architecture: [ armv6, linux/arm/v6 ], platform: rpi },
+          # { description: Raspberry Pi 2 (armv7),              architecture: [ armv7, linux/arm/v7 ], platform: rpi },
           { description: Raspberry Pi 3/4/5 & Zero 2 (arm64), architecture: [ arm64, linux/arm64  ], platform: rpi }
         ]
         target_lookup: [
@@ -112,7 +112,7 @@ jobs:
           HINT: ${{ steps.dependencies.outputs.cmakeArgs != '' && '(with pre-built dependencies)' || '(full build)' }}
 
       - name: 📦 Upload
-        if: ${{ inputs.publish || inputs.event_name == 'pull_request' }}
+        # if: ${{ inputs.publish || inputs.event_name == 'pull_request' }}
         uses: actions/upload-artifact@v7
         with:
           name: ${{ inputs.event_name == 'pull_request' && env.NAME || format('artifact-{0}', env.NAME) }}
