@@ -104,7 +104,7 @@ static QString getDrmModifierName(uint64_t modifier)
         if ((modifier & DRM_FORMAT_MOD_ARM_AFBC(0)) == DRM_FORMAT_MOD_ARM_AFBC(0))
             return "DRM_FORMAT_MOD_ARM_AFBC";
         return QString("DRM_FORMAT_MOD_ARM_UNKNOWN [0x%1]").arg(mod, 14, 16, QChar('0'));
-        
+
     default:
         break;
     }
@@ -638,6 +638,8 @@ int DRMFrameGrabber::grabFrame(Image<ColorRgb> &image, bool /*forceUpdate*/)
             if (processLinearFramebuffer(params))
             {
                 newImage = true;
+                Debug(_log, "DRM: using built-in linear framebuffer decoder (format: %s, modifier: %s)",
+                      QSTRING_CSTR(getDrmFormat(framebuffer->pixel_format)), QSTRING_CSTR(getDrmModifierName(modifier)));
             }
         }
         // Broadcom SAND path
@@ -646,6 +648,8 @@ int DRMFrameGrabber::grabFrame(Image<ColorRgb> &image, bool /*forceUpdate*/)
             if (processBroadcomSandFramebuffer(_deviceFd, framebuffer, w, h, _pixelFormat, _imageResampler, _log.data(), image, errorString))
             {
                 newImage = true;
+                Debug(_log, "DRM: using built-in Broadcom SAND decoder (format: %s, modifier: %s)",
+                      QSTRING_CSTR(getDrmFormat(framebuffer->pixel_format)), QSTRING_CSTR(getDrmModifierName(modifier)));
             }
         }
 #ifdef HAVE_LIBDRMTAP
@@ -743,6 +747,7 @@ bool DRMFrameGrabber::grabFrameWithLibDrmTap(Image<ColorRgb>& image)
             _imageResampler.processImage(static_cast<const uint8_t*>(frame.data), static_cast<int>(frame.width),
                                           static_cast<int>(frame.height), frame.stride, _pixelFormat, image);
             captured = true;
+            Debug(_log, "libdrmtap: captured frame (format: %s)", QSTRING_CSTR(getDrmFormat(frame.format)));
         }
     }
 
