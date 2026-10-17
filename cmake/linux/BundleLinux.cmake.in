@@ -68,6 +68,17 @@ endif()
 # Copy dependencies to 'share/hyperion/lib'
 file(INSTALL FILES ${PREREQUISITE_LIBS} DESTINATION "${CMAKE_INSTALL_PREFIX}/share/hyperion/lib")
 
+# Patch hardcoded RUNPATH (libproxy/libpxbackend)
+find_program(PATCHELF_EXECUTABLE patchelf)
+if(PATCHELF_EXECUTABLE)
+	foreach(LIB IN LISTS PREREQUISITE_LIBS)
+		if(NOT IS_SYMLINK "${LIB}" AND LIB MATCHES "libproxy|libpxbackend")
+			get_filename_component(NAME "${LIB}" NAME)
+			execute_process(COMMAND "${PATCHELF_EXECUTABLE}" --set-rpath "\$ORIGIN" "${CMAKE_INSTALL_PREFIX}/share/hyperion/lib/${NAME}")
+		endif()
+	endforeach()
+endif()
+
 # Create a qt.conf file in 'share/hyperion/bin' to override hard-coded search paths in Qt plugins
 file(WRITE "${CMAKE_INSTALL_PREFIX}/share/hyperion/bin/qt.conf" "[Paths]\nPlugins=../lib/\n")
 
