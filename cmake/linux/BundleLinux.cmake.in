@@ -70,15 +70,16 @@ file(INSTALL FILES ${PREREQUISITE_LIBS} DESTINATION "${CMAKE_INSTALL_PREFIX}/sha
 
 # Patch hardcoded RUNPATH (libproxy/libpxbackend)
 find_program(PATCHELF_EXECUTABLE patchelf)
-if(PATCHELF_EXECUTABLE)
-	foreach(LIB IN LISTS PREREQUISITE_LIBS)
-		if(NOT IS_SYMLINK "${LIB}" AND "${LIB}" MATCHES "libproxy|libpxbackend")
-			get_filename_component(NAME "${LIB}" NAME)
-			message("Patching RUNPATH: ${CMAKE_INSTALL_PREFIX}/share/hyperion/lib/${NAME}")
-			execute_process(COMMAND "${PATCHELF_EXECUTABLE}" --set-rpath "\$ORIGIN" "${CMAKE_INSTALL_PREFIX}/share/hyperion/lib/${NAME}")
-		endif()
-	endforeach()
+if(NOT PATCHELF_EXECUTABLE)
+	message(FATAL_ERROR "patchelf not found")
 endif()
+
+foreach(PREREQUISITE_LIB IN LISTS PREREQUISITE_LIBS)
+	if(NOT IS_SYMLINK "${PREREQUISITE_LIB}" AND "${PREREQUISITE_LIB}" MATCHES "libproxy|libpxbackend")
+		get_filename_component(LIB "${PREREQUISITE_LIB}" NAME)
+		execute_process(COMMAND "${PATCHELF_EXECUTABLE}" --set-rpath "\$ORIGIN" "${CMAKE_INSTALL_PREFIX}/share/hyperion/lib/${LIB}")
+	endif()
+endforeach()
 
 # Create a qt.conf file in 'share/hyperion/bin' to override hard-coded search paths in Qt plugins
 file(WRITE "${CMAKE_INSTALL_PREFIX}/share/hyperion/bin/qt.conf" "[Paths]\nPlugins=../lib/\n")
