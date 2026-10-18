@@ -9,9 +9,9 @@ set(CMAKE_BINARY_DIR "@CMAKE_BINARY_DIR@")
 set(SYSTEM_LIBS_SKIP "")
 list(APPEND SYSTEM_LIBS_SKIP
   libatomic libc libdbus libdl libexpat libfontconfig libgcc_s libgcrypt
-  libglib libglib-2 libgpg-error liblz4 liblzma libm libpcre libpcre2
-  libpthread librt libstdc++ libsystemd libudev libusb libusb-1 libutil
-  libuuid libz
+  libglib libglib-2 libgio-2 libgmodule-2 libgobject-2 libgpg-error liblz4
+  liblzma libm libpcre libpcre2 libpthread librt libstdc++ libsystemd
+  libudev libusb libusb-1 libutil libuuid libz
 )
 
 function(collect_dependencies input_file output_var)
@@ -70,18 +70,13 @@ file(INSTALL FILES ${PREREQUISITE_LIBS} DESTINATION "${CMAKE_INSTALL_PREFIX}/sha
 
 # Remove hardcoded RPATH/RUNPATH (libproxy/libpxbackend)
 find_program(PATCHELF_EXECUTABLE patchelf)
-if(PATCHELF_EXECUTABLE)
-	set(BUNDLE_LIB_DIR "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/share/hyperion/lib")
-	file(GLOB PROXY_LIBS "${BUNDLE_LIB_DIR}/libproxy.so*" "${BUNDLE_LIB_DIR}/libpxbackend-*.so")
-	foreach(LIB IN LISTS PROXY_LIBS)
-		if(NOT IS_SYMLINK "${LIB}")
-			message(STATUS "Removing RPATH/RUNPATH: ${LIB}")
-			execute_process(COMMAND "${PATCHELF_EXECUTABLE}" --remove-rpath "${LIB}")
-		endif()
-	endforeach()
-else()
-	message(FATAL_ERROR "patchelf not found")
-endif()
+set(BUNDLE_LIB_DIR "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/share/hyperion/lib")
+file(GLOB PROXY_LIBS "${BUNDLE_LIB_DIR}/libproxy.so*" "${BUNDLE_LIB_DIR}/libpxbackend-*.so")
+foreach(LIB IN LISTS PROXY_LIBS)
+	if(PATCHELF_EXECUTABLE AND NOT IS_SYMLINK "${LIB}")
+		execute_process(COMMAND "${PATCHELF_EXECUTABLE}" --remove-rpath "${LIB}")
+	endif()
+endforeach()
 
 # Create a qt.conf file in 'share/hyperion/bin' to override hard-coded search paths in Qt plugins
 file(WRITE "${CMAKE_INSTALL_PREFIX}/share/hyperion/bin/qt.conf" "[Paths]\nPlugins=../lib/\n")
