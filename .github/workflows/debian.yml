@@ -90,9 +90,9 @@ jobs:
               cmake --preset linux-${{ env.BUILD_TYPE }} ${{ steps.dependencies.outputs.cmakeArgs }} -DPLATFORM=${{ matrix.os.platform }} ${{ env.CPACK_SYSTEM_PROCESSOR }} &&
               cmake --build --preset linux-${{ env.BUILD_TYPE }} --target package &&
               cp /source/build/Hyperion-* /deploy/ 2>/dev/null &&
-              readelf -h /source/build/hyperiond | grep -E 'Class|Data|Machine|Flags' &&
-              readelf -h /source/build/hyperiond | grep 'Machine:' | sed 's/.*Machine:[[:space:]]*//' &&
-              readelf -A /source/build/hyperiond"
+              readelf -h /source/build/bin/hyperiond | grep -E 'Class|Data|Machine|Flags' &&
+              readelf -h /source/build/bin/hyperiond | grep 'Machine:' | sed 's/.*Machine:[[:space:]]*//' &&
+              readelf -A /source/build/bin/hyperiond"
         env:
           DOCKER_TAG: ${{ inputs.codename == 'bullseye' && matrix.os.architecture[0] == 'armv6' && inputs.codename || format('{0}-qt6', inputs.codename) }}
           BUILD_TYPE: ${{ inputs.event_name == 'pull_request' && 'debug' || 'release' }}
