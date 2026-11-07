@@ -176,6 +176,7 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	install(FILES ${CMAKE_SOURCE_DIR}/bin/scripts/updateHyperionUser.sh DESTINATION "share/hyperion/scripts" COMPONENT "Hyperion")
 
 	if(ENABLE_DEPLOY_DEPENDENCIES)
+		set(QT_BUNDLE_PLATFORMS "offscreen" CACHE STRING "Qt platform plugins to bundle (empty = all)")
 		configure_file("${CMAKE_SOURCE_DIR}/cmake/linux/BundleLinux.cmake.in" "${PROJECT_BINARY_DIR}/BundleLinux.cmake" @ONLY)
 		install(SCRIPT "${PROJECT_BINARY_DIR}/BundleLinux.cmake" COMPONENT "Hyperion")
 	endif()
