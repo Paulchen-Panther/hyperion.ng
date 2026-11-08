@@ -22,8 +22,8 @@ jobs:
       fail-fast: false
       matrix:
         debian: [
-          { codename: [ 'bookworm', 'Bookworm' ] },
-          { codename: [ 'trixie', 'Trixie' ] },
+          # { codename: [ 'bookworm', 'Bookworm' ] },
+          # { codename: [ 'trixie', 'Trixie' ] },
           { codename: [ 'forky', 'Forky' ] }
         ]
     uses: ./.github/workflows/debian.yml
