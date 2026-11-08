@@ -77,8 +77,3 @@ runs:
       if: always()
       shell: bash
       run: docker compose -f "${{ github.action_path }}/compose.yml" down -v || true
-      env:
-        distribution: ${{ inputs.distribution }}
-        codename: ${{ inputs.codename }}
-        platform: ${{ inputs.platform }}
-        PACKAGES_DIR: ${{ github.workspace }}/${{ inputs.packages_dir }}

@@ -2,17 +2,12 @@ services:
   hyperion:
     image: "ghcr.io/hyperion-project/${distribution}:${codename}"
     platform: "${platform}"
+    entrypoint: ["/usr/bin/env"]
     container_name: hyperion
     pull_policy: always
     command: |
       /bin/bash -c "
-      if [[ '${distribution}' == 'debian' ]] || [[ '${distribution}' == 'ubuntu' ]]; then
-        export DEBIAN_FRONTEND=noninteractive
-        apt-get update
-        apt-get install -y sudo lsb-release /packages/*.deb
-      else
-        dnf install -y sudo lsb-release /packages/*.rpm
-      fi
+      apt-get update && apt-get install -y sudo lsb-release /packages/*.deb
       useradd --create-home --shell /bin/bash hyperion
       chown hyperion:hyperion /home/hyperion
       exec sudo -u hyperion /usr/bin/hyperiond -v --service"
@@ -25,5 +20,7 @@ services:
     volumes:
       - config:/home/hyperion:rw
       - "${PACKAGES_DIR}:/packages:ro"
+    environment:
+      - DEBIAN_FRONTEND=noninteractive
 volumes:
   config:
