@@ -1,0 +1,29 @@
+services:
+  hyperion:
+    image: "ghcr.io/hyperion-project/${distribution}:${codename}"
+    platform: "${platform}"
+    container_name: hyperion
+    pull_policy: always
+    command: |
+      /bin/bash -c "
+      if [[ '${distribution}' == 'debian' ]] || [[ '${distribution}' == 'ubuntu' ]]; then
+        export DEBIAN_FRONTEND=noninteractive
+        apt-get update
+        apt-get install -y sudo lsb-release /packages/*.deb
+      else
+        dnf install -y sudo lsb-release /packages/*.rpm
+      fi
+      useradd --create-home --shell /bin/bash hyperion
+      chown hyperion:hyperion /home/hyperion
+      exec sudo -u hyperion /usr/bin/hyperiond -v --service"
+    ports:
+      - "19400:19400"
+      - "19444:19444"
+      - "19445:19445"
+      - "8090:8090"
+      - "8092:8092"
+    volumes:
+      - config:/home/hyperion:rw
+      - "${PACKAGES_DIR}:/packages:ro"
+volumes:
+  config:

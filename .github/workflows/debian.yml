@@ -96,6 +96,14 @@ jobs:
           ENTRYPOINT: ${{ matrix.os.architecture[0] != 'amd64' && '--entrypoint /usr/bin/env' || '' }}
           CPACK_SYSTEM_PROCESSOR: ${{ format('-DCPACK_SYSTEM_PROCESSOR={0}', matrix.target_lookup[format('{0}', matrix.os.architecture[0])]) || '' }}
 
+      - name: 🧪 Test
+        uses: ./.github/actions/test-package
+        with:
+          distribution: debian
+          codename: ${{ inputs.codename }}
+          platform: ${{ matrix.os.architecture[1] }}
+          packages_dir: deploy
+
       - name: 📦 Upload
         if: ${{ inputs.publish || inputs.event_name == 'pull_request' }}
         uses: actions/upload-artifact@v7

@@ -1,0 +1,84 @@
+name: Test Package
+description: Installs the built packages in a container (via Compose) and verifies that Hyperion starts
+
+inputs:
+  distribution:
+    description: Distribution (debian, ubuntu, fedora)
+    required: true
+  codename:
+    description: Codename or release (e.g. bookworm, noble, 42)
+    required: true
+  platform:
+    description: Docker platform (e.g. linux/amd64, linux/arm/v6)
+    required: true
+  packages_dir:
+    description: Directory containing the built packages
+    default: deploy
+    required: false
+  package_type:
+    description: Package extension (deb or rpm)
+    default: deb
+    required: false
+  timeout:
+    description: Maximum time in seconds to wait for the web UI to respond
+    default: '420'
+    required: false
+
+runs:
+  using: composite
+  steps:
+    - name: 🧪 Start container
+      shell: bash
+      run: docker compose -f "${{ github.action_path }}/compose.yml" up -d
+      env:
+        distribution: ${{ inputs.distribution }}
+        codename: ${{ inputs.codename }}
+        platform: ${{ inputs.platform }}
+        PACKAGES_DIR: ${{ github.workspace }}/${{ inputs.packages_dir }}
+
+    - name: 🧪 Test package
+      shell: bash
+      run: |
+        # Wait until the web UI responds
+        timeout=${{ inputs.timeout }}
+        for i in $(seq 1 $((timeout/5))); do
+          if curl -fsS http://localhost:8090/ >/dev/null 2>&1; then
+            echo "Web UI reachable after $((i*5))s"
+            break
+          fi
+          if [ "$(docker inspect -f '{{.State.Running}}' hyperion)" != "true" ]; then
+            echo "::error::Container is no longer running"
+            exit 1
+          fi
+          if [ "$i" -eq $((timeout/5)) ]; then
+            echo "::error::Web UI not reachable after ${timeout}s"
+            exit 1
+          fi
+          sleep 5
+        done
+
+        # JSON-RPC API
+        resp=$(curl -fsS -X POST http://localhost:8090/json-rpc \
+          -H 'Content-Type: application/json' \
+          -d '{"command":"serverinfo"}')
+        echo "$resp" | head -c 500; echo
+        echo "$resp" | grep -q '"success":true'
+
+        # Process and JSON server port
+        docker exec hyperion pgrep -x hyperiond
+        timeout 5 bash -c '</dev/tcp/127.0.0.1/19444'
+
+    - name: 📜 Container logs
+      if: always()
+      shell: bash
+      run: docker logs hyperion 2>&1 | tail -n 200 || true
+
+    - name: 🧹 Cleanup
+      if: always()
+      shell: bash
+      run: docker compose -f "${{ github.action_path }}/compose.yml" down -v || true
+      env:
+        distribution: ${{ inputs.distribution }}
+        codename: ${{ inputs.codename }}
+        platform: ${{ inputs.platform }}
+        PACKAGES_DIR: ${{ github.workspace }}/${{ inputs.packages_dir }}
