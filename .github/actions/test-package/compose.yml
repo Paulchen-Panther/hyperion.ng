@@ -1,6 +1,6 @@
 services:
   hyperion:
-    image: "ghcr.io/hyperion-project/${distribution}:${codename}"
+    image: "ghcr.io/paulchen-panther/${distribution}:${codename}"
     platform: "${platform}"
     entrypoint: ["/usr/bin/env"]
     container_name: hyperion
@@ -22,5 +22,6 @@ services:
       - "${PACKAGES_DIR}:/packages:ro"
     environment:
       - DEBIAN_FRONTEND=noninteractive
+      - QT_DEBUG_PLUGINS=1
 volumes:
   config:
