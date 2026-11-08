@@ -10,7 +10,7 @@ services:
       apt-get update && apt-get install -y sudo lsb-release /packages/*.deb
       useradd --create-home --shell /bin/bash hyperion
       chown hyperion:hyperion /home/hyperion
-      exec sudo -u hyperion /usr/bin/hyperiond -v --service"
+      exec sudo -u hyperion /usr/bin/hyperiond -d --service"
     ports:
       - "19400:19400"
       - "19444:19444"
