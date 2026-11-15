@@ -44,6 +44,10 @@ execute_process(
 	OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
+if(QT_PLUGINS_DIR STREQUAL "")
+	message(FATAL_ERROR "qmake returned no QT_INSTALL_PLUGINS path")
+endif()
+
 # Copy Qt plugins to 'share/hyperion/lib'
 foreach(PLUGIN "platforms" "sqldrivers" "imageformats" "tls" "wayland-shell-integration")
 	set(PLUGIN_DIR "${QT_PLUGINS_DIR}/${PLUGIN}")
@@ -67,6 +71,10 @@ foreach(PLUGIN "platforms" "sqldrivers" "imageformats" "tls" "wayland-shell-inte
 		endforeach()
 	endif()
 endforeach()
+
+if(NOT EXISTS "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/share/hyperion/lib/sqldrivers")
+	message(FATAL_ERROR "No sqldrivers plugin bundled")
+endif()
 
 # Append the OpenSSL library to the list
 if(OPENSSL_FOUND AND NOT OPENSSL_LIBRARIES STREQUAL "")
