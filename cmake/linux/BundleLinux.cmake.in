@@ -53,9 +53,9 @@ file(GET_RUNTIME_DEPENDENCIES
 	UNRESOLVED_DEPENDENCIES_VAR DEPS_UNRESOLVED
 )
 
-foreach(dep ${DEPS_UNRESOLVED})
-	message(ERROR "Runtime dependency ${dep} could not be resolved.")
-endforeach()
+if(DEPS_UNRESOLVED)
+	message(WARNING "Unresolved dependencies: ${DEPS_UNRESOLVED}")
+endif()
 
 # Copy dependencies with their symlink chains
 list(REMOVE_DUPLICATES DEPS)
