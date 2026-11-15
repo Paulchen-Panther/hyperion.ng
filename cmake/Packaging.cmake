@@ -11,12 +11,14 @@ elseif(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	set(CPACK_GENERATOR "TGZ")
 elseif(WIN32)
 	set(CPACK_GENERATOR "ZIP" "External")
-	# Overwrite CMAKE_SYSTEM_PROCESSOR for Windows (visual)
-	if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "AMD64")
+	# Normalize CMAKE_SYSTEM_PROCESSOR for Windows packages (x64 / arm64)
+	string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" _hyperion_proc)
+	if(_hyperion_proc MATCHES "^(amd64|x86_64|x64)$")
 		set(CMAKE_SYSTEM_PROCESSOR "x64")
-	elseif(${CMAKE_SYSTEM_PROCESSOR} MATCHES "ARM64")
+	elseif(_hyperion_proc MATCHES "^(arm64|aarch64)$")
 		set(CMAKE_SYSTEM_PROCESSOR "arm64")
 	endif()
+	unset(_hyperion_proc)
 endif()
 
 # Determine packages by found generator executables
@@ -110,6 +112,10 @@ if(WIN32)
 	set(CPACK_EXTERNAL_ENABLE_STAGING ON)
 	set(CPACK_BUILD_CONFIG ${CMAKE_BUILD_TYPE})
 	set(CPACK_SYSTEM_PROCESSOR ${CMAKE_SYSTEM_PROCESSOR})
+
+	# Build the installer executable itself as 64-bit (requires Inno Setup 7 or newer)
+	option(BUID_INNO_64BIT_INSTALLER "Build a 64-bit Inno Setup installer (requires Inno Setup 7+)" OFF)
+	set(CPACK_INNO_64BIT_INSTALLER ${BUID_INNO_64BIT_INSTALLER})
 endif()
 
 # Define the install components

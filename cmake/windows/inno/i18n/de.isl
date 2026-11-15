@@ -10,15 +10,14 @@ SetupTypeCustom=Benutzerdefinierte Installation
 StartMenuEntry=&Startmenüeintrag erstellen
 
 DesktopIcon=&Desktop-Symbol erstellen
-DesktopIconAllUsers=Für alle Benutzer
-DesktopIconCurrentUser=Für mich
 
 AddToPath_Group=Umgebungsvariable
 AddToPath=Hyperion Ordner zum Umgebungspfad hinzufügen
-AddToPathCurrentUser=Für mich
-AddToSystemAllUsers=Für alle Benutzer
 
 Autostart_Group=Autostart
 Autostart_Description=Hyperion beim Windows start automatisch ausführen
 
 VCRedistInstall=VC++ Laufzeitkomponenten werden installiert...
+
+RemoveOldVersionPrompt=Da sich der Installationspfad von Hyperion geändert hat, muss die vorhandene Version deinstalliert werden. Die Hyperion-Datenbank bleibt selbstverständlich unberührt. Möchtest du fortfahren?
+RemoveOldVersionFailed=Der alte Hyperion-Uninstaller konnte nicht ausgeführt werden. Bitte deinstalliere die alte Version zuerst manuell.

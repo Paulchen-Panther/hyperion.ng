@@ -15,6 +15,16 @@
 #define VCRedistVersionMajor
 #expr UnpackVersionComponents(StrToVersion(VCRedistVersion), VCRedistVersionMajor, null, null, null)
 
+; x64compatible / arm64 and {autopf} need Inno Setup 6.3 or newer
+#if Ver < EncodeVer(6, 3, 0)
+  #error Inno Setup 6.3.0 or newer is required to build this installer.
+#endif
+#ifdef Installer64Bit
+  #if Ver < EncodeVer(7, 0, 0)
+    #error A 64-bit installer (Installer64Bit) requires Inno Setup 7.0.0 or newer.
+  #endif
+#endif
+
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application.
 ; Do not use the same AppId value in installers for other applications.
@@ -54,8 +64,19 @@ DirExistsWarning=no
 AlwaysShowComponentsList=true
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
+#if Arch == "arm64"
+ArchitecturesAllowed=arm64
+ArchitecturesInstallIn64BitMode=arm64
+#else
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
+#endif
+#ifdef Installer64Bit
+#if Arch == "x64"
+; Inno Setup 7+: build the installer itself as 64-bit executable
+SetupArchitecture=x64
+#endif
+#endif
 RestartIfNeededByRun=no
 ChangesEnvironment=true
 CloseApplications=yes
@@ -98,24 +119,22 @@ Name: capture; Description: "Qt based standalone screen capture"; Types: full; F
 Name: menuicon; Description: "{cm:StartMenuEntry}"; GroupDescription: "{cm:AdditionalIcons}"; Components: runtime; Flags: checkedonce
 
 ;desktop icon
+;the icon goes to the desktop of the current user or of all users, depending on the install mode (see PrivilegesRequiredOverridesAllowed)
 Name: "desktopicon"; Description: "{cm:DesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Components: runtime; Flags: unchecked
-Name: "desktopicon\common"; Description: "{cm:DesktopIconAllUsers}"; GroupDescription: "{cm:AdditionalIcons}"; Components: runtime; Flags: exclusive
-Name: "desktopicon\user"; Description: "{cm:DesktopIconCurrentUser}"; GroupDescription: "{cm:AdditionalIcons}"; Components: runtime; Flags: exclusive checkedonce
 
 ;add to environment path
+;the system PATH is modified in admin install mode, otherwise the PATH of the current user (see modpath.iss)
 Name: "modifypath"; Description: "{cm:AddToPath}"; GroupDescription: "{cm:AddToPath_Group}:"; Flags: unchecked
-Name: "modifypath\system"; Description: "{cm:AddToSystemAllUsers}"; GroupDescription: "{cm:AddToPath_Group}:"; Flags: exclusive
-Name: "modifypath\user"; Description: "{cm:AddToPathCurrentUser}"; GroupDescription: "{cm:AddToPath_Group}"; Flags: exclusive checkedonce
 
 ;autostart
 Name: "autostart"; Description: "{cm:Autostart_Description}"; GroupDescription: "{cm:Autostart_Group}:"; Components: runtime; Flags: unchecked
 
 [InstallDelete]
-;Close Hyperion on Uninstall
+;Remove the old executable before the new files are installed
 Name: {app}\bin\hyperiond.exe; Type: files;
 
 ;This removes the desktop icon in case the user chooses not to install it after previously having it installed
-Name: {commondesktop}\Hyperion.lnk; Type: files; Check: not WizardIsTaskSelected('desktopicon')
+Name: {autodesktop}\Hyperion.lnk; Type: files; Check: not WizardIsTaskSelected('desktopicon')
 
 ;Removes the Uninstall icon from the start menu...
 Name: {group}\{cm:UninstallProgram,Hyperion}.lnk; Type: files;
@@ -155,33 +174,43 @@ Name: "{group}\{#AppName}"; Filename: "{app}\bin\hyperiond.exe"
 ;uninstaller
 Name: "{group}\{cm:UninstallProgram,{#AppName}}"; Filename: "{uninstallexe}"
 
-;common desktop icon
-Name: "{commondesktop}\Hyperion"; Filename: "{app}\bin\hyperiond.exe"; Tasks: desktopicon\common; Components: runtime
-;user desktop icon
-Name: "{userdesktop}\Hyperion"; Filename: "{app}\bin\hyperiond.exe"; Tasks: desktopicon\user; Components: runtime
+;desktop icon (all users in admin install mode, otherwise current user)
+Name: "{autodesktop}\Hyperion"; Filename: "{app}\bin\hyperiond.exe"; Tasks: desktopicon; Components: runtime
 
 [Run]
 Filename: "{tmp}\{#VCRedist}"; Parameters: "/install /quiet /norestart"; StatusMsg: "{cm:VCRedistInstall}"; Check: VCRedistNeeded;
-Filename: "{app}\bin\hyperiond.exe"; Description: "{cm:LaunchProgram,{#StringChange(AppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\bin\hyperiond.exe"; Description: "{cm:LaunchProgram,{#StringChange(AppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent runasoriginaluser
 
 [Code]
 const
   ModPathName = 'modifypath';
   ModPathPath = '{app}\bin';
 
-var
-  ModPathType: String;
-
 #include "modpath.iss"
 
-function VCRedistNeeded(): boolean;
+function VCRedistNeeded(): Boolean;
 var
-  regVersion: String;
+  Key: String;
+  Major, Minor, Bld, RBld: Cardinal;
+  MajorW, MinorW, BldW, RBldW: Word;
+  Installed, Required: Int64;
 begin
+  // Assume the redistributable is needed unless a new enough one is registered.
+  // The DWORD values are used on purpose: the string value "Version" has a leading "v".
   Result := True;
-  if (RegQueryStringValue(HKEY_LOCAL_MACHINE, ExpandConstant('SOFTWARE\Microsoft\VisualStudio\{#VCRedistVersionMajor}.0\VC\Runtimes\{#Arch}'), 'Version', regVersion)) then
+  Key := 'SOFTWARE\Microsoft\VisualStudio\{#VCRedistVersionMajor}.0\VC\Runtimes\{#Arch}';
+  if RegQueryDWordValue(HKLM, Key, 'Major', Major) and
+     RegQueryDWordValue(HKLM, Key, 'Minor', Minor) and
+     RegQueryDWordValue(HKLM, Key, 'Bld', Bld) and
+     RegQueryDWordValue(HKLM, Key, 'RBld', RBld) and
+     StrToVersion('{#VCRedistVersion}', Required) then
   begin
-    Result := (CompareStr(regVersion, ExpandConstant('{#VCRedistVersion}')) < 0);
+    MajorW := Major;
+    MinorW := Minor;
+    BldW := Bld;
+    RBldW := RBld;
+    Installed := PackVersionComponents(MajorW, MinorW, BldW, RBldW);
+    Result := (ComparePackedVersion(Installed, Required) < 0);
   end;
 end;
 
@@ -214,20 +243,20 @@ begin
 
   // Found, start uninstall
   if UninstallString <> '' then begin
-    if MsgBox('Since the installation path of Hyperion has changed, the existing version must be uninstalled. Of course, the Hyperion database remains unaffected. Do you want to continue?', mbInformation, MB_YESNO) <> IDYES then
+    if MsgBox(CustomMessage('RemoveOldVersionPrompt'), mbInformation, MB_YESNO) <> IDYES then
     begin
       Result := False;
       Exit;
     end;
 
     // Close hyperion since the uninstaller cannot do this
-    ShellExec('open', 'taskkill.exe', '/f /im hyperiond.exe', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-    Sleep(250)
+    Exec(ExpandConstant('{sys}\taskkill.exe'), '/f /im hyperiond.exe', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    Sleep(250);
 
     // Add this parameter to not return until uninstall finished. The drawback is that the uninstaller file is not deleted
     Param := '_?=' + ExtractFilePath(UninstallString);
     if not ShellExec('open', UninstallString, Param, '', SW_SHOW, ewWaitUntilTerminated, ResultCode) or (ResultCode <> 0) then begin
-      MsgBox('Failed to remove the old Hyperion uninstaller. Please manually uninstall the old version first.', mbError, MB_OK);
+      MsgBox(CustomMessage('RemoveOldVersionFailed'), mbError, MB_OK);
       Result := False;
       Exit;
     end else begin
@@ -293,16 +322,7 @@ end;
 
 procedure CurStepChanged(CurStep: TSetupStep);
 begin
-	if CurStep = ssPostInstall then begin
-    if WizardIsTaskSelected(ModPathName) then begin
-      if WizardIsTaskSelected(ModPathName + '\system') then begin
-        ModPathType := 'system';
-      end else begin
-        ModPathType := 'user';
-      end;
-    end;
-
-		if WizardIsTaskSelected(ModPathName) then
-			ModPath();
-	end;
+  // modpath.iss decides between system and user PATH by IsAdminInstallMode
+  if (CurStep = ssPostInstall) and WizardIsTaskSelected(ModPathName) then
+    ModPath();
 end;

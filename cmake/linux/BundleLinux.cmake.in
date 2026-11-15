@@ -54,7 +54,7 @@ file(GET_RUNTIME_DEPENDENCIES
 )
 
 if(DEPS_UNRESOLVED)
-	message(WARNING "Unresolved dependencies: ${DEPS_UNRESOLVED}")
+	message(STATUS "Unresolved dependencies: ${DEPS_UNRESOLVED}")
 endif()
 
 # Copy dependencies with their symlink chains
