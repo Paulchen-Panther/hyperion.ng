@@ -66,7 +66,7 @@ if(OPENSSL_FOUND AND NOT OPENSSL_LIBRARIES STREQUAL "")
 endif()
 
 # Copy dependencies to 'share/hyperion/lib'
-message(STATUS "Dependencies: ${PREREQUISITE_LIBS}")
+message("Dependencies: ${PREREQUISITE_LIBS}")
 file(INSTALL FILES ${PREREQUISITE_LIBS} DESTINATION "${CMAKE_INSTALL_PREFIX}/share/hyperion/lib")
 
 # Create a qt.conf file in 'share/hyperion/bin' to override hard-coded search paths in Qt plugins
