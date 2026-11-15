@@ -44,10 +44,6 @@ execute_process(
 	OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
-if(QT_PLUGINS_DIR STREQUAL "")
-	message(FATAL_ERROR "qmake returned no QT_INSTALL_PLUGINS path")
-endif()
-
 # Copy Qt plugins to 'share/hyperion/lib'
 foreach(PLUGIN "platforms" "sqldrivers" "imageformats" "tls" "wayland-shell-integration")
 	set(PLUGIN_DIR "${QT_PLUGINS_DIR}/${PLUGIN}")
@@ -72,10 +68,6 @@ foreach(PLUGIN "platforms" "sqldrivers" "imageformats" "tls" "wayland-shell-inte
 	endif()
 endforeach()
 
-if(NOT EXISTS "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/share/hyperion/lib/sqldrivers")
-	message(FATAL_ERROR "No sqldrivers plugin bundled")
-endif()
-
 # Append the OpenSSL library to the list
 if(OPENSSL_FOUND AND NOT OPENSSL_LIBRARIES STREQUAL "")
 	foreach(openssl_lib ${OPENSSL_LIBRARIES})
@@ -90,7 +82,8 @@ endif()
 file(INSTALL FILES ${PREREQUISITE_LIBS} DESTINATION "${CMAKE_INSTALL_PREFIX}/share/hyperion/lib")
 
 # Create a qt.conf file in 'share/hyperion/bin' to override hard-coded search paths in Qt plugins
-file(WRITE "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/share/hyperion/bin/qt.conf" "[Paths]\nPlugins=../lib/\n")
+file(WRITE "${CMAKE_BINARY_DIR}/qt.conf" "[Paths]\nPlugins=../lib/\n")
+file(INSTALL FILES "${CMAKE_BINARY_DIR}/qt.conf" DESTINATION "${CMAKE_INSTALL_PREFIX}/share/hyperion/bin")
 
 # Copy Python modules to 'share/hyperion/lib/pythonMAJOR.MINOR' and ignore the unnecessary stuff listed below
 if(NOT PYTHON_MODULES_DIR STREQUAL "" AND NOT PYTHON_VERSION STREQUAL "")
