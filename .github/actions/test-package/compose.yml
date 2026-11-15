@@ -14,7 +14,7 @@ services:
       ldd /usr/bin/hyperiond
       echo 'ldd libqsqlite'
       ldd /usr/share/hyperion/lib/sqldrivers/libqsqlite.so
-      /usr/bin/hyperiond -d --service"
+      /usr/share/hyperion/bin/hyperiond -d --service"
     ports:
       - "19400:19400"
       - "19444:19444"
