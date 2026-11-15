@@ -5,37 +5,13 @@ set(OPENSSL_LIBRARIES "@OPENSSL_LIBRARIES@")
 set(PYTHON_MODULES_DIR "@PYTHON_MODULES_DIR@")
 set(PYTHON_VERSION "@PYTHON_VERSION@")
 set(CMAKE_BINARY_DIR "@CMAKE_BINARY_DIR@")
-set(QT_BUNDLE_PLATFORMS "@QT_BUNDLE_PLATFORMS@")
 
-set(SYSTEM_LIBS_SKIP "")
-list(APPEND SYSTEM_LIBS_SKIP
-  libatomic libc libdbus libdl libexpat libfontconfig libgcc_s libgcrypt
-  libglib libglib-2 libgpg-error liblz4 liblzma libm libpcre libpcre2
-  libpthread librt libstdc++ libsystemd libudev libusb libusb-1 libutil
-  libuuid libz
+string(CONCAT SYSTEM_LIBS_SKIP
+    "libatomic|libc|libdbus-1|libdl|libexpat|libfontconfig|libgcc_s|"
+    "libgcrypt|libglib-2\\.0|libgpg-error|liblz4|liblzma|libm|libpcre|"
+    "libpcre2-[0-9]+|libpthread|librt|libstdc\\+\\+|libsystemd|libudev|"
+    "libusb-1\\.0|libutil|libuuid|libz|ld-linux[a-z0-9_-]*"
 )
-
-function(collect_dependencies input_file output_var)
-	include(GetPrerequisites)
-	get_prerequisites("${input_file}" LOCAL_DEPS 0 1 "" "")
-	foreach(DEP ${LOCAL_DEPS})
-		get_filename_component(resolved ${DEP} NAME_WE)
-		list(FIND SYSTEM_LIBS_SKIP ${resolved} _index)
-		if(_index GREATER -1)
-			continue()
-		endif()
-		gp_resolve_item("${input_file}" "${DEP}" "" "" resolved_file)
-		get_filename_component(resolved_file ${resolved_file} ABSOLUTE)
-		gp_append_unique(${output_var} ${resolved_file})
-		get_filename_component(file_canonical ${resolved_file} REALPATH)
-		gp_append_unique(${output_var} ${file_canonical})
-	endforeach()
-	set(${output_var} "${${output_var}}" PARENT_SCOPE)
-endfunction()
-
-# Extract dependencies ignoring the system ones
-set(PREREQUISITE_LIBS "")
-collect_dependencies("${CMAKE_BINARY_DIR}/bin/${PROJECT_NAME}" PREREQUISITE_LIBS)
 
 # Get Qt plugin path
 execute_process(
@@ -44,64 +20,71 @@ execute_process(
 	OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
-# Copy Qt plugins to 'share/hyperion/lib'
+set(PREREQUISITE_LIBS "")
 foreach(PLUGIN "platforms" "sqldrivers" "imageformats" "tls" "wayland-shell-integration")
-	set(PLUGIN_DIR "${QT_PLUGINS_DIR}/${PLUGIN}")
-	if(EXISTS ${PLUGIN_DIR})
-		file(GLOB PLUGIN_FILES "${PLUGIN_DIR}/*.so")
-		if(PLUGIN STREQUAL "platforms" AND NOT QT_BUNDLE_PLATFORMS STREQUAL "")
-			set(FILTERED_FILES "")
-			foreach(file ${PLUGIN_FILES})
-				get_filename_component(plugin_name "${file}" NAME_WE)
-				string(REGEX REPLACE "^libq" "" plugin_name "${plugin_name}")
-				list(FIND QT_BUNDLE_PLATFORMS "${plugin_name}" _plugin_index)
-				if(_plugin_index GREATER -1)
-					list(APPEND FILTERED_FILES "${file}")
-				endif()
-			endforeach()
-			set(PLUGIN_FILES ${FILTERED_FILES})
-		endif()
-		foreach(file ${PLUGIN_FILES})
-			collect_dependencies("${file}" PREREQUISITE_LIBS)
-			file(INSTALL FILES ${file} DESTINATION "${CMAKE_INSTALL_PREFIX}/share/hyperion/lib/${PLUGIN}")
-		endforeach()
+	file(GLOB PLUGIN_FILES "${QT_PLUGINS_DIR}/${PLUGIN}/*.so")
+	if(PLUGIN_FILES)
+		file(INSTALL ${PLUGIN_FILES}
+			DESTINATION "${CMAKE_INSTALL_PREFIX}/share/hyperion/lib/${PLUGIN}"
+			TYPE SHARED_LIBRARY
+			FOLLOW_SYMLINK_CHAIN
+		)
+		list(APPEND PREREQUISITE_LIBS ${PLUGIN_FILES})
 	endif()
 endforeach()
 
-# Append the OpenSSL library to the list
-if(OPENSSL_FOUND AND NOT OPENSSL_LIBRARIES STREQUAL "")
-	foreach(openssl_lib ${OPENSSL_LIBRARIES})
-		collect_dependencies(${openssl_lib} PREREQUISITE_LIBS)
-		gp_append_unique(PREREQUISITE_LIBS ${openssl_lib})
-		get_filename_component(file_canonical ${openssl_lib} REALPATH)
-		gp_append_unique(PREREQUISITE_LIBS ${file_canonical})
-	endforeach()
+# Install OpenSSL and append it to PREREQUISITE_LIBS
+if(OPENSSL_FOUND)
+	file(INSTALL ${OPENSSL_LIBRARIES}
+		DESTINATION "${CMAKE_INSTALL_PREFIX}/share/hyperion/lib"
+		TYPE SHARED_LIBRARY
+		FOLLOW_SYMLINK_CHAIN
+	)
+	list(APPEND PREREQUISITE_LIBS ${OPENSSL_LIBRARIES})
 endif()
 
-# Copy dependencies to 'share/hyperion/lib'
-file(INSTALL FILES ${PREREQUISITE_LIBS} DESTINATION "${CMAKE_INSTALL_PREFIX}/share/hyperion/lib")
+# Find the dependencies of the executable, the Qt plugins and OpenSSL
+list(REMOVE_DUPLICATES PREREQUISITE_LIBS)
+file(GET_RUNTIME_DEPENDENCIES
+	EXECUTABLES "${CMAKE_BINARY_DIR}/bin/${PROJECT_NAME}"
+	LIBRARIES ${PREREQUISITE_LIBS}
+	PRE_EXCLUDE_REGEXES "^(${SYSTEM_LIBS_SKIP})\\.so"
+	RESOLVED_DEPENDENCIES_VAR DEPS
+	UNRESOLVED_DEPENDENCIES_VAR DEPS_UNRESOLVED
+)
+
+foreach(dep ${DEPS_UNRESOLVED})
+	message(ERROR "Runtime dependency ${dep} could not be resolved.")
+endforeach()
+
+# Copy dependencies with their symlink chains
+list(REMOVE_DUPLICATES DEPS)
+file(INSTALL ${DEPS}
+	DESTINATION "${CMAKE_INSTALL_PREFIX}/share/hyperion/lib"
+	TYPE SHARED_LIBRARY
+	FOLLOW_SYMLINK_CHAIN
+)
 
 # Create a qt.conf file in 'share/hyperion/bin' to override hard-coded search paths in Qt plugins
 file(WRITE "${CMAKE_BINARY_DIR}/qt.conf" "[Paths]\nPlugins=../lib/\n")
-file(INSTALL FILES "${CMAKE_BINARY_DIR}/qt.conf" DESTINATION "${CMAKE_INSTALL_PREFIX}/share/hyperion/bin")
+file(INSTALL "${CMAKE_BINARY_DIR}/qt.conf"
+	DESTINATION "${CMAKE_INSTALL_PREFIX}/share/hyperion/bin"
+)
 
 # Copy Python modules to 'share/hyperion/lib/pythonMAJOR.MINOR' and ignore the unnecessary stuff listed below
 if(NOT PYTHON_MODULES_DIR STREQUAL "" AND NOT PYTHON_VERSION STREQUAL "")
-	string(REGEX MATCHALL "[0-9]+" VERSION ${PYTHON_VERSION})
-	list(GET VERSION 0 PYTHON_VERSION_MAJOR)
-	list(GET VERSION 1 PYTHON_VERSION_MINOR)
-	file(INSTALL
-		FILES ${PYTHON_MODULES_DIR}/
-		DESTINATION "${CMAKE_INSTALL_PREFIX}/share/hyperion/lib/python${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}"
-		PATTERN "*.pyc"														EXCLUDE # compiled bytecodes
-		PATTERN "__pycache__"												EXCLUDE # any cache
-		PATTERN "config-${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}*"	EXCLUDE # static libs
-		PATTERN "lib2to3"													EXCLUDE # automated Python 2 to 3 code translation
-		PATTERN "tkinter"													EXCLUDE # Tk interface
-		PATTERN "lib-dynload/_tkinter.*"									EXCLUDE
-		PATTERN "idlelib"													EXCLUDE
-		PATTERN "turtle.py"													EXCLUDE # Tk demo
-		PATTERN "test"														EXCLUDE # unittest module
-		PATTERN "sitecustomize.py"											EXCLUDE # site-specific configs
+	string(REGEX MATCH "^[0-9]+\\.[0-9]+" PYTHON_MAJOR_MINOR "${PYTHON_VERSION}")
+	file(INSTALL ${PYTHON_MODULES_DIR}/
+		DESTINATION "${CMAKE_INSTALL_PREFIX}/share/hyperion/lib/python${PYTHON_MAJOR_MINOR}"
+		PATTERN "*.pyc"                           EXCLUDE # compiled bytecodes
+		PATTERN "__pycache__"                     EXCLUDE # any cache
+		PATTERN "config-${PYTHON_MAJOR_MINOR}*"   EXCLUDE # static libs
+		PATTERN "lib2to3"                         EXCLUDE # automated Python 2 to 3 code translation
+		PATTERN "tkinter"                         EXCLUDE # Tk interface
+		PATTERN "lib-dynload/_tkinter.*"          EXCLUDE
+		PATTERN "idlelib"                         EXCLUDE
+		PATTERN "turtle.py"                       EXCLUDE # Tk demo
+		PATTERN "test"                            EXCLUDE # unittest module
+		PATTERN "sitecustomize.py"                EXCLUDE # site-specific configs
 	)
 endif()

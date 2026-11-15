@@ -8,12 +8,6 @@ services:
     command: |
       /bin/bash -c "
       apt-get update && apt-get install -y /packages/*.deb
-      dpkg -L hyperion | grep -E 'qt.conf|sqldrivers' || echo '>>> KEIN qt.conf/sqldrivers im Paket'
-      cat /usr/share/hyperion/bin/qt.conf || echo '>>> qt.conf fehlt'
-      echo 'ldd hyperiond'
-      ldd /usr/bin/hyperiond
-      echo 'ldd libqsqlite'
-      ldd /usr/share/hyperion/lib/sqldrivers/libqsqlite.so
       /usr/share/hyperion/bin/hyperiond -d --service"
     ports:
       - "19400:19400"

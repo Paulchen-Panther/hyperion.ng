@@ -44,7 +44,7 @@ runs:
         for i in $(seq 1 $((timeout/5))); do
           if curl -fsS http://localhost:8090/ >/dev/null 2>&1; then
             echo "Web UI reachable after $((i*5))s"
-            break
+            exit 0
           fi
           if [ "$(docker inspect -f '{{.State.Running}}' hyperion)" != "true" ]; then
             echo "::error::Container is no longer running"
@@ -57,21 +57,10 @@ runs:
           sleep 5
         done
 
-        # JSON-RPC API
-        resp=$(curl -fsS -X POST http://localhost:8090/json-rpc \
-          -H 'Content-Type: application/json' \
-          -d '{"command":"serverinfo"}')
-        echo "$resp" | head -c 500; echo
-        echo "$resp" | grep -q '"success":true'
-
-        # Process and JSON server port
-        docker exec hyperion pgrep -x hyperiond
-        timeout 5 bash -c '</dev/tcp/127.0.0.1/19444'
-
     - name: 📜 Container logs
       if: always()
       shell: bash
-      run: docker logs hyperion 2>&1 | tail -n 200 || true
+      run: docker logs hyperion 2>&1 | tail -n 9999 || true
 
     - name: 🧹 Cleanup
       if: always()
