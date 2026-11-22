@@ -1,5 +1,3 @@
-# Downloads the pre-built dependencies described in PreBuiltPresets.json and sets PRE_BUILT_DEPS_DIR
-# to the extracted directory. If anything goes wrong, PRE_BUILT_DEPS_DIR stays empty (-> full build).
 include_guard(GLOBAL)
 
 if(CMAKE_VERSION VERSION_LESS "3.19")
@@ -7,41 +5,42 @@ if(CMAKE_VERSION VERSION_LESS "3.19")
 	return()
 endif()
 
-# OS key (macos | windows | <distro>_<codename>) and architecture key of the pre-built dependencies
 if(APPLE)
 	set(_os "macos")
 elseif(WIN32)
 	set(_os "windows")
-elseif(EXISTS "/etc/os-release")
-	file(STRINGS "/etc/os-release" _id REGEX "^ID=")
-	file(STRINGS "/etc/os-release" _codename REGEX "^VERSION_CODENAME=")
-	string(REGEX REPLACE "^[A-Z_]+=|\"" "" _id "${_id}")
-	string(REGEX REPLACE "^[A-Z_]+=|\"" "" _codename "${_codename}")
-	# Raspbian is a Debian rebuild for armv6 and uses the Debian pre-built dependencies
-	if(_id STREQUAL "raspbian")
-		set(_id "debian")
-	endif()
-	set(_os "${_id}_${_codename}")
+elseif(UNIX)
+	set(_os "linux")
 else()
-	set(_os "unknown")
+	message(WARNING "Unsupported operating system - cannot fetch pre-built dependencies")
+	return()
 endif()
 
-# Inside emulated containers the kernel reports the host architecture (e.g. armv7l/aarch64 for armv6),
-# so an explicitly given CPACK_SYSTEM_PROCESSOR takes precedence
 if(CPACK_SYSTEM_PROCESSOR)
-	string(TOLOWER "${CPACK_SYSTEM_PROCESSOR}" _arch)
+	string(TOLOWER "${CPACK_SYSTEM_PROCESSOR}" _arch_raw)
 else()
-	string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" _arch)
+	string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" _arch_raw)
 endif()
 
-string(REGEX REPLACE "^aarch64$" "arm64" _arch "${_arch}")
-string(REGEX REPLACE "^(armv[67]).*" "\\1" _arch "${_arch}")
-if(_arch MATCHES "^(x86_64|amd64)$")
-	if(APPLE OR WIN32)
+if(CMAKE_SIZEOF_VOID_P EQUAL 4)
+	if(_os STREQUAL "linux")
+		# All 32-bit Linux targets (armv6, armv7)
+		set(_arch "armhf")
+	else()
+		message(WARNING "32-bit ${_os} is not supported - cannot fetch pre-built dependencies")
+		return()
+	endif()
+elseif(CMAKE_SIZEOF_VOID_P EQUAL 8)
+	if(_arch_raw MATCHES "^(aarch64|arm64)")
+		set(_arch "arm64")
+	elseif(APPLE OR WIN32)
 		set(_arch "x64")
 	else()
 		set(_arch "amd64")
 	endif()
+else()
+	message(WARNING "Could not determine pointer size (CMAKE_SIZEOF_VOID_P='${CMAKE_SIZEOF_VOID_P}') - cannot fetch pre-built dependencies")
+	return()
 endif()
 
 file(READ "${CMAKE_SOURCE_DIR}/PreBuiltSpecs.json" _deps)
@@ -81,13 +80,13 @@ if(NOT EXISTS "${_dir}")
 		return()
 	endif()
 
-	# Extract to a temporary directory first, so an aborted run never leaves a half-extracted folder behind
 	file(REMOVE_RECURSE "${_dir}.tmp")
 	file(MAKE_DIRECTORY "${_dir}.tmp")
 	execute_process(COMMAND ${CMAKE_COMMAND} -E tar xzf "${_archive}"
 		WORKING_DIRECTORY "${_dir}.tmp"
 		RESULT_VARIABLE _code
 	)
+
 	file(REMOVE "${_archive}")
 	if(NOT _code EQUAL 0)
 		file(REMOVE_RECURSE "${_dir}.tmp")

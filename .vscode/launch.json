@@ -42,7 +42,7 @@
         "MIMode": "gdb"
       },
       "osx": {
-        "program": "${command:cmake.launchTargetDirectory}/Hyperion.app/Contents/MacOS/Hyperion",
+        "program": "${command:cmake.launchTargetDirectory}/Hyperion",
         "MIMode": "lldb"
       }
     },
@@ -78,7 +78,7 @@
         "MIMode": "gdb"
       },
       "osx": {
-        "program": "${command:cmake.launchTargetDirectory}/Hyperion.app/Contents/MacOS/Hyperion",
+        "program": "${command:cmake.launchTargetDirectory}/Hyperion",
         "MIMode": "lldb"
       }
     },
@@ -115,7 +115,7 @@
         "MIMode": "gdb"
       },
       "osx": {
-        "program": "${command:cmake.launchTargetDirectory}/Hyperion.app/Contents/MacOS/Hyperion",
+        "program": "${command:cmake.launchTargetDirectory}/Hyperion",
         "MIMode": "lldb"
       }
     },
@@ -152,7 +152,7 @@
         "MIMode": "gdb"
       },
       "osx": {
-        "program": "${command:cmake.launchTargetDirectory}/Hyperion.app/Contents/MacOS/Hyperion",
+        "program": "${command:cmake.launchTargetDirectory}/Hyperion",
         "MIMode": "lldb"
       }
     },
